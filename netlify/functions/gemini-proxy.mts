@@ -36,11 +36,11 @@ export default async (req: Request, context: Context) => {
 
   try {
     const url = new URL(req.url);
-    // Remove /api/gemini prefix to get the relative Google path
-    const cleanPath = url.pathname.replace(/^\/api\/gemini/, '');
+    // Remove /api/gemini prefix and ensure the path starts with a single slash
+    let cleanPath = url.pathname.replace(/^\/api\/gemini/, '');
+    if (!cleanPath.startsWith('/')) cleanPath = '/' + cleanPath;
     
     // Construct the destination URL
-    // We add the key as a query param (standard for Gemini)
     const googleEndpoint = new URL(`https://generativelanguage.googleapis.com${cleanPath}`);
     googleEndpoint.searchParams.set('key', apiKey);
 
