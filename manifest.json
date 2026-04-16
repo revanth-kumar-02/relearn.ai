@@ -1,0 +1,22 @@
+{
+  "short_name": "ReLearn.ai",
+  "name": "ReLearn.ai - AI-Powered Learning Platform",
+  "description": "An AI-powered personalized learning platform that generates study plans, provides interactive workspaces, and tracks your progress.",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#13a4ec",
+  "background_color": "#ffffff",
+  "orientation": "portrait"
+}

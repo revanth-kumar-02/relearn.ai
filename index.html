@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: https://i.ytimg.com https://image.pollinations.ai https://pollinations.ai; connect-src 'self' https://*.supabase.co wss://*.supabase.co *.supabase.co wss://uflcypwtplruaurvwbje.supabase.co https://generativelanguage.googleapis.com https://www.googleapis.com https://api.openai.com https://formspree.io; frame-src https://www.youtube.com; worker-src 'self' blob: https://cdnjs.cloudflare.com;" />
+  <meta name="theme-color" content="#13a4ec" />
+  <meta name="description"
+    content="ReLearn.ai — An AI-powered personalized learning platform. Generate custom study plans, track progress, and learn smarter with AI assistance." />
+  <meta name="keywords"
+    content="AI learning, study planner, personalized education, learning platform, AI tutor, study tracker" />
+  <meta property="og:title" content="ReLearn.ai - AI-Powered Learning Platform" />
+  <meta property="og:description"
+    content="Generate custom study plans, track progress, and learn smarter with AI assistance." />
+  <meta property="og:type" content="website" />
+  <title>ReLearn.ai — AI-Powered Learning</title>
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" type="image/png" href="/logo.png" />
+  <link rel="apple-touch-icon" href="/logo.png" />
+
+  <!-- Preconnect to external resources -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preconnect" href="https://image.pollinations.ai" />
+  <link rel="preconnect" href="https://generativelanguage.googleapis.com" />
+  <link rel="preconnect" href="https://www.googleapis.com" />
+    <link rel="dns-prefetch" href="https://image.pollinations.ai" />
+
+  <!-- Consolidated Google Fonts Import with swap -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Lexend:wght@100..900&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&family=Playfair+Display:wght@700&display=swap"
+    rel="stylesheet" />
+
+  <!-- Material Symbols Styling -->
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      overflow-x: hidden;
+      width: 100%;
+      position: relative;
+      scroll-behavior: smooth;
+    }
+
+    img {
+      content-visibility: auto;
+      image-rendering: -webkit-optimize-contrast;
+    }
+
+    .material-symbols-outlined {
+      font-family: 'Material Symbols Outlined' !important;
+      font-weight: normal;
+      font-style: normal;
+      font-size: 24px;
+      line-height: 1;
+      letter-spacing: normal;
+      text-transform: none !important;
+      display: inline-block;
+      white-space: nowrap;
+      word-wrap: normal;
+      direction: ltr;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+      -moz-osx-font-smoothing: grayscale;
+      font-feature-settings: 'liga';
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      font-display: swap;
+    }
+
+    .material-symbols-outlined.filled {
+      font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+
+    body {
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Mobile Only Scrollbar Hiding */
+    @media (max-width: 767px) {
+      ::-webkit-scrollbar {
+        display: none !important;
+      }
+
+      * {
+        -ms-overflow-style: none !important;
+        scrollbar-width: none !important;
+      }
+    }
+
+    /* Optional class for elements that should always hide scrollbars */
+    .no-scrollbar-always::-webkit-scrollbar {
+      display: none;
+    }
+
+    .no-scrollbar-always {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    /* Ensure icons don't block input clicks */
+    .input-icon {
+      pointer-events: none;
+      user-select: none;
+    }
+
+    /* Yoyo Marquee Animation */
+    @keyframes yoyo {
+      0%, 10% { transform: translateX(0); }
+      90%, 100% { transform: translateX(var(--scroll-dist, 0)); }
+    }
+
+    .marquee-container {
+      overflow: hidden;
+      width: 100%;
+      position: relative;
+    }
+
+    .marquee-content {
+      display: flex;
+      gap: 1.5rem;
+      width: max-content;
+      will-change: transform;
+    }
+
+    .marquee-content.animating {
+      animation: yoyo 20s ease-in-out infinite alternate;
+    }
+
+    .marquee-content:hover {
+      animation-play-state: paused;
+    }
+
+    @media (max-width: 768px) {
+      .marquee-content.animating {
+        animation-duration: 30s;
+      }
+    }
+  </style>
+</head>
+
+<body
+  class="bg-background-light dark:bg-background-dark text-text-primary-light dark:text-text-primary-dark font-display">
+  <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').catch(err => {
+            console.log('SW registration failed: ', err);
+          });
+        });
+      }
+    </script>
+  </body>
+</html>

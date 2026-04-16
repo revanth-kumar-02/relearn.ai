@@ -1,0 +1,32 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+  functions = "netlify/functions"
+
+# NOTE: Set the YOUTUBE_API_KEY environment variable in the
+# Netlify Dashboard → Site → Environment Variables.
+# This keeps the key server-side only (never in the browser bundle).
+
+[[redirects]]
+  from = "/api/gemini/*"
+  to = "/.netlify/functions/gemini-proxy"
+  status = 200
+
+[[redirects]]
+  from = "/api/openai/*"
+  to = "/.netlify/functions/openai-proxy"
+  status = 200
+
+# Redirect all routes to index.html for SPA (HashRouter)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Security headers
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Cross-Origin-Opener-Policy = "same-origin-allow-popups"

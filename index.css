@@ -1,0 +1,334 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ReLearn.ai — Global Styles */
+/* This file is served as /index.css by Vite's static file server */
+
+/* =============================================
+   CUSTOM PROPERTIES (CSS Variables)
+   ============================================= */
+@layer base {
+  :root {
+    --color-primary: #13a4ec;
+    --color-primary-dark: #0A4D68;
+    --color-secondary: #088395;
+    --color-bg-light: #f6f7f8;
+    --color-bg-dark: #101c22;
+    --color-surface-light: #ffffff;
+    --color-surface-dark: #18262f;
+    --color-text-primary-light: #101c22;
+    --color-text-primary-dark: #f6f7f8;
+    --color-text-secondary-light: #475569;
+    --color-text-secondary-dark: #94a3b8;
+    --color-border-light: #e2e8f0;
+    --color-border-dark: #334155;
+  }
+}
+
+/* =============================================
+   FOCUS OUTLINE ACCESSIBILITY
+   ============================================= */
+@layer base {
+  *:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+
+  /* =============================================
+     SMOOTH SCROLLING
+     ============================================= */
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* =============================================
+   CUSTOM SCROLLBAR (Desktop)
+   ============================================= */
+@media (min-width: 768px) {
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #CBD5E1;
+    border-radius: 3px;
+  }
+  .dark ::-webkit-scrollbar-thumb {
+    background: #334155;
+  }
+}
+
+/* =============================================
+   TRANSITIONS FOR THEME SWITCHING
+   ============================================= */
+@layer base {
+  body,
+  body * {
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+  }
+}
+
+/* =============================================
+   BOTTOM NAV SAFE AREA (iOS)
+   ============================================= */
+@layer utilities {
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* =============================================
+     UTILITY: GLASS CARD
+     ============================================= */
+  .glass-card {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+  .dark .glass-card {
+    background: rgba(24, 38, 47, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  /* =============================================
+     UTILITY: GRADIENT TEXT
+     ============================================= */
+  .gradient-text {
+    background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+}
+
+/* =============================================
+   MARKDOWN / PROSE STYLES
+   ============================================= */
+@layer components {
+  .prose-content h1,
+  .prose-content h2,
+  .prose-content h3 {
+    font-weight: 800;
+    line-height: 1.2;
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+    color: var(--color-text-primary-light);
+  }
+  .dark .prose-content h1,
+  .dark .prose-content h2,
+  .dark .prose-content h3 {
+    color: var(--color-text-primary-dark);
+  }
+
+  .prose-content h1 { font-size: 1.875rem; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.5rem; }
+  .prose-content h2 { font-size: 1.5rem; }
+  .prose-content h3 { font-size: 1.25rem; }
+
+  .prose-content p { 
+    margin-bottom: 1.5rem; 
+    line-height: 1.8; 
+    font-size: 1rem;
+  }
+  
+  .prose-content ul, .prose-content ol {
+    padding-left: 1.5rem;
+    margin-bottom: 1.5rem;
+    list-style-type: disc;
+  }
+  .prose-content ol {
+    list-style-type: decimal;
+  }
+
+  .prose-content li { 
+    margin-bottom: 0.75rem; 
+    line-height: 1.6;
+  }
+
+  .prose-content strong {
+    font-weight: 700;
+    color: var(--color-primary);
+  }
+
+  .prose-content code {
+    background: rgba(19, 164, 236, 0.1);
+    color: var(--color-primary);
+    padding: 0.2em 0.4em;
+    border-radius: 6px;
+    font-size: 0.9em;
+    font-weight: 600;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  }
+
+  .prose-content pre {
+    background: #0f172a;
+    color: #f8fafc;
+    padding: 1.5rem;
+    border-radius: 1rem;
+    overflow-x: auto;
+    margin: 1.5rem 0;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  }
+
+  .prose-content pre code {
+    background: transparent;
+    color: inherit;
+    padding: 0;
+    font-size: 0.875rem;
+    font-weight: 400;
+  }
+
+  .prose-content blockquote {
+    border-left: 4px solid var(--color-primary);
+    padding: 1rem 1.5rem;
+    background: rgba(19, 164, 236, 0.05);
+    border-radius: 0 0.5rem 0.5rem 0;
+    color: var(--color-text-secondary-light);
+    font-style: italic;
+    margin: 1.5rem 0;
+  }
+  .dark .prose-content blockquote {
+    color: var(--color-text-secondary-dark);
+    background: rgba(19, 164, 236, 0.1);
+  }
+
+  .prose-content hr {
+    margin: 2.5rem 0;
+    border: 0;
+    border-top: 1px solid var(--color-border-light);
+  }
+  .dark .prose-content hr {
+    border-top: 1px solid var(--color-border-dark);
+  }
+
+  /* Compact override for chat / small UI components */
+  .prose-compact h1, .prose-compact h2, .prose-compact h3 { margin-top: 1rem; font-size: 1rem; }
+  .prose-compact p { margin-bottom: 0.75rem; font-size: 0.9375rem; }
+
+  /* =============================================
+     LOADING SKELETON ANIMATION
+     ============================================= */
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+  .skeleton {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 0.375rem;
+  }
+  .dark .skeleton {
+    background: linear-gradient(90deg, #18262f 25%, #1e2f3a 50%, #18262f 75%);
+    background-size: 200% 100%;
+  }
+
+  /* =============================================
+     BADGE / PILL UTILITY
+     ============================================= */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.125rem 0.625rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1;
+  }
+
+  /* =============================================
+     SWIPEABLE CARD ANIMATION
+     ============================================= */
+  .swipe-card {
+    will-change: transform;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+  }
+
+  /* =============================================
+     BOTTOM SHEET DRAG HANDLE
+     ============================================= */
+  .drag-handle {
+    width: 2.5rem;
+    height: 0.25rem;
+    background-color: #CBD5E1;
+    border-radius: 9999px;
+    margin: 0 auto;
+  }
+  .dark .drag-handle {
+    background-color: #475569;
+  }
+}
+
+/* =============================================
+   INPUT AUTO-FILL STYLES (Chrome override)
+   ============================================= */
+@layer base {
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0px 1000px #fff inset;
+    transition: background-color 5000s ease-in-out 0s;
+  }
+  .dark input:-webkit-autofill,
+  .dark input:-webkit-autofill:hover,
+  .dark input:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0px 1000px #18262f inset;
+    -webkit-text-fill-color: #f6f7f8;
+  }
+}
+
+/* =============================================
+   PROACTIVE RESPONSIVENESS (Edge-Case Fixes)
+   ============================================= */
+@layer base {
+  /* Prevent horizontal scroll from long single words or complex flex elements */
+  * {
+    overflow-wrap: break-word;
+    min-width: 0;
+  }
+
+  /* Root level safety */
+  body {
+    overflow-x: hidden;
+    position: relative;
+    width: 100%;
+  }
+
+  /* Image preservation for varying DPIs */
+  img {
+    max-width: 100%;
+    height: auto;
+    object-fit: cover;
+  }
+}
+
+/* =============================================
+   ACCESSIBILITY: REDUCED MOTION SUPPORT
+   ============================================= */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* =============================================
+   ULTRA-COMPACT DEVICE SUPPORT (< 360px)
+   ============================================= */
+@media (max-width: 360px) {
+  :root {
+    font-size: 14px;
+  }
+  .container {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+  h1 { font-size: 1.5rem !important; }
+}
