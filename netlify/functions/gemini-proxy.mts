@@ -12,7 +12,8 @@ export default async (req: Request, context: Context) => {
   }
 
   // Ensure we have server-side keys
-  const apiKey = Netlify.env.get("GEMINI_API_KEY") || Netlify.env.get("VITE_GEMINI_API_KEY");
+  // @ts-ignore - process.env available in Netlify Functions
+  const apiKey = (process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || "").trim();
   
   if (!apiKey) {
     console.error("[gemini-proxy] GEMINI_API_KEY missing");
@@ -41,6 +42,7 @@ export default async (req: Request, context: Context) => {
       method: req.method,
       headers: {
         'Content-Type': req.headers.get('Content-Type') || 'application/json',
+        'x-goog-api-key': apiKey, // Also pass in header for safety
       },
       // Only attach body for non-GET/HEAD requests
       body: (req.method !== 'GET' && req.method !== 'HEAD') ? await req.text() : undefined

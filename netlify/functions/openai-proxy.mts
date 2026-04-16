@@ -11,7 +11,8 @@ export default async (req: Request, context: Context) => {
     });
   }
 
-  const apiKey = Netlify.env.get("OPENAI_API_KEY") || Netlify.env.get("VITE_OPENAI_API_KEY");
+  // @ts-ignore
+  const apiKey = (process.env.OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY || "").trim();
   
   if (!apiKey) {
     console.error("[openai-proxy] OPENAI_API_KEY missing");

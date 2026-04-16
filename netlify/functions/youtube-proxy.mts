@@ -27,7 +27,8 @@ export default async (req: Request, _context: Context) => {
     });
   }
 
-  const apiKey = Netlify.env.get("YOUTUBE_API_KEY");
+  // @ts-ignore
+  const apiKey = (process.env.YOUTUBE_API_KEY || "").trim();
   if (!apiKey) {
     return new Response(
       JSON.stringify({ error: "YouTube API key is not configured on the server." }),
