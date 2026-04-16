@@ -11,12 +11,11 @@ export default async (req: Request, context: Context) => {
     });
   }
 
-  // Ensure we have server-side keys
-  // @ts-ignore - process.env available in Netlify Functions
+  // @ts-ignore
   const apiKey = (process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || "").trim();
   
   if (!apiKey) {
-    console.error("[gemini-proxy] GEMINI_API_KEY missing");
+    console.error("[gemini-proxy] API key missing");
     return new Response(JSON.stringify({ error: "Server Configuration Error" }), { 
       status: 500,
       headers: { 'Content-Type': 'application/json' }
@@ -24,42 +23,40 @@ export default async (req: Request, context: Context) => {
   }
 
   try {
-    // Reconstruct the Google API URL
-    // The incoming URL from the frontend will look like: 
-    // /api/gemini/v1alpha/models/gemini-pro:generateContent
     const url = new URL(req.url);
-    const path = url.pathname.replace('/api/gemini', '');
+    // The incoming path looks like: /api/gemini/v1beta/models/gemini-1.5-flash:generateContent
+    // We want to keep everything after /api/gemini
+    const cleanPath = url.pathname.replace('/api/gemini', '');
     
-    const targetUrl = new URL(`https://generativelanguage.googleapis.com${path}`);
-    // Add all original search params (like ?key= if the SDK sends a placeholder)
-    url.searchParams.forEach((val, key) => targetUrl.searchParams.set(key, val));
-    
-    // Override with the real server-side key
-    targetUrl.searchParams.set('key', apiKey);
+    // Construct the destination URL
+    const googleEndpoint = `https://generativelanguage.googleapis.com${cleanPath}?key=${apiKey}`;
 
-    // Forward the exact request
-    const response = await fetch(targetUrl.toString(), {
+    // Read the body once
+    const requestBody = (req.method !== 'GET' && req.method !== 'HEAD') ? await req.text() : undefined;
+
+    // Forward the request to Google
+    const response = await fetch(googleEndpoint, {
       method: req.method,
       headers: {
         'Content-Type': req.headers.get('Content-Type') || 'application/json',
-        'x-goog-api-key': apiKey, // Also pass in header for safety
       },
-      // Only attach body for non-GET/HEAD requests
-      body: (req.method !== 'GET' && req.method !== 'HEAD') ? await req.text() : undefined
+      body: requestBody
     });
 
-    const data = await response.text();
+    const responseText = await response.text();
 
-    return new Response(data, {
+    return new Response(responseText, {
       status: response.status,
       headers: {
         "Content-Type": response.headers.get("Content-Type") || "application/json",
         "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
       },
     });
 
   } catch (error: any) {
-    console.error("[gemini-proxy] Exception:", error);
+    console.error("[gemini-proxy] Proxy error:", error);
     return new Response(JSON.stringify({ error: error.message }), { 
       status: 500,
       headers: { 'Content-Type': 'application/json' }
