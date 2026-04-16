@@ -52,6 +52,7 @@ export default async (req: Request, context: Context) => {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        "X-Proxy-Debug-Key-Prefix": apiKey.substring(0, 6),
       },
     });
 
