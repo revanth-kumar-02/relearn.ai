@@ -39,10 +39,6 @@ const EmailVerificationModal: React.FC = () => {
     }
   };
 
-  const openMailApp = () => {
-    triggerHaptic('light');
-    window.open('mailto:', '_blank');
-  };
 
   return (
     <AnimatePresence>
@@ -84,13 +80,10 @@ const EmailVerificationModal: React.FC = () => {
               I have verified
             </button>
 
-            <button
-              onClick={openMailApp}
-              className="w-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-text-primary-light dark:text-text-primary-dark font-semibold py-4 rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-2"
-            >
-              <Icon name="mail_outline" />
-              Open Mail App
-            </button>
+            <div className="w-full bg-gray-50 dark:bg-white/5 text-text-secondary-light dark:text-text-secondary-dark font-medium py-4 rounded-2xl flex items-center justify-center gap-2.5 border border-gray-100 dark:border-white/5 shadow-inner">
+              <Icon name="outgoing_mail" className="text-primary" />
+              Check your email for the link
+            </div>
 
             <div className="flex gap-4 pt-2">
               <button
