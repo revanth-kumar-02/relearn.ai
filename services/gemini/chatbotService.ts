@@ -6,7 +6,7 @@ import { sanitizeInput } from "../utils/sanitize";
  * Non-streaming chatbot
  */
 export const sendChatMessage = async (message: string, history: { role: 'user' | 'model', parts: { text: string }[] }[], userContext?: string): Promise<string> => {
-  const ai = getProxyConfiguredGenAI();
+  const ai = getProxyConfiguredGenAI('chat');
   const modelsToTry = [AI_MODELS.CHAT, ...AI_MODELS.FALLBACK_CHAIN.filter(m => m !== AI_MODELS.CHAT)];
   let lastError: any = null;
 
@@ -45,7 +45,7 @@ export const sendChatMessageStreaming = async (
   onChunk: (accumulatedText: string) => void,
   userContext?: string
 ): Promise<string> => {
-  const ai = getProxyConfiguredGenAI();
+  const ai = getProxyConfiguredGenAI('chat');
   const modelsToTry = [AI_MODELS.CHAT, ...AI_MODELS.FALLBACK_CHAIN.filter(m => m !== AI_MODELS.CHAT)];
   let lastError: any = null;
 

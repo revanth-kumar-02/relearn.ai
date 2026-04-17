@@ -14,7 +14,7 @@ export const generateLessonContent = async (
   pdfContent?: string
 ): Promise<string> => {
   try {
-    const ai = getProxyConfiguredGenAI();
+    const ai = getProxyConfiguredGenAI('learning');
 
     // Build the prompt dynamically based on whether PDF content is available
     const pdfSection = pdfContent

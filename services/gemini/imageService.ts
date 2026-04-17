@@ -27,7 +27,7 @@ Quality: 8k resolution, award-winning 3D design.`;
 };
 
 const generateWithNanoBanana = async (topic: string, signal?: AbortSignal): Promise<string | null> => {
-  const ai = getProxyConfiguredGenAI();
+  const ai = getProxyConfiguredGenAI('image');
   const prompt = generateNanoBananaPrompt(sanitizeInput(topic));
 
   try {

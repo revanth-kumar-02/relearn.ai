@@ -24,7 +24,7 @@ export const generateQuiz = async (
   lessonContent: string,
   difficulty: string = 'Beginner'
 ): Promise<QuizResult> => {
-  const ai = getProxyConfiguredGenAI();
+  const ai = getProxyConfiguredGenAI('learning');
   const modelsToTry = [AI_MODELS.PRIMARY, ...AI_MODELS.FALLBACK_CHAIN.filter(m => m !== AI_MODELS.PRIMARY)];
   let lastError: any = null;
 

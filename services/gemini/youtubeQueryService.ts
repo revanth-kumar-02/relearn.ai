@@ -20,7 +20,7 @@ export const generateYouTubeSearchQuery = async (
     : `${sanitizeInput(topic)} explained lecture course${langSuffix}`;
 
   try {
-    const ai = getProxyConfiguredGenAI();
+    const ai = getProxyConfiguredGenAI('learning');
     const videoLangInstruction = videoLanguage && videoLanguage !== 'English'
       ? `\n- The user wants videos in ${sanitizeInput(videoLanguage)}. Append "in ${sanitizeInput(videoLanguage)}" to the query.`
       : '';

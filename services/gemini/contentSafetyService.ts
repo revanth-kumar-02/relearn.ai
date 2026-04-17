@@ -48,7 +48,7 @@ export const validateTopicSafety = async (
   model: string = AI_MODELS.FAST_LITE,
   signal?: AbortSignal
 ): Promise<SafetyValidationResult> => {
-  const ai = getProxyConfiguredGenAI();
+  const ai = getProxyConfiguredGenAI('plan');
   const request = buildSafetyRequest(topic);
 
   // First try with the FAST model, then fallback to PRIMARY

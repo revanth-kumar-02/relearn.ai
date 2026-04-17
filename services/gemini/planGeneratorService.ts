@@ -95,7 +95,7 @@ export const generateLearningPlan = async (
   userContext?: string,
   signal?: AbortSignal
 ): Promise<string> => {
-  const ai = getProxyConfiguredGenAI();
+  const ai = getProxyConfiguredGenAI('plan');
   const request = buildPlanRequest(goal, days, difficulty, userContext);
 
   const modelsToTry = [model, ...AI_MODELS.FALLBACK_CHAIN.filter(m => m !== model)];
