@@ -110,6 +110,7 @@ export interface User {
   weakSubjects?: string[];
   strongSubjects?: string[];
   stats?: UserStats;
+  isVerified?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }

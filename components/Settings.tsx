@@ -14,7 +14,7 @@ import {
 
 const Settings: React.FC = () => {
   const navigate = useNavigate();
-  const { user, deleteAccount, updateProfile } = useAuth();
+  const { user, deleteAccount, logout, updateProfile } = useAuth();
   const { refreshData, videoLanguage, updateVideoLanguage } = useData();
   const { resetTutorial } = useTutorial();
   
@@ -25,6 +25,11 @@ const Settings: React.FC = () => {
       setIsRefreshing(true);
       await refreshData();
       setTimeout(() => setIsRefreshing(false), 800);
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
   };
 
   const handleClearData = () => {
@@ -155,10 +160,18 @@ const Settings: React.FC = () => {
 
           {/* Actions Section */}
           <div className="space-y-3 pt-4">
-            <div className="flex justify-center">
+            <div className="flex flex-col items-center gap-2">
+                <button 
+                    onClick={handleLogout}
+                    className="w-full max-w-sm flex items-center justify-center gap-2 bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 text-text-primary-light dark:text-text-primary-dark font-bold py-4 rounded-2xl transition-all active:scale-[0.98] shadow-sm"
+                >
+                    <span className="material-symbols-outlined">logout</span>
+                    <span>Log Out</span>
+                </button>
+
                 <button 
                     onClick={handleClearData}
-                    className="flex items-center gap-2 px-6 py-3 text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 transition-colors group active:scale-95"
+                    className="flex items-center gap-2 px-6 py-3 text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 transition-colors group active:scale-95 mt-2"
                 >
                     <span className="material-symbols-outlined text-xl">delete_sweep</span>
                     <span className="text-sm font-bold tracking-tight">Clear All Local Data</span>

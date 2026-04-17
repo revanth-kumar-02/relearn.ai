@@ -31,8 +31,7 @@ const CreateAccount: React.FC = () => {
         const result = await signup(name, email, password);
 
         if (result.success) {
-            startTutorial();
-            navigate('/dashboard');
+            // No redirect - verification modal will appear via App.tsx
         } else {
             setError(result.message || "We couldn't save your changes right now. Let's try that again.");
         }

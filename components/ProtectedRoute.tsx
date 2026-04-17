@@ -21,6 +21,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     return <Navigate to="/" replace />;
   }
 
+  // If user is not verified, the EmailVerificationModal in App.tsx will block interaction.
+  // We can still allow rendering here so the layout doesn't "jump" when verified.
+  
   return <>{children}</>;
 };
 

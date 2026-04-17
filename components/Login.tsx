@@ -13,7 +13,7 @@ const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (user) {
+    if (user && user.isVerified) {
       navigate('/dashboard');
     }
   }, [user, navigate]);
@@ -28,10 +28,8 @@ const Login: React.FC = () => {
     setLoading(true);
 
     const result = await login(email, password);
-
-    if (result.success) {
-      navigate('/dashboard');
-    } else {
+    
+    if (!result.success) {
       setError(result.message || "We couldn't match that email and password.");
     }
     setLoading(false);

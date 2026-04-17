@@ -12,6 +12,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import StorageWarningToast from './components/StorageWarningToast';
 import Icon from './components/common/Icon';
 import Skeleton from './components/common/Skeleton';
+import EmailVerificationModal from './components/EmailVerificationModal';
 
 // Lazy Loaded Components
 const Login = lazy(() => import('./components/Login'));
@@ -86,6 +87,7 @@ const AppContent: React.FC = () => {
 
       <TutorialGuide />
       <OfflineIndicator />
+      <EmailVerificationModal />
 
       {/* Desktop Sidebar */}
       {showSidebar && (

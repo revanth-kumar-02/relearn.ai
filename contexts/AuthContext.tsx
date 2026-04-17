@@ -12,6 +12,8 @@ interface AuthContextType {
   updateProfile: (updates: Partial<User>) => Promise<{ success: boolean; message?: string }>;
   changePassword: (newPass: string) => Promise<{ success: boolean; message?: string }>;
   deleteAccount: () => void;
+  checkVerification: () => Promise<boolean>;
+  resendVerification: () => Promise<{ success: boolean; message?: string }>;
   loading: boolean;
 }
 
@@ -110,14 +112,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   const syncSupabaseUser = async (authId: string) => {
-    // Fetch deeper profile from our `users` table
+    // 1. Get auth status from Supabase to check verification
+    let isVerified = true;
+    if (supabaseAvailable) {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      isVerified = !!authUser?.email_confirmed_at;
+    }
+
+    // 2. Fetch deeper profile from our `users` table
     const profile = await getUserProfile(authId);
     if (profile) {
-      setUser(profile);
+      const updatedProfile = { ...profile, isVerified };
+      setUser(updatedProfile);
       setSession(profile.id);
       
       const users = getStoredUsers();
-      users[profile.id] = profile;
+      users[profile.id] = updatedProfile;
       saveStoredUsers(users);
     }
     setLoading(false);
@@ -193,6 +203,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       name,
       email,
       preferences: defaultPreferences,
+      isVerified: false,
       createdAt: new Date().toISOString(),
       stats: {
         studyStreak: 0,
@@ -273,6 +284,39 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setUser(null);
   };
 
+  const checkVerification = async () => {
+    if (!supabaseAvailable || !navigator.onLine) return user?.isVerified || false;
+    
+    const { data: { user: authUser }, error } = await supabase.auth.getUser();
+    if (error || !authUser) return false;
+    
+    const isVerified = !!authUser.email_confirmed_at;
+    if (user && user.isVerified !== isVerified) {
+      const updatedUser = { ...user, isVerified };
+      setUser(updatedUser);
+      
+      // Update local storage
+      const users = getStoredUsers();
+      users[user.id] = updatedUser;
+      saveStoredUsers(users);
+    }
+    return isVerified;
+  };
+
+  const resendVerification = async () => {
+    if (!supabaseAvailable || !user?.email || !navigator.onLine) {
+      return { success: false, message: 'Unable to resend email. Please check your connection.' };
+    }
+    
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: user.email,
+    });
+    
+    if (error) return { success: false, message: error.message };
+    return { success: true };
+  };
+
   return (
     <AuthContext.Provider value={{
       user,
@@ -282,6 +326,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       updateProfile,
       changePassword,
       deleteAccount,
+      checkVerification,
+      resendVerification,
       loading
     }}>
       {!loading && children}
