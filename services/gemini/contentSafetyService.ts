@@ -50,7 +50,7 @@ export const validateTopicSafety = async (
 ): Promise<SafetyValidationResult> => {
   const ai = getProxyConfiguredGenAI();
   const request = buildSafetyRequest(topic);
-  
+
   // First try with the FAST model, then fallback to PRIMARY
   const modelsToTry = [model, AI_MODELS.PRIMARY];
   let lastError: any = null;
@@ -60,17 +60,17 @@ export const validateTopicSafety = async (
 
     try {
       console.log(`[SafetyService] Validating topic with model: ${currentModel}`);
-      
+
       const responsePromise = ai.models.generateContent({
         model: currentModel,
         ...request
       });
 
       const response = await (signal ? Promise.race([
-          responsePromise,
-          new Promise((_, reject) => {
-              signal.addEventListener('abort', () => reject(new Error("AbortError")), { once: true });
-          })
+        responsePromise,
+        new Promise((_, reject) => {
+          signal.addEventListener('abort', () => reject(new Error("AbortError")), { once: true });
+        })
       ]) : responsePromise) as any;
 
       const text = response.text;

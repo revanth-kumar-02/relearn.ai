@@ -72,7 +72,7 @@ Be concise, encouraging, and professional. Use markdown formatting for lists, bo
           systemInstruction,
         },
       });
-        
+
       let accumulated = '';
       for await (const chunk of stream) {
         const text = chunk.text;

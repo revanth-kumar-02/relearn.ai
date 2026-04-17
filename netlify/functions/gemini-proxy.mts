@@ -11,24 +11,39 @@ export default async (req: Request, context: Context) => {
     });
   }
 
-  // @ts-ignore
-  // Priority: 1. Server-only key, 2. Local/Dev keys (only if properly set)
-  const apiKey = (
-    process.env.GEMINI_API_KEY || 
-    process.env.VITE_GEMINI_CHAT_API_KEY || 
-    process.env.VITE_GEMINI_API_KEY || 
-    ""
-  ).trim();
-  
+  const useCase = req.headers.get("x-gemini-use-case") || "default";
+
+  // Select the appropriate key based on use case
+  let apiKey = "";
+  if (useCase === "plan") {
+    apiKey = (process.env.GEMINI_PLAN_API_KEY || process.env.VITE_GEMINI_PLAN_API_KEY || "").trim();
+  } else if (useCase === "chat") {
+    apiKey = (process.env.GEMINI_CHAT_API_KEY || process.env.VITE_GEMINI_CHAT_API_KEY || "").trim();
+  } else if (useCase === "image") {
+    apiKey = (process.env.GEMINI_IMAGE_API_KEY || process.env.VITE_GEMINI_IMAGE_API_KEY || "").trim();
+  } else if (useCase === "learning") {
+    apiKey = (process.env.GEMINI_LEARNING_API_KEY || process.env.VITE_GEMINI_LEARNING_API_KEY || "").trim();
+  }
+
+  // Fallback to primary keys if use-case specific key is missing or not applicable
+  if (!apiKey) {
+    apiKey = (
+      process.env.GEMINI_API_KEY || 
+      process.env.VITE_GEMINI_API_KEY || 
+      ""
+    ).trim();
+  }
+
   // Basic validation to avoid sending placeholders to Google
   const isPlaceholder = apiKey === "PROXY_KEY_MANAGED_BY_SERVER" || apiKey === "your_api_key_here";
 
   if (!apiKey || isPlaceholder) {
-    console.error("[gemini-proxy] Deployment Error: API key is missing or is a placeholder.");
-    return new Response(JSON.stringify({ 
+    console.error(`[gemini-proxy] Deployment Error: API key is missing or is a placeholder for useCase: ${useCase}.`);
+    return new Response(JSON.stringify({
       error: "API Key Configuration Error. Please set GEMINI_API_KEY in Netlify settings.",
-      debug: isPlaceholder ? "Key is a placeholder" : "Key is empty"
-    }), { 
+      debug: isPlaceholder ? "Key is a placeholder" : "Key is empty",
+      useCase
+    }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
     });
@@ -39,7 +54,7 @@ export default async (req: Request, context: Context) => {
     // Remove /api/gemini prefix and ensure the path starts with a single slash
     let cleanPath = url.pathname.replace(/^\/api\/gemini/, '');
     if (!cleanPath.startsWith('/')) cleanPath = '/' + cleanPath;
-    
+
     // Construct the destination URL
     const googleEndpoint = new URL(`https://generativelanguage.googleapis.com${cleanPath}`);
     googleEndpoint.searchParams.set('key', apiKey);
@@ -61,7 +76,7 @@ export default async (req: Request, context: Context) => {
     });
 
     const responseText = await response.text();
-    
+
     // If Google returned an error, log a bit of it
     if (!response.ok) {
       console.error(`[gemini-proxy] Google Error (${response.status}):`, responseText.substring(0, 200));
@@ -80,7 +95,7 @@ export default async (req: Request, context: Context) => {
 
   } catch (error: any) {
     console.error("[gemini-proxy] Fatal error:", error);
-    return new Response(JSON.stringify({ error: error.message }), { 
+    return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
     });

@@ -7,12 +7,12 @@ import { sanitizeInput } from "../utils/sanitize";
  * ─── SECTION 1: NANO BANANA INTEGRATION ────────────────────────────
  */
 
-const NANO_BANANA_TIMEOUT_MS = 15000; 
+const NANO_BANANA_TIMEOUT_MS = 15000;
 import { getCachedImage, cacheImage, clearOldCache } from "../../utils/db";
 
 const setCache = async (topic: string, url: string) => {
-    await cacheImage(topic, url);
-    await clearOldCache(100); // Allow much larger cache (100 items instead of 20)
+  await cacheImage(topic, url);
+  await clearOldCache(100); // Allow much larger cache (100 items instead of 20)
 };
 
 const generateNanoBananaPrompt = (topic: string): string => {
@@ -29,10 +29,10 @@ Quality: 8k resolution, award-winning 3D design.`;
 const generateWithNanoBanana = async (topic: string, signal?: AbortSignal): Promise<string | null> => {
   const ai = getProxyConfiguredGenAI();
   const prompt = generateNanoBananaPrompt(sanitizeInput(topic));
-  
+
   try {
     console.log(`[CoverGen] [Tier 1] Calling Nano Banana for: ${topic}...`);
-    
+
     const result = await Promise.race([
       (async () => {
         const responsePromise = ai.models.generateContent({
@@ -44,22 +44,22 @@ const generateWithNanoBanana = async (topic: string, signal?: AbortSignal): Prom
         });
 
         const response = await (signal ? Promise.race([
-            responsePromise,
-            new Promise((_, reject) => {
-                signal.addEventListener('abort', () => reject(new Error("AbortError")), { once: true });
-            })
+          responsePromise,
+          new Promise((_, reject) => {
+            signal.addEventListener('abort', () => reject(new Error("AbortError")), { once: true });
+          })
         ]) : responsePromise) as any;
 
         const candidate = response.candidates?.[0];
         const parts = (candidate?.content?.parts as any[]);
         const part = parts?.find(p => p.inlineData?.data);
-        
+
         if (part?.inlineData?.data) {
           return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
         }
         return null;
       })(),
-      new Promise<null>((_, reject) => 
+      new Promise<null>((_, reject) =>
         setTimeout(() => reject(new Error('Nano Banana API timeout')), NANO_BANANA_TIMEOUT_MS)
       )
     ]);
@@ -72,14 +72,14 @@ const generateWithNanoBanana = async (topic: string, signal?: AbortSignal): Prom
     if (error.message === "AbortError") throw error;
     console.warn(`[CoverGen] ⚠️ Nano Banana failed: ${error.message}`);
   }
-  
+
   return null;
 };
 
 const generateWithOpenAI = async (topic: string, signal?: AbortSignal): Promise<string | null> => {
   try {
     console.log(`[CoverGen] [Tier 2] Calling OpenAI DALL-E 3 for: ${topic}...`);
-    
+
     const response = await fetch('/api/openai/v1/images/generations', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -93,10 +93,10 @@ const generateWithOpenAI = async (topic: string, signal?: AbortSignal): Promise<
     });
 
     if (!response.ok) throw new Error(`OpenAI Proxy error: ${response.status}`);
-    
+
     const data = await response.json();
     const url = data.data?.[0]?.url;
-    
+
     if (url) {
       console.log('[CoverGen] ✅ OpenAI success!');
       return url;
@@ -105,52 +105,52 @@ const generateWithOpenAI = async (topic: string, signal?: AbortSignal): Promise<
     if (error.name === "AbortError") throw error;
     console.warn(`[CoverGen] ⚠️ OpenAI failed: ${error.message}`);
   }
-  
+
   return null;
 };
 
 const generateWithDynamicFallback = (topic: string): string => {
   console.log(`[CoverGen] [Tier 3] Providing Dynamic Fallback URL for: ${topic}...`);
   const seed = Math.floor(Math.random() * 1000000);
-  return `https://pollinations.ai/p/${encodeURIComponent(topic + " 3d high-gloss chunky isometric digital art, soft rounded corners, premium textures, studio lighting, abstract concept, vibrant colors, obsidian background") }?width=1280&height=720&seed=${seed}&model=flux&nologo=true`;
+  return `https://pollinations.ai/p/${encodeURIComponent(topic + " 3d high-gloss chunky isometric digital art, soft rounded corners, premium textures, studio lighting, abstract concept, vibrant colors, obsidian background")}?width=1280&height=720&seed=${seed}&model=flux&nologo=true`;
 };
 
 export const generatePlanCoverImage = async (topic: string, signal?: AbortSignal): Promise<string> => {
   const sanitizedTopic = sanitizeInput(topic);
   const cacheKey = sanitizedTopic.toLowerCase().trim();
-  
+
   const cached = await getCachedImage(cacheKey);
   if (cached) {
-      console.log(`[CoverGen] ⚡ Serving from IndexedDB: ${sanitizedTopic}`);
-      return cached;
+    console.log(`[CoverGen] ⚡ Serving from IndexedDB: ${sanitizedTopic}`);
+    return cached;
   }
 
   let result: string | null = null;
 
   try {
-      // Tier 1: Nano Banana
-      result = await generateWithNanoBanana(sanitizedTopic, signal);
-      
-      if (!result) {
-          // Tier 2: OpenAI
-          result = await generateWithOpenAI(sanitizedTopic, signal);
-      }
-      
-      if (!result) {
-          // Tier 3: Dynamic Fallback
-          result = generateWithDynamicFallback(sanitizedTopic);
-      }
-  } catch (e: any) {
-      if (e.message === "AbortError" || e.name === "AbortError") {
-          console.log("[CoverGen] Request aborted.");
-          throw e;
-      }
+    // Tier 1: Nano Banana
+    result = await generateWithNanoBanana(sanitizedTopic, signal);
+
+    if (!result) {
+      // Tier 2: OpenAI
+      result = await generateWithOpenAI(sanitizedTopic, signal);
+    }
+
+    if (!result) {
+      // Tier 3: Dynamic Fallback
       result = generateWithDynamicFallback(sanitizedTopic);
+    }
+  } catch (e: any) {
+    if (e.message === "AbortError" || e.name === "AbortError") {
+      console.log("[CoverGen] Request aborted.");
+      throw e;
+    }
+    result = generateWithDynamicFallback(sanitizedTopic);
   }
 
   if (!result || result.includes('undefined')) {
-      console.warn('[CoverGen] 🛑 All remote tiers failed. Using local gradient safety net.');
-      result = createFallbackSVG(sanitizedTopic);
+    console.warn('[CoverGen] 🛑 All remote tiers failed. Using local gradient safety net.');
+    result = createFallbackSVG(sanitizedTopic);
   }
 
   await setCache(sanitizedTopic, result);

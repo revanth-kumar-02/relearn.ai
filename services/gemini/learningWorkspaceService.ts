@@ -98,7 +98,7 @@ Do not include markdown code fences (like \`\`\`json) outside the JSON structure
         lastError = error;
         const errorMsg = error?.message || error?.toString() || 'Unknown error';
         console.warn(`[LearningWorkspace] Model ${currentModel} failed:`, errorMsg);
-        
+
         // Very basic retryable check since importing isRetryableError might cause circular imports depending on how config.ts is structured
         if (errorMsg.includes('429') || errorMsg.includes('503') || errorMsg.includes('UNAVAILABLE') || errorMsg.includes('network') || errorMsg.includes('fetch')) {
           console.log(`[LearningWorkspace] Error is retryable, trying next fallback model...`);
