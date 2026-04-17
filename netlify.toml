@@ -3,10 +3,7 @@
   publish = "dist"
   functions = "netlify/functions"
 
-# NOTE: Set the YOUTUBE_API_KEY environment variable in the
-# Netlify Dashboard → Site → Environment Variables.
-# This keeps the key server-side only (never in the browser bundle).
-
+# API Redirects
 [[redirects]]
   from = "/api/gemini/*"
   to = "/.netlify/functions/gemini-proxy"
@@ -17,16 +14,34 @@
   to = "/.netlify/functions/openai-proxy"
   status = 200
 
-# Redirect all routes to index.html for SPA (HashRouter)
+# Fix: Ensure assets return 404 instead of index.html if missing
+# This avoids the "MIME type text/html" error
+[[redirects]]
+  from = "/assets/*"
+  to = "/assets/:splat"
+  status = 404
+
+# Redirect all navigation routes to index.html for SPA (HashRouter compatible)
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
 
-# Security headers
+# Cache Control and Security headers
 [[headers]]
   for = "/*"
   [headers.values]
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
     Cross-Origin-Opener-Policy = "same-origin-allow-popups"
+
+# Prevent index.html from being cached by the browser/CDN
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
