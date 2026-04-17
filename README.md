@@ -20,8 +20,8 @@ ReLearn.ai is an intelligent, AI-powered learning platform that helps you organi
 
 - **Frontend**: React 19, TypeScript, Tailwind CSS
 - **AI Services**: Google Gemini API (Plan Generation, Chat, Image Generation, Learning Workspace)
-- **Authentication**: Firebase Auth (Email/Password + Google Sign-In)
-- **Database**: Cloud Firestore (real-time sync)
+- **Authentication**: Supabase Auth (Email/Password + Google Sign-In)
+- **Database**: Supabase Database (PostgreSQL)
 - **Video API**: YouTube Data API v3
 - **Build Tool**: Vite
 - **Icons**: Material Symbols, Lucide React
@@ -61,10 +61,11 @@ Relearn.ai/
 │   ├── Profile.tsx      # User profile management
 │   └── ...
 ├── contexts/            # React context providers
-│   ├── AuthContext.tsx   # Firebase Auth state management
-│   ├── DataContext.tsx   # Firestore data management
+│   ├── AuthContext.tsx   # Supabase Auth state management
+│   ├── DataContext.tsx   # Supabase data management (lessons, plans, etc.)
 │   └── TutorialContext.tsx  # Onboarding tutorial
 ├── services/            # API and external services
+│   ├── supabase.ts      # Supabase configuration
 │   ├── gemini/          # Gemini AI services
 │   │   ├── planGeneratorService.ts
 │   │   ├── chatbotService.ts
@@ -73,8 +74,6 @@ Relearn.ai/
 │   │   └── learningWorkspaceService.ts
 │   ├── youtubeService.ts
 │   └── notificationService.ts
-├── firebase.ts          # Firebase configuration
-├── firestore.rules      # Firestore security rules
 ├── types.ts             # TypeScript type definitions
 ├── App.tsx              # Main app with routing
 ├── index.tsx            # React entry point
@@ -87,7 +86,7 @@ Relearn.ai/
 
 See [`.env.example`](.env.example) for all required API keys:
 
-- **Firebase** — Authentication & database
+- **Supabase** — Authentication & database
 - **Gemini AI** — Plan generation, chatbot, image generation, learning workspace
 - **YouTube** — Educational video search
 
