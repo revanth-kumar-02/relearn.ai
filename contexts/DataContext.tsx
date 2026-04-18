@@ -264,30 +264,43 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (!user?.id) return;
 
     const task = tasks.find(t => t.id === id);
-    const planId = task?.planId;
-    // D1 Fix: Optimistic Update with Rollback
+    if (!task) return;
+
+    const planId = task.planId;
     const originalTasks = [...tasks];
     const originalPlans = [...plans];
 
     try {
-      setTasks(prevTasks => {
-        const updatedTasks = prevTasks.map(t => t.id === id ? { ...t, ...updates } : t);
-        
-        if (planId) {
-          const planTasks = updatedTasks.filter(t => t.planId === planId);
-          const total = planTasks.length;
-          const completed = planTasks.filter(t => t.status === 'Completed').length;
-          const progress = total === 0 ? 0 : (completed / total) * 100;
+      // 1. Calculate new progress for optimistic update
+      const updatedTasks = tasks.map(t => t.id === id ? { ...t, ...updates } : t);
+      let progress = 0;
+      let completed = 0;
 
-          setPlans(prevPlans => prevPlans.map(p => 
-            p.id === planId ? { ...p, completedDays: completed, progress } : p
-          ));
-        }
-        
-        return updatedTasks;
-      });
+      if (planId) {
+        const planTasks = updatedTasks.filter(t => t.planId === planId);
+        const total = planTasks.length;
+        completed = planTasks.filter(t => t.status === 'Completed').length;
+        progress = total === 0 ? 0 : (completed / total) * 100;
 
+        // Apply optimistic update to plans
+        setPlans(prevPlans => prevPlans.map(p => 
+          p.id === planId ? { ...p, completedDays: completed, progress } : p
+        ));
+      }
+
+      // Apply optimistic update to tasks
+      setTasks(updatedTasks);
+
+      // 2. Persist task update
       await dsUpdateTask(user.id, id, updates); 
+
+      // 3. Persist plan update if progress changed
+      if (planId) {
+        await dsUpdatePlan(user.id, planId, { 
+          completedDays: completed, 
+          progress 
+        });
+      }
     } catch (e) { 
       console.error("[DataContext] Task update sync failed, rolling back:", e);
       setTasks(originalTasks);
