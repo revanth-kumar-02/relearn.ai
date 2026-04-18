@@ -89,13 +89,28 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  // Phase 1 + 2: Dynamic fetching and Real-time subscriptions
+  const calculateProgressForPlans = useCallback((allPlans: Plan[], allTasks: Task[]) => {
+    return allPlans.map(plan => {
+      const planTasks = allTasks.filter(t => t.planId === plan.id);
+      const total = planTasks.length;
+      const completed = planTasks.filter(t => t.status === 'Completed').length;
+      const progress = total === 0 ? 0 : (completed / total) * 100;
+      
+      if (plan.progress !== progress || plan.completedDays !== completed || plan.totalDays !== total) {
+        return { ...plan, totalDays: total, completedDays: completed, progress };
+      }
+      return plan;
+    });
+  }, []);
+
   useEffect(() => {
     if (!user?.id) return;
 
     // Fast load from local storage
-    setPlans(lsGet(`plans_${user.id}`, []));
-    setTasks(lsGet(`tasks_${user.id}`, []));
+    const cachedPlans = lsGet(`plans_${user.id}`, []);
+    const cachedTasks = lsGet(`tasks_${user.id}`, []);
+    setPlans(calculateProgressForPlans(cachedPlans, cachedTasks));
+    setTasks(cachedTasks);
     setRecentActivity(lsGet(`activity_${user.id}`, []));
     setNotifications(lsGet(`notifications_${user.id}`, []));
 
@@ -106,28 +121,51 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       getActivity(user.id),
       getNotifications(user.id)
     ]).then(([dbPlans, dbTasks, dbActivity, dbNotifs]) => {
-      setPlans(dbPlans);
+      const healedPlans = calculateProgressForPlans(dbPlans, dbTasks);
+      setPlans(healedPlans);
       setTasks(dbTasks);
       setRecentActivity(dbActivity);
       setNotifications(dbNotifs);
+
+      healedPlans.forEach(hp => {
+        const original = dbPlans.find(p => p.id === hp.id);
+        if (original && (original.progress !== hp.progress || original.completedDays !== hp.completedDays)) {
+          dsUpdatePlan(user.id!, hp.id, { 
+            progress: hp.progress, 
+            completedDays: hp.completedDays,
+            totalDays: hp.totalDays
+          }).catch(e => console.error("Self-healing sync failed:", e));
+        }
+      });
     }).catch(err => {
       console.error("Error fetching dynamic data:", err);
-      // L1 Fix: Ensure loading ends even on failure
-    })
-      .finally(() => setIsLoading(false));
+    }).finally(() => setIsLoading(false));
 
-    // Notification real-time channel
-    const channel = supabase.channel('public:notifications')
+    // Synchronized subscriptions Channel
+    const syncChannel = supabase.channel(`sync_${user.id}`)
+      // Notifications
       .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications', filter: `userId=eq.${user.id}` }, () => {
-        // Fetch latest notifications on any updates natively
-        getNotifications(user.id).then(setNotifications);
+        getNotifications(user.id!).then(setNotifications);
+      })
+      // Plans
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'plans', filter: `userId=eq.${user.id}` }, (payload) => {
+        getPlans(user.id!).then(dbPlans => {
+          setPlans(prev => calculateProgressForPlans(dbPlans, tasks));
+        });
+      })
+      // Tasks
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks', filter: `userId=eq.${user.id}` }, (payload) => {
+        getTasks(user.id!).then(dbTasks => {
+          setTasks(dbTasks);
+          setPlans(prev => calculateProgressForPlans(plans, dbTasks));
+        });
       })
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(syncChannel);
     };
-  }, [user?.id]);
+  }, [user?.id, calculateProgressForPlans, plans, tasks]);
 
   // Auto-save to localStorage whenever data changes
   useEffect(() => {
@@ -257,7 +295,19 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const addTask = async (task: Task) => {
     if (!user?.id) return;
     const newTask = { ...task, id: task.id || crypto.randomUUID(), createdAt: new Date().toISOString() };
-    setTasks(prev => [...prev, newTask]);
+    const updatedTasks = [...tasks, newTask];
+    setTasks(updatedTasks);
+    
+    if (task.planId) {
+      const planTasks = updatedTasks.filter(t => t.planId === task.planId);
+      const total = planTasks.length;
+      const completed = planTasks.filter(t => t.status === 'Completed').length;
+      const progress = total === 0 ? 0 : (completed / total) * 100;
+
+      setPlans(prev => prev.map(p => p.id === task.planId ? { ...p, totalDays: total, completedDays: completed, progress } : p));
+      await dsUpdatePlan(user.id, task.planId, { totalDays: total, completedDays: completed, progress });
+    }
+
     try { await createTask(user.id, newTask); } catch (e) { console.error(e); }
   };
 
@@ -343,7 +393,23 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const deleteTask = async (id: string) => {
     if (!user?.id) return;
-    setTasks(prev => prev.filter(t => t.id !== id));
+    const taskToDelete = tasks.find(t => t.id === id);
+    if (!taskToDelete) return;
+    
+    const planId = taskToDelete.planId;
+    const updatedTasks = tasks.filter(t => t.id !== id);
+    setTasks(updatedTasks);
+
+    if (planId) {
+      const planTasks = updatedTasks.filter(t => t.planId === planId);
+      const total = planTasks.length;
+      const completed = planTasks.filter(t => t.status === 'Completed').length;
+      const progress = total === 0 ? 0 : (completed / total) * 100;
+
+      setPlans(prev => prev.map(p => p.id === planId ? { ...p, totalDays: total, completedDays: completed, progress } : p));
+      try { await dsUpdatePlan(user.id, planId, { totalDays: total, completedDays: completed, progress }); } catch (e) { console.error(e); }
+    }
+
     try { await dsDeleteTask(user.id, id); } catch (e) { console.error(e); }
   };
 
@@ -386,11 +452,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const refreshData = async () => {
     if (user?.id) {
-      setPlans(lsGet(`plans_${user.id}`, []));
-      setTasks(lsGet(`tasks_${user.id}`, []));
-      setRecentActivity(lsGet(`activity_${user.id}`, []));
-      setNotifications(lsGet(`notifications_${user.id}`, []));
-
       // Phase 1: trigger full remote database re-fetch
       Promise.all([
         getPlans(user.id),
@@ -398,7 +459,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         getActivity(user.id),
         getNotifications(user.id)
       ]).then(([dbPlans, dbTasks, dbActivity, dbNotifs]) => {
-        setPlans(dbPlans);
+        setPlans(calculateProgressForPlans(dbPlans, dbTasks));
         setTasks(dbTasks);
         setRecentActivity(dbActivity);
         setNotifications(dbNotifs);
