@@ -429,6 +429,51 @@ export async function updateTask(
   });
 }
 
+export async function updateTasksBatch(
+  userId: string,
+  taskIdUpdates: { id: string; updates: Partial<Task> }[]
+): Promise<void> {
+  const updatedAt = new Date().toISOString();
+  const cached = lsGet<Task[]>(`tasks_${userId}`, []);
+  
+  const idToUpdates = new Map(taskIdUpdates.map(u => [u.id, u.updates]));
+  
+  const updatedCache = cached.map(t => {
+    const updates = idToUpdates.get(t.id);
+    if (updates) return { ...t, ...updates, updatedAt };
+    return t;
+  });
+  
+  lsSet(`tasks_${userId}`, updatedCache);
+
+  if (canUseSupabase()) {
+    try {
+      const payload = taskIdUpdates.map(u => ({
+        ...u.updates,
+        id: u.id,
+        userId,
+        updatedAt
+      }));
+      
+      const { error } = await supabase.from('tasks').upsert(payload);
+      if (error) throw error;
+      return;
+    } catch (err) {
+      console.warn('[DataService] Supabase updateTasksBatch failed:', err);
+    }
+  }
+
+  taskIdUpdates.forEach(({ id, updates }) => {
+    addUnsyncedChange({
+      id,
+      type: 'update',
+      collection: 'tasks',
+      data: { ...updates, updatedAt },
+      userId,
+    });
+  });
+}
+
 export async function deleteTask(userId: string, taskId: string): Promise<void> {
   const cached = lsGet<Task[]>(`tasks_${userId}`, []);
   lsSet(

@@ -7,7 +7,7 @@ import {
   getPlans, getTasks, getActivity, getNotifications, createNotification, 
   markAllNotificationsRead, clearAllNotifications as dsClearAllNotifications,
   createPlan, createTasksBatch, updatePlan as dsUpdatePlan, deletePlan as dsDeletePlan,
-  createTask, updateTask as dsUpdateTask, deleteTask as dsDeleteTask
+  createTask, updateTask as dsUpdateTask, updateTasksBatch as dsUpdateTasksBatch, deleteTask as dsDeleteTask
 } from '../services/dataService';
 import { supabase } from '../services/supabase';
 import { VideoLanguageCode, setVideoLanguagePreference, getVideoLanguagePreference } from '../services/youtubeService';
@@ -25,6 +25,7 @@ interface DataContextType {
   deletePlan: (id: string) => Promise<void>;
   addTask: (task: Task) => Promise<void>;
   updateTask: (id: string, updates: Partial<Task>) => Promise<void>;
+  updateTasksBatch: (planId: string, taskIdUpdates: { id: string; updates: Partial<Task> }[]) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
   addActivity: (activity: Activity) => void;
   clearAllActivity: () => void;
@@ -308,6 +309,38 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  const updateTasksBatch = async (planId: string, taskIdUpdates: { id: string; updates: Partial<Task> }[]) => {
+    if (!user?.id) return;
+
+    const originalTasks = [...tasks];
+    const originalPlans = [...plans];
+
+    try {
+      const idToUpdates = new Map(taskIdUpdates.map(u => [u.id, u.updates]));
+      const updatedTasks = tasks.map(t => {
+        const updates = idToUpdates.get(t.id);
+        return updates ? { ...t, ...updates } : t;
+      });
+
+      const planTasks = updatedTasks.filter(t => t.planId === planId);
+      const total = planTasks.length;
+      const completed = planTasks.filter(t => t.status === 'Completed').length;
+      const progress = total === 0 ? 0 : (completed / total) * 100;
+
+      setTasks(updatedTasks);
+      setPlans(prevPlans => prevPlans.map(p => 
+        p.id === planId ? { ...p, completedDays: completed, progress } : p
+      ));
+
+      await dsUpdateTasksBatch(user.id, taskIdUpdates);
+      await dsUpdatePlan(user.id, planId, { completedDays: completed, progress });
+    } catch (e) {
+      console.error("[DataContext] Batch task update failed, rolling back:", e);
+      setTasks(originalTasks);
+      setPlans(originalPlans);
+    }
+  };
+
   const deleteTask = async (id: string) => {
     if (!user?.id) return;
     setTasks(prev => prev.filter(t => t.id !== id));
@@ -377,7 +410,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     <DataContext.Provider value={{
       plans, tasks, recentActivity, notifications, videoLanguage, updateVideoLanguage,
       addPlan, addPlanWithTasks, updatePlan, deletePlan,
-      addTask, updateTask, deleteTask,
+      addTask, updateTask, updateTasksBatch, deleteTask,
       addActivity, clearAllActivity, markAllNotificationsAsRead, clearAllNotifications, addNotification,
       refreshData,
       isLoading

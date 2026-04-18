@@ -187,7 +187,7 @@ const Dashboard: React.FC = () => {
                         <div className="marquee-container w-full overflow-hidden">
                             <div
                                 ref={marqueeRef}
-                                className={`marquee-content py-4 flex gap-6 ${scrollDist < 0 ? 'animating' : 'justify-start'}`}
+                                className={`marquee-content py-4 flex gap-6 items-start ${scrollDist < 0 ? 'animating' : 'justify-start w-full'}`}
                                 style={{ '--scroll-dist': `${scrollDist}px` } as React.CSSProperties}
                             >
                                 {activePlans.map((plan, index) => (

@@ -110,12 +110,14 @@ const PlanDetails: React.FC = () => {
               dailyGoalMins: editDailyGoal
           });
 
-          // Propagate daily goal to all tasks
-          planTasks.forEach(task => {
-              if (task.durationMinutes !== editDailyGoal) {
-                  updateTask(task.id, { durationMinutes: editDailyGoal });
-              }
-          });
+          // Propagate daily goal to all tasks in batch to avoid race conditions
+          const batchUpdates = planTasks
+            .filter(task => task.durationMinutes !== editDailyGoal)
+            .map(task => ({ id: task.id, updates: { durationMinutes: editDailyGoal } }));
+          
+          if (batchUpdates.length > 0) {
+            updateTasksBatch(currentPlan.id, batchUpdates);
+          }
 
           setIsEditing(false);
           showToast("Your settings are saved and tasks updated.", "success");
