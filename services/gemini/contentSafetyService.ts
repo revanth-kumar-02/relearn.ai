@@ -51,8 +51,12 @@ export const validateTopicSafety = async (
   const ai = getProxyConfiguredGenAI('plan');
   const request = buildSafetyRequest(topic);
 
-  // First try with the FAST model, then fallback to PRIMARY
-  const modelsToTry = [model, AI_MODELS.PRIMARY];
+  // First try with the FAST model, then fallback to current PRIMARY and then the full fallback chain
+  const modelsToTry = [
+    model, 
+    AI_MODELS.PRIMARY, 
+    ...AI_MODELS.FALLBACK_CHAIN.filter(m => m !== model && m !== AI_MODELS.PRIMARY)
+  ];
   let lastError: any = null;
 
   for (const currentModel of modelsToTry) {
