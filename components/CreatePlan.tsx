@@ -231,20 +231,37 @@ const CreatePlan: React.FC = () => {
                                 </div>
                             </div>
 
-                            <div>
-                                <label htmlFor="duration-input" className="text-xs font-bold text-text-secondary-light uppercase tracking-widest block mb-2 px-1">Duration (Days)</label>
-                                <input
-                                    id="duration-input"
-                                    type="number"
-                                    value={isNaN(aiDuration) ? '' : aiDuration}
-                                    onChange={e => {
-                                        const val = parseInt(e.target.value);
-                                        setAiDuration(val > 100 ? 100 : (val < 1 ? 1 : val));
-                                    }}
-                                    min={1}
-                                    max={100}
-                                    className="w-full p-3.5 rounded-xl bg-gray-50 dark:bg-surface-dark border border-border-light dark:border-border-dark outline-none focus:ring-2 focus:ring-purple-500/30 transition-all font-medium"
-                                />
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label htmlFor="duration-input" className="text-xs font-bold text-text-secondary-light uppercase tracking-widest block mb-2 px-1">Plan Length (Days)</label>
+                                    <input
+                                        id="duration-input"
+                                        type="number"
+                                        value={isNaN(aiDuration) ? '' : aiDuration}
+                                        onChange={e => {
+                                            const val = parseInt(e.target.value);
+                                            setAiDuration(val > 100 ? 100 : (val < 1 ? 1 : val));
+                                        }}
+                                        min={1}
+                                        max={100}
+                                        className="w-full p-3.5 rounded-xl bg-gray-50 dark:bg-surface-dark border border-border-light dark:border-border-dark outline-none focus:ring-2 focus:ring-purple-500/30 transition-all font-medium"
+                                    />
+                                </div>
+                                <div>
+                                    <label htmlFor="goal-input" className="text-xs font-bold text-text-secondary-light uppercase tracking-widest block mb-2 px-1">Mins / Day</label>
+                                    <input
+                                        id="goal-input"
+                                        type="number"
+                                        value={isNaN(dailyGoalMins) ? '' : dailyGoalMins}
+                                        onChange={e => {
+                                            const val = parseInt(e.target.value);
+                                            setDailyGoalMins(val > 480 ? 480 : (val < 5 ? 5 : val));
+                                        }}
+                                        min={5}
+                                        max={480}
+                                        className="w-full p-3.5 rounded-xl bg-gray-50 dark:bg-surface-dark border border-border-light dark:border-border-dark outline-none focus:ring-2 focus:ring-purple-500/30 transition-all font-medium"
+                                    />
+                                </div>
                             </div>
 
                             <div role="group" aria-labelledby="difficulty-label">
