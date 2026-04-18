@@ -250,24 +250,27 @@ const LearningWorkspace: React.FC = () => {
 
   const exportToCSV = () => {
     if (!task) return;
-    const headers = ["Field", "Content"];
+    const headers = ["Section", "Content"];
     const rows = [
       ["Topic", task.title],
-      ["Objective", task.learningObjective || ""],
-      ["Explanation", task.aiExplanation || ""],
-      ["Notes", notes]
+      ["Plan", plan?.title || "General"],
+      ["Learning Objective", task.learningObjective || ""],
+      ["AI Explanation", task.aiExplanation || ""],
+      ["Practice Activities", (task.practiceActivities || []).join("; ")],
+      ["Practice Question", task.practiceQuestion || ""],
+      ["User Notes", notes || ""]
     ];
 
     const csvContent = [
       headers.join(","),
-      ...rows.map(row => row.map(cell => `"${cell.replace(/"/g, '""')}"`).join(","))
+      ...rows.map(row => row.map(cell => `"${cell.toString().replace(/"/g, '""')}"`).join(","))
     ].join("\n");
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `${task.title.replace(/\s+/g, '_')}_session.csv`);
+    link.href = url;
+    link.download = `${task.title.replace(/\s+/g, '_')}_study_session.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -275,23 +278,57 @@ const LearningWorkspace: React.FC = () => {
 
   const exportToDOC = () => {
     if (!task) return;
-    const content = `
-      <h1>${task.title}</h1>
-      <p><strong>Plan:</strong> ${plan?.title || 'General'}</p>
-      <hr/>
-      <h2>Learning Objective</h2>
-      <p>${task.learningObjective || 'N/A'}</p>
-      <h2>Explanation</h2>
-      <p>${task.aiExplanation || 'N/A'}</p>
-      <h2>My Notes</h2>
-      <p>${notes.replace(/\n/g, '<br/>') || 'No notes taken.'}</p>
+    
+    const docStyles = `
+      <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 40px; }
+        h1 { color: #0ea5e9; border-bottom: 2px solid #0ea5e9; padding-bottom: 10px; }
+        h2 { color: #444; margin-top: 30px; border-left: 4px solid #0ea5e9; padding-left: 15px; }
+        .meta { color: #666; font-size: 0.9em; margin-bottom: 30px; }
+        .objective { font-style: italic; background: #f0f9ff; padding: 15px; border-radius: 8px; border: 1px solid #bae6fd; }
+        .notes { background: #fffcf0; padding: 20px; border: 1px solid #fef3c7; border-radius: 8px; margin-top: 30px; }
+        pre { background: #f8fafc; padding: 15px; border-radius: 5px; overflow-x: auto; }
+      </style>
     `;
 
-    const blob = new Blob(['\ufeff', content], { type: 'application/msword' });
+    const content = `
+      <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+      <head><meta charset='utf-8'>${docStyles}</head>
+      <body>
+        <h1>${task.title}</h1>
+        <div class="meta">
+          <strong>Plan:</strong> ${plan?.title || 'General'}<br/>
+          <strong>Date:</strong> ${new Date().toLocaleDateString()}<br/>
+          <strong>Subject:</strong> ${plan?.subject || task.title}
+        </div>
+        
+        <h2>Learning Objective</h2>
+        <div class="objective">${task.learningObjective || 'N/A'}</div>
+        
+        <h2>Full Explanation</h2>
+        <div>${(task.aiExplanation || 'N/A').replace(/\n/g, '<br/>')}</div>
+        
+        <h2>Practice Activities</h2>
+        <ul>
+          ${(task.practiceActivities || []).map(a => `<li>${a}</li>`).join('')}
+        </ul>
+        
+        <h2>Reflection / Practice</h2>
+        <p>${task.practiceQuestion || 'N/A'}</p>
+        
+        <div class="notes">
+          <h2>My Study Notes</h2>
+          <p>${notes.replace(/\n/g, '<br/>') || 'No notes taken during this session.'}</p>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const blob = new Blob([content], { type: 'application/msword' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `${task.title.replace(/\s+/g, '_')}_session.doc`);
+    link.href = url;
+    link.download = `${task.title.replace(/\s+/g, '_')}_study_session.doc`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -663,6 +700,62 @@ const LearningWorkspace: React.FC = () => {
           </AnimatePresence>
         ) : null}
       </main>
+
+      {/* ── Print-Only Layout (Hidden in UI) ── */}
+      <div className="hidden print:block fixed inset-0 bg-white z-[9999] overflow-y-auto p-12 text-black">
+        <div className="max-w-4xl mx-auto space-y-10">
+          <div className="border-b-4 border-sky-500 pb-6">
+            <h1 className="text-4xl font-serif font-black text-sky-600 mb-2">{task.title}</h1>
+            <div className="flex justify-between text-sm font-bold text-stone-500 uppercase tracking-widest">
+              <span>Study Session Document</span>
+              <span>{plan?.title || 'General Plan'}</span>
+            </div>
+          </div>
+
+          <section className="space-y-4">
+            <h2 className="text-xl font-black uppercase tracking-tighter text-stone-800 border-l-4 border-sky-500 pl-4">Learning Objective</h2>
+            <p className="text-lg font-serif italic text-stone-600">"{task.learningObjective}"</p>
+          </section>
+
+          <section className="space-y-4">
+            <h2 className="text-xl font-black uppercase tracking-tighter text-stone-800 border-l-4 border-sky-500 pl-4">Core Explanation</h2>
+            <div className="prose prose-stone max-w-none">
+              <ReactMarkdown>{task.aiExplanation || ''}</ReactMarkdown>
+            </div>
+          </section>
+
+          <section className="space-y-4">
+            <h2 className="text-xl font-black uppercase tracking-tighter text-stone-800 border-l-4 border-sky-500 pl-4">Practice Activities</h2>
+            <div className="grid grid-cols-1 gap-3">
+              {task.practiceActivities?.map((activity, index) => (
+                <div key={index} className="flex gap-4 p-4 bg-stone-50 rounded-xl border border-stone-200">
+                  <div className="font-bold text-sky-600">{index + 1}.</div>
+                  <p className="font-medium">{activity}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="bg-sky-50 p-6 rounded-2xl border border-sky-200">
+            <h2 className="text-lg font-black uppercase tracking-tighter text-sky-700 mb-2">Practice Exercise</h2>
+            <p className="text-stone-800">{task.practiceQuestion}</p>
+          </section>
+
+          {notes && (
+            <section className="bg-amber-50/30 p-8 rounded-2xl border border-amber-100 mt-12">
+              <h2 className="text-xl font-black uppercase tracking-tighter text-amber-700 mb-4">My Personal Notes</h2>
+              <div className="whitespace-pre-wrap font-serif text-lg leading-relaxed text-stone-700">
+                {notes}
+              </div>
+            </section>
+          )}
+
+          <footer className="mt-20 pt-8 border-t border-stone-100 flex justify-between items-center text-[10px] font-bold text-stone-400 uppercase tracking-widest">
+            <div>Generated by ReLearn.ai</div>
+            <div>{new Date().toLocaleDateString()}</div>
+          </footer>
+        </div>
+      </div>
 
       {/* Mobile Action Bar */}
       {!isLoading && task.aiExplanation && (

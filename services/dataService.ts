@@ -144,7 +144,7 @@ function addUnsyncedChange(change: Omit<UnsyncedChange, 'timestamp' | 'retryCoun
     ...change,
     timestamp: new Date().toISOString(),
     retryCount: existing?.retryCount || 0,
-    permanentlyFailed: false,
+    permanentlyFailed: existing?.permanentlyFailed || false,
   });
   lsSet('unsynced_changes', filtered);
   notifyOtherTabs();

@@ -22,15 +22,21 @@ const OfflineIndicator: React.FC = () => {
       setVisible(true);
       setShowOnline(false);
     } else if (status === 'online') {
-      // Briefly show "online" banner then hide
-      if (visible || unsyncedCount > 0) {
+      if (unsyncedCount > 0) {
+        setVisible(true);
+        setShowOnline(false);
+        // User requested: hide "Sync Now" after 10 seconds
+        const timer = setTimeout(() => {
+          setVisible(false);
+        }, 10000);
+        return () => clearTimeout(timer);
+      } else if (visible) {
+        // Briefly show "online" banner then hide
         setShowOnline(true);
         setVisible(true);
         const timer = setTimeout(() => {
           setShowOnline(false);
-          if (unsyncedCount === 0) {
-            setVisible(false);
-          }
+          setVisible(false);
         }, 3000);
         return () => clearTimeout(timer);
       }

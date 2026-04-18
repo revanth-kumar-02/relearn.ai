@@ -332,3 +332,54 @@
   }
   h1 { font-size: 1.5rem !important; }
 }
+
+/* =============================================
+   PRINT OPTIMIZATION
+   ============================================= */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Hide everything except the dedicated print layout */
+  body > *:not(#root),
+  #root > *:not(main),
+  main > *:not(.print-container),
+  .print\:hidden,
+  nav,
+  aside,
+  header,
+  footer:not(.print\:block),
+  button,
+  .offline-indicator {
+    display: none !important;
+  }
+
+  /* Force the print layout to show and be positioned correctly */
+  .print\:block {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    background: white !important;
+    color: black !important;
+  }
+
+  /* Specific resets for nested elements */
+  #main-content {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+  }
+
+  @page {
+    size: A4;
+    margin: 2cm;
+  }
+}

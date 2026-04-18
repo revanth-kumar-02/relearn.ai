@@ -7,7 +7,14 @@
  *  external dependencies (privacy-first).
  */
 
-type EventType = 'app_launch' | 'plan_created' | 'session_started' | 'session_completed' | 'task_updated' | 'preferences_changed';
+type EventType = 
+  | 'app_launch' 
+  | 'plan_created' 
+  | 'session_started' 
+  | 'session_completed' 
+  | 'task_updated' 
+  | 'preferences_changed'
+  | 'manual_generation_skipped_pdf';
 
 interface AnalyticsPayload {
   timestamp: string;
