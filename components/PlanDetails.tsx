@@ -109,8 +109,16 @@ const PlanDetails: React.FC = () => {
               subject: editSubject,
               dailyGoalMins: editDailyGoal
           });
+
+          // Propagate daily goal to all tasks
+          planTasks.forEach(task => {
+              if (task.durationMinutes !== editDailyGoal) {
+                  updateTask(task.id, { durationMinutes: editDailyGoal });
+              }
+          });
+
           setIsEditing(false);
-          showToast("Your settings are saved.", "success");
+          showToast("Your settings are saved and tasks updated.", "success");
           triggerHaptic('success');
       }
   };

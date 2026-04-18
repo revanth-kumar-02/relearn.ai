@@ -22,6 +22,7 @@ const CreatePlan: React.FC = () => {
 
     // AI Inputs
     const [aiDuration, setAiDuration] = useState(30);
+    const [dailyGoalMins, setDailyGoalMins] = useState(45);
     const [difficulty, setDifficulty] = useState<'Beginner' | 'Intermediate' | 'Advanced'>('Beginner');
 
     useEffect(() => {
@@ -113,7 +114,7 @@ const CreatePlan: React.FC = () => {
                 totalDays: planDays.length,
                 completedDays: 0,
                 progress: 0,
-                dailyGoalMins: 45,
+                dailyGoalMins: dailyGoalMins,
                 difficulty: difficulty,
                 coverImage: immediateCover,
                 updatedAt: new Date().toISOString()
@@ -132,7 +133,7 @@ const CreatePlan: React.FC = () => {
                     planId: planId,
                     title: `Day ${index + 1}: ${sanitizedTopic}`,
                     description: description,
-                    durationMinutes: 45,
+                    durationMinutes: dailyGoalMins,
                     dueDate: date.toISOString().split('T')[0],
                     status: 'Not Started',
                     tags: ['AI Generated'],
