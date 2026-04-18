@@ -261,7 +261,7 @@ const LearningWorkspace: React.FC = () => {
       ["User Notes", notes || ""]
     ];
 
-    const csvContent = [
+    const csvContent = "\uFEFF" + [
       headers.join(","),
       ...rows.map(row => row.map(cell => `"${cell.toString().replace(/"/g, '""')}"`).join(","))
     ].join("\n");
@@ -281,13 +281,15 @@ const LearningWorkspace: React.FC = () => {
     
     const docStyles = `
       <style>
-        body { font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 40px; }
-        h1 { color: #0ea5e9; border-bottom: 2px solid #0ea5e9; padding-bottom: 10px; }
-        h2 { color: #444; margin-top: 30px; border-left: 4px solid #0ea5e9; padding-left: 15px; }
-        .meta { color: #666; font-size: 0.9em; margin-bottom: 30px; }
-        .objective { font-style: italic; background: #f0f9ff; padding: 15px; border-radius: 8px; border: 1px solid #bae6fd; }
-        .notes { background: #fffcf0; padding: 20px; border: 1px solid #fef3c7; border-radius: 8px; margin-top: 30px; }
-        pre { background: #f8fafc; padding: 15px; border-radius: 5px; overflow-x: auto; }
+        body { font-family: 'Times New Roman', serif; line-height: 1.5; color: #000; padding: 1in; }
+        h1 { color: #075985; font-size: 24pt; border-bottom: 2pt solid #075985; margin-bottom: 12pt; }
+        h2 { color: #1e293b; font-size: 16pt; margin-top: 24pt; margin-bottom: 6pt; border-left: 5pt solid #0ea5e9; padding-left: 10pt; }
+        .meta { color: #64748b; font-size: 10pt; margin-bottom: 20pt; border-bottom: 1pt solid #e2e8f0; padding-bottom: 5pt; }
+        .objective { font-style: italic; background: #f0f9ff; padding: 12pt; border: 1pt solid #bae6fd; border-radius: 4pt; margin: 10pt 0; }
+        .activity { margin: 8pt 0; padding-left: 20pt; }
+        .notes { background: #fffcf0; padding: 15pt; border: 1pt solid #fef3c7; border-radius: 4pt; margin-top: 20pt; }
+        p { margin-bottom: 10pt; }
+        ul { margin-bottom: 15pt; }
       </style>
     `;
 

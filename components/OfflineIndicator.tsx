@@ -1,5 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useConnection } from '../contexts/ConnectionContext';
 
 /**
@@ -18,6 +19,8 @@ const OfflineIndicator: React.FC = () => {
     if (status === 'offline') {
       setVisible(true);
       setShowOnline(false);
+      // Optional: auto-hide offline message too? User said "hide sync now after 10s"
+      // but "Sync Now" only shows when online+pending. We'll stick to that.
     } else if (status === 'syncing') {
       setVisible(true);
       setShowOnline(false);
@@ -25,13 +28,11 @@ const OfflineIndicator: React.FC = () => {
       if (unsyncedCount > 0) {
         setVisible(true);
         setShowOnline(false);
-        // User requested: hide "Sync Now" after 10 seconds
         const timer = setTimeout(() => {
           setVisible(false);
         }, 10000);
         return () => clearTimeout(timer);
       } else if (visible) {
-        // Briefly show "online" banner then hide
         setShowOnline(true);
         setVisible(true);
         const timer = setTimeout(() => {
@@ -40,8 +41,10 @@ const OfflineIndicator: React.FC = () => {
         }, 3000);
         return () => clearTimeout(timer);
       }
+    } else {
+      setVisible(false);
     }
-  }, [status, unsyncedCount]);
+  }, [status, unsyncedCount, visible]);
 
   if (!visible && !showOnline) return null;
 
@@ -98,40 +101,33 @@ const OfflineIndicator: React.FC = () => {
   if (!config) return null;
 
   return (
-    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] pointer-events-none">
-      <div
-        className={`${config.bg} text-white px-5 py-2.5 rounded-full shadow-2xl flex items-center gap-2.5 text-sm font-medium pointer-events-auto backdrop-blur-sm transition-all duration-500 ease-out`}
-        style={{
-          animation: 'slideDown 0.4s ease-out',
-        }}
-      >
-        <span className={`material-symbols-outlined text-lg ${config.animate}`}>
-          {config.icon}
-        </span>
-        <span>{config.text}</span>
-        {config.showRetry && (
-          <button
-            onClick={triggerSync}
-            className="ml-1 bg-white/20 hover:bg-white/30 rounded-full px-3 py-0.5 text-xs font-bold transition-colors"
+    <AnimatePresence>
+      {(visible || showOnline) && config && (
+        <motion.div 
+          initial={{ opacity: 0, y: -20, x: '-50%' }}
+          animate={{ opacity: 1, y: 0, x: '-50%' }}
+          exit={{ opacity: 0, y: -20, x: '-50%' }}
+          className="fixed top-4 left-1/2 z-[9999] pointer-events-none"
+        >
+          <div
+            className={`${config.bg} text-white px-5 py-2.5 rounded-full shadow-2xl flex items-center gap-2.5 text-sm font-medium pointer-events-auto backdrop-blur-sm transition-colors duration-500`}
           >
-            Sync Now
-          </button>
-        )}
-      </div>
-
-      <style>{`
-        @keyframes slideDown {
-          from {
-            opacity: 0;
-            transform: translateY(-20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-      `}</style>
-    </div>
+            <span className={`material-symbols-outlined text-lg ${config.animate}`}>
+              {config.icon}
+            </span>
+            <span>{config.text}</span>
+            {config.showRetry && (
+              <button
+                onClick={(e) => { e.stopPropagation(); triggerSync(); }}
+                className="ml-1 bg-white/20 hover:bg-white/30 rounded-full px-3 py-0.5 text-xs font-bold transition-colors active:scale-95"
+              >
+                Sync Now
+              </button>
+            )}
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 };
 
