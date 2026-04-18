@@ -176,7 +176,7 @@ const LearningDiary: React.FC = () => {
             {/* Floating Action Button */}
             <button
                 onClick={() => navigate('/create-plan')}
-                className="fixed bottom-24 right-6 md:bottom-12 md:left-12 h-14 w-14 bg-terracotta text-white rounded-full shadow-lg shadow-terracotta/30 flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-40 group"
+                className="fixed bottom-24 right-6 md:bottom-8 md:right-24 h-14 w-14 bg-terracotta text-white rounded-full shadow-lg shadow-terracotta/30 flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-40 group"
                 aria-label="Create New Learning Plan"
             >
                 <span className="material-symbols-outlined text-3xl group-hover:rotate-90 transition-transform duration-300">add</span>
