@@ -10,22 +10,22 @@
 
 export const AI_MODELS = {
   /** Primary stable model for high-speed plan generation */
-  PRIMARY: import.meta.env.VITE_LLM_MODEL_PRIMARY || 'gemini-2.0-flash',
+  PRIMARY: import.meta.env.VITE_LLM_MODEL_PRIMARY || 'gemini-3.1-flash-lite-preview',
 
   /** Ultra-high efficiency model for lightweight tasks */
-  FAST_LITE: 'gemini-2.0-flash',
+  FAST_LITE: 'gemini-3.1-flash-lite-preview',
 
   /** Flagship reasoning model for chat and complex tutoring */
-  CHAT: import.meta.env.VITE_LLM_MODEL_CHAT || 'gemini-2.0-flash',
+  CHAT: import.meta.env.VITE_LLM_MODEL_CHAT || 'gemini-3.1-pro-preview',
 
   /** Premium image generation model */
   IMAGE: 'imagen-3.0-generate-001',
 
   /** Ordered fallback chain for peak demand */
   FALLBACK_CHAIN: [
-    'gemini-2.0-flash',
-    'gemini-1.5-flash',
-    'gemini-1.5-pro',
+    'gemini-3.1-flash-lite-preview',
+    'gemini-3.1-pro-preview',
+    'gemini-2.5-pro',
   ],
 } as const;
 
