@@ -149,15 +149,18 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       })
       // Plans
       .on('postgres_changes', { event: '*', schema: 'public', table: 'plans', filter: `userId=eq.${user.id}` }, (payload) => {
-        getPlans(user.id!).then(dbPlans => {
-          setPlans(prev => calculateProgressForPlans(dbPlans, tasks));
+        // When plans change remotely, we need to re-fetch and re-calculate against CURRENT tasks
+        Promise.all([getPlans(user.id!), getTasks(user.id!)]).then(([dbPlans, dbTasks]) => {
+          setTasks(dbTasks);
+          setPlans(calculateProgressForPlans(dbPlans, dbTasks));
         });
       })
       // Tasks
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks', filter: `userId=eq.${user.id}` }, (payload) => {
-        getTasks(user.id!).then(dbTasks => {
+        // When tasks change remotely, we need to re-fetch and re-calculate against CURRENT plans
+        Promise.all([getPlans(user.id!), getTasks(user.id!)]).then(([dbPlans, dbTasks]) => {
           setTasks(dbTasks);
-          setPlans(prev => calculateProgressForPlans(plans, dbTasks));
+          setPlans(calculateProgressForPlans(dbPlans, dbTasks));
         });
       })
       .subscribe();
@@ -165,7 +168,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return () => {
       supabase.removeChannel(syncChannel);
     };
-  }, [user?.id, calculateProgressForPlans, plans, tasks]);
+  }, [user?.id, calculateProgressForPlans]);
 
   // Auto-save to localStorage whenever data changes
   useEffect(() => {
