@@ -12,7 +12,7 @@ import { triggerHaptic } from '../services/utils/haptics';
 const PlanDetails: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { plans, tasks, updateTask, updatePlan, deletePlan, addTask } = useData();
+  const { plans, tasks, updateTask, updateTasksBatch, updatePlan, deletePlan, addTask } = useData();
   const { isActive, currentStep } = useTutorial();
   const { showToast } = useToast();
   
