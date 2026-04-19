@@ -16,8 +16,7 @@ export default async (req: Request, context: Context) => {
   // Select the appropriate key based on use case
   let useCaseKey = "";
   if (useCase === "plan") {
-    // User specifically requested to use this key for plan generation
-    useCaseKey = "AIzaSyBvOf6I19TpudnnXrRVNEudSE5pQ1lfILU";
+    useCaseKey = (process.env.GEMINI_PLAN_API_KEY || process.env.VITE_GEMINI_PLAN_API_KEY || "").trim();
   } else if (useCase === "chat") {
     useCaseKey = (process.env.GEMINI_CHAT_API_KEY || process.env.VITE_GEMINI_CHAT_API_KEY || "").trim();
   } else if (useCase === "image") {
