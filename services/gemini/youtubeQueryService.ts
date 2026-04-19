@@ -14,10 +14,11 @@ export const generateYouTubeSearchQuery = async (
   language: string,
   videoLanguage: string = 'English'
 ): Promise<string> => {
+  const cleanTopic = topic.replace(/^(Day|Module|Week|Section|Lesson)\s*\d+[:\-]?\s*/i, '').trim();
   const langSuffix = videoLanguage && videoLanguage !== 'English' ? ` in ${videoLanguage}` : '';
   const fallbackQuery = language
-    ? `${sanitizeInput(language)} ${sanitizeInput(topic)} tutorial for beginners${langSuffix}`
-    : `${sanitizeInput(topic)} explained lecture course${langSuffix}`;
+    ? `${sanitizeInput(language)} ${sanitizeInput(cleanTopic)} tutorial for beginners${langSuffix}`
+    : `${sanitizeInput(cleanTopic)} explained lecture course${langSuffix}`;
 
   try {
     const ai = getProxyConfiguredGenAI('learning');
@@ -26,18 +27,18 @@ export const generateYouTubeSearchQuery = async (
       : '';
     const response = await ai.models.generateContent({
       model: AI_MODELS.PRIMARY,
-      contents: `Topic: "${sanitizeInput(topic)}"\nSubject / Language: "${sanitizeInput(subject) || "general programming"}"\nPreferred Video Language: "${sanitizeInput(videoLanguage)}"`,
+      contents: `Topic: "${sanitizeInput(cleanTopic)}"\nSubject / Language: "${sanitizeInput(subject) || "general programming"}"\nPreferred Video Language: "${sanitizeInput(videoLanguage)}"`,
       config: {
         systemInstruction: `You are a YouTube search query optimizer for educational programming content.
 Given a lesson topic and its subject/language, return a single search query (4-8 words) that will find the best beginner-friendly tutorial video on YouTube.
 
 Rules:
-- Return ONLY the query string, nothing else.
-- No quotes, no punctuation, no explanation.
-- Include the programming language if one is provided.
+- Return ONLY the query string, nothing else. Do not output anything like "Here is the query".
+- Never include words like "AI", "Generated", "Day X", or conversational text.
+- Include the programming language/subject if one is provided.
 - Favor terms like "tutorial", "explained", "for beginners", "step by step".
 - Be specific to the topic — don't be generic.${videoLangInstruction}`,
-        temperature: 0.3,
+        temperature: 0.1,
         maxOutputTokens: 30,
       },
     });
