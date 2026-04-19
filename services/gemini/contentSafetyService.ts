@@ -65,42 +65,63 @@ export const validateTopicSafety = async (
     try {
       console.log(`[SafetyService] Validating topic with model: ${currentModel}`);
 
-      const responsePromise = ai.models.generateContent({
-        model: currentModel,
-        ...request
-      });
+      // Create a timeout for this specific model attempt (12 seconds)
+      // This is less than the proxy timeout, so we can try the next model if one is slow
+      const modelTimeout = new AbortController();
+      const timeoutId = setTimeout(() => modelTimeout.abort(), 12000);
 
-      const response = await (signal ? Promise.race([
-        responsePromise,
-        new Promise((_, reject) => {
-          signal.addEventListener('abort', () => reject(new Error("AbortError")), { once: true });
-        })
-      ]) : responsePromise) as any;
+      try {
+        const responsePromise = ai.models.generateContent({
+          model: currentModel,
+          ...request
+        });
 
-      const text = response.text;
-      if (text) {
-        try {
-          const result = JSON.parse(text) as SafetyValidationResult;
-          console.log(`[SafetyService] Topic validation result:`, result);
-          return result;
-        } catch (validationError) {
-          console.warn(`[SafetyService] JSON Parse failed for ${currentModel}`, validationError);
+        const response = await responsePromise as any;
+        clearTimeout(timeoutId);
+
+        const text = response.text;
+        if (text) {
+          try {
+            const result = JSON.parse(text) as SafetyValidationResult;
+            console.log(`[SafetyService] Topic validation result:`, result);
+            return result;
+          } catch (validationError) {
+            console.warn(`[SafetyService] JSON Parse failed for ${currentModel}`, validationError);
+            continue;
+          }
+        }
+      } catch (error: any) {
+        clearTimeout(timeoutId);
+        
+        const errorMessage = error.message || "";
+        
+        // Handle specific key errors
+        if (errorMessage.includes("API key expired")) {
+          console.error(`[SafetyService] Detailed Error: Your API key for ${currentModel} has expired. Please update VITE_GEMINI_API_KEY.`);
+          throw new Error("API_KEY_EXPIRED");
+        }
+
+        if (error.name === 'AbortError' || errorMessage.includes('AbortError')) {
+          console.warn(`[SafetyService] Model ${currentModel} timed out. Trying next...`);
           continue;
         }
+
+        lastError = error;
+        console.warn(`[SafetyService] Model ${currentModel} failed:`, error.message);
+        continue;
       }
     } catch (error: any) {
-      if (error.message === "AbortError" || signal?.aborted) {
-        throw new Error("AbortError");
-      }
+      if (error.message === "API_KEY_EXPIRED") throw error;
       lastError = error;
-      console.warn(`[SafetyService] Model ${currentModel} failed:`, error.message);
       continue;
     }
   }
 
-  // If validation fails (e.g. network error), we degrade gracefully by allowing it through
-  // or throwing the error. Given safety is paramount, we might want to let it pass
-  // if it's just a network error, or block it. Let's block if we can't validate reliably.
+  // If validation fails (e.g. network error)
+  if (lastError?.message?.includes("API key expired") || lastError?.message?.includes("INVALID_ARGUMENT")) {
+    throw new Error("API_KEY_EXPIRED");
+  }
+
   console.error(`[SafetyService] All validation attempts failed. Error:`, lastError);
   throw new Error("Unable to validate content safety. Please check your network and try again.");
 };

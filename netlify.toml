@@ -14,6 +14,11 @@
   to = "/.netlify/functions/openai-proxy"
   status = 200
 
+[[redirects]]
+  from = "/api/feedback/*"
+  to = "https://formspree.io/:splat"
+  status = 200
+
 # Fix: Ensure assets return 404 instead of index.html if missing
 # This avoids the "MIME type text/html" error
 [[redirects]]

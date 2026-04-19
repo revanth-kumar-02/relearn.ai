@@ -166,7 +166,12 @@ const CreatePlan: React.FC = () => {
                 return;
             }
             console.error("Plan Generation Failed:", e);
-            showToast(e?.message || "We lost connection for a moment. Let's reconnect.", "error");
+
+            if (e.message === "API_KEY_EXPIRED") {
+                showToast("Your Gemini API Key has expired. Please update it in your settings or Netlify environment.", "error");
+            } else {
+                showToast(e?.message || "We lost connection for a moment. Let's reconnect.", "error");
+            }
         } finally {
             setIsLoading(false);
             abortControllerRef.current = null;
