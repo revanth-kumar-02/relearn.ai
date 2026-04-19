@@ -19,6 +19,16 @@ import type { Context, Config } from "@netlify/functions";
 const YOUTUBE_API_URL = "https://www.googleapis.com/youtube/v3";
 
 export default async (req: Request, _context: Context) => {
+  if (req.method === "OPTIONS") {
+    return new Response("OK", {
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+      },
+    });
+  }
+
   // Only allow POST
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
@@ -28,11 +38,15 @@ export default async (req: Request, _context: Context) => {
   }
 
   // @ts-ignore
-  const apiKey = (process.env.YOUTUBE_API_KEY || "").trim();
+  const apiKey = (
+    process.env.YOUTUBE_API_KEY || 
+    process.env.VITE_YOUTUBE_API_KEY || 
+    ""
+  ).trim();
   if (!apiKey) {
     return new Response(
-      JSON.stringify({ error: "YouTube API key is not configured on the server." }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
+      JSON.stringify({ error: { message: "YouTube API key is not configured on the server." } }),
+      { status: 500, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
     );
   }
 
@@ -45,16 +59,16 @@ export default async (req: Request, _context: Context) => {
 
     if (!endpoint || !params) {
       return new Response(
-        JSON.stringify({ error: "Missing 'endpoint' or 'params' in request body." }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
+        JSON.stringify({ error: { message: "Missing 'endpoint' or 'params' in request body." } }),
+        { status: 400, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
       );
     }
 
     // Whitelist allowed endpoints
     if (!["search", "videos"].includes(endpoint)) {
       return new Response(
-        JSON.stringify({ error: `Invalid endpoint: "${endpoint}"` }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
+        JSON.stringify({ error: { message: `Invalid endpoint: "${endpoint}"` } }),
+        { status: 400, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
       );
     }
 
@@ -68,19 +82,19 @@ export default async (req: Request, _context: Context) => {
     if (!googleRes.ok) {
       return new Response(JSON.stringify(data), {
         status: googleRes.status,
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
       });
     }
 
     return new Response(JSON.stringify(data), {
       status: 200,
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
     });
   } catch (err: any) {
     console.error("[youtube-proxy] Error:", err);
     return new Response(
-      JSON.stringify({ error: err?.message || "Internal server error" }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
+      JSON.stringify({ error: { message: err?.message || "Internal server error" } }),
+      { status: 500, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
     );
   }
 };
