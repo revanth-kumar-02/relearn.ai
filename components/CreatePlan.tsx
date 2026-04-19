@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { generateLearningPlan } from '../services/gemini/planGeneratorService';
-import { validateTopicSafety } from '../services/gemini/contentSafetyService';
+
 import { generatePlanCoverImage } from '../services/gemini/imageService';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -53,20 +53,7 @@ const CreatePlan: React.FC = () => {
         abortControllerRef.current = new AbortController();
 
         try {
-            // Validate content safety
-            const safetyResult = await validateTopicSafety(cleanPrompt, undefined, abortControllerRef.current.signal);
-            if (!safetyResult.isSafe) {
-                showToast(safetyResult.message || "This topic falls outside our current learning paths. Let’s explore something else.", "error");
-                setIsLoading(false);
-                abortControllerRef.current = null;
-                return;
-            }
-
-            const safePrompt = safetyResult.redirectedTopic || cleanPrompt;
-            if (safetyResult.redirectedTopic && safetyResult.redirectedTopic.toLowerCase() !== cleanPrompt.toLowerCase()) {
-                showToast(`Topic adjusted to: ${safetyResult.redirectedTopic}`, "info");
-                setPrompt(safetyResult.redirectedTopic);
-            }
+            const safePrompt = cleanPrompt;
             const userContext = user ? `
           Academic Level: ${user.academicLevel}
           Learning Goals: ${user.learningGoals?.join(', ')}
