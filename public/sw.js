@@ -44,20 +44,21 @@ self.addEventListener('fetch', (event) => {
         return; // Direct network access
     }
 
-    // Network First strategy for the main page and index.html
-    // This ensures we always point to the latest JS/CSS hashes
-    if (url.origin === self.location.origin && (url.pathname === '/' || url.pathname === '/index.html')) {
+    // Network First strategy for navigation requests (SPA routing)
+    // This ensures we always point to the latest JS/CSS hashes, and serves cached index.html offline
+    if (event.request.mode === 'navigate' || (url.origin === self.location.origin && (url.pathname === '/' || url.pathname === '/index.html'))) {
         event.respondWith(
             fetch(event.request)
                 .then((response) => {
                     const clonedResponse = response.clone();
                     caches.open(CACHE_NAME).then((cache) => {
-                        cache.put(event.request, clonedResponse);
+                        // Store the latest index file mapped to '/' instead of specific route
+                        cache.put('/', clonedResponse);
                     });
                     return response;
                 })
                 .catch(() => {
-                    return caches.match(event.request).then(cached => {
+                    return caches.match('/').then(cached => {
                         return cached || new Response('Offline and not cached', { status: 503, statusText: 'Service Unavailable' });
                     });
                 })

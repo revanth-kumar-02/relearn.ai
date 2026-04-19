@@ -98,6 +98,7 @@ export default async (req: Request, context: Context) => {
         headers: {
           "Content-Type": response.headers.get("Content-Type") || "application/json",
           "Access-Control-Allow-Origin": "*",
+          "X-Proxy-Failed-Key": `${apiKey.substring(0, 6)}...${apiKey.slice(-4)}`
         }
       });
 

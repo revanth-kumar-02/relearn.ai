@@ -24,10 +24,10 @@ export const AI_MODELS = {
   /** Ordered fallback chain for peak demand */
   FALLBACK_CHAIN: [
     'gemini-2.0-flash',
-    'gemini-2.0-flash-lite-preview-02-05',
     'gemini-3.1-flash-lite-preview',
     'gemini-3.1-pro-preview',
     'gemini-2.0-pro-exp-02-05',
+    'gemini-2.0-flash-lite-preview-02-05',
   ],
 } as const;
 
@@ -47,12 +47,13 @@ export const isRetryableError = (error: any): boolean => {
   const message = (error?.message || error?.toString() || '').toUpperCase();
   const status = error?.status || error?.code;
 
-  // 404 is NOT retryable (if a model is missing, it stays missing)
-  return status === 503 || status === 429 ||
+  // 404 means the specific model is missing, so we should retry the next model in the fallback chain.
+  return status === 503 || status === 429 || status === 404 ||
     message.includes('UNAVAILABLE') ||
     message.includes('429') ||
     message.includes('RESOURCE_EXHAUSTED') ||
     message.includes('OVERLOADED') ||
+    message.includes('NOT_FOUND') ||
     message.includes('HIGH DEMAND');
 };
 
