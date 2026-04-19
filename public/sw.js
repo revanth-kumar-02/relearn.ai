@@ -57,7 +57,9 @@ self.addEventListener('fetch', (event) => {
                     return response;
                 })
                 .catch(() => {
-                    return caches.match(event.request);
+                    return caches.match(event.request).then(cached => {
+                        return cached || new Response('Offline and not cached', { status: 503, statusText: 'Service Unavailable' });
+                    });
                 })
         );
         return;
@@ -68,8 +70,7 @@ self.addEventListener('fetch', (event) => {
         caches.match(event.request).then((response) => {
             return response || fetch(event.request).catch((err) => {
                 console.warn('[SW] Fetch failed:', event.request.url);
-                // Return nothing to let the browser handle the failure naturally
-                return null;
+                return new Response('Network error', { status: 503, statusText: 'Service Unavailable' });
             });
         })
     );
