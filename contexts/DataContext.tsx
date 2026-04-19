@@ -94,7 +94,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const planTasks = allTasks.filter(t => t.planId === plan.id);
       const total = planTasks.length;
       const completed = planTasks.filter(t => t.status === 'Completed').length;
-      const progress = total === 0 ? 0 : (completed / total) * 100;
+      const progress = total === 0 ? 0 : Math.round((completed / total) * 100);
       
       if (plan.progress !== progress || plan.completedDays !== completed || plan.totalDays !== total) {
         return { ...plan, totalDays: total, completedDays: completed, progress };
@@ -231,7 +231,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const total = newTasks.length;
     const completed = newTasks.filter(t => t.status === 'Completed').length;
-    const progress = total === 0 ? 0 : (completed / total) * 100;
+    const progress = total === 0 ? 0 : Math.round((completed / total) * 100);
 
     const planId = plan.id || crypto.randomUUID();
     const savedPlan: Plan = {
@@ -305,7 +305,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const planTasks = updatedTasks.filter(t => t.planId === task.planId);
       const total = planTasks.length;
       const completed = planTasks.filter(t => t.status === 'Completed').length;
-      const progress = total === 0 ? 0 : (completed / total) * 100;
+      const progress = total === 0 ? 0 : Math.round((completed / total) * 100);
 
       setPlans(prev => prev.map(p => p.id === task.planId ? { ...p, totalDays: total, completedDays: completed, progress } : p));
       await dsUpdatePlan(user.id, task.planId, { totalDays: total, completedDays: completed, progress });
@@ -334,7 +334,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const planTasks = updatedTasks.filter(t => t.planId === planId);
         const total = planTasks.length;
         completed = planTasks.filter(t => t.status === 'Completed').length;
-        progress = total === 0 ? 0 : (completed / total) * 100;
+        progress = total === 0 ? 0 : Math.round((completed / total) * 100);
 
         // Apply optimistic update to plans
         setPlans(prevPlans => prevPlans.map(p => 
@@ -378,7 +378,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const planTasks = updatedTasks.filter(t => t.planId === planId);
       const total = planTasks.length;
       const completed = planTasks.filter(t => t.status === 'Completed').length;
-      const progress = total === 0 ? 0 : (completed / total) * 100;
+      const progress = total === 0 ? 0 : Math.round((completed / total) * 100);
 
       setTasks(updatedTasks);
       setPlans(prevPlans => prevPlans.map(p => 
@@ -407,7 +407,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const planTasks = updatedTasks.filter(t => t.planId === planId);
       const total = planTasks.length;
       const completed = planTasks.filter(t => t.status === 'Completed').length;
-      const progress = total === 0 ? 0 : (completed / total) * 100;
+      const progress = total === 0 ? 0 : Math.round((completed / total) * 100);
 
       setPlans(prev => prev.map(p => p.id === planId ? { ...p, totalDays: total, completedDays: completed, progress } : p));
       try { await dsUpdatePlan(user.id, planId, { totalDays: total, completedDays: completed, progress }); } catch (e) { console.error(e); }

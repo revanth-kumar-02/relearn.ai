@@ -14,37 +14,51 @@ const OfflineIndicator: React.FC = () => {
   const { status, unsyncedCount, isSupabaseConfigured, triggerSync } = useConnection();
   const [visible, setVisible] = useState(false);
   const [showOnline, setShowOnline] = useState(false);
+  const [lastDismissedCount, setLastDismissedCount] = useState<number>(0);
 
   useEffect(() => {
-    if (status === 'offline') {
+    // 1. Offline or Syncing: Always visible, no timeout
+    if (status === 'offline' || status === 'syncing') {
       setVisible(true);
       setShowOnline(false);
-      // Optional: auto-hide offline message too? User said "hide sync now after 10s"
-      // but "Sync Now" only shows when online+pending. We'll stick to that.
-    } else if (status === 'syncing') {
-      setVisible(true);
-      setShowOnline(false);
-    } else if (status === 'online') {
-      if (unsyncedCount > 0) {
-        setVisible(true);
-        setShowOnline(false);
-        const timer = setTimeout(() => {
-          setVisible(false);
-        }, 10000);
-        return () => clearTimeout(timer);
-      } else if (visible) {
-        setShowOnline(true);
-        setVisible(true);
-        const timer = setTimeout(() => {
-          setShowOnline(false);
-          setVisible(false);
-        }, 3000);
-        return () => clearTimeout(timer);
-      }
-    } else {
-      setVisible(false);
+      setLastDismissedCount(0); // Reset when status changes significantly
+      return;
     }
-  }, [status, unsyncedCount, visible]);
+
+    // 2. Online + Unsynced: Show "Sync Now" for 10 seconds IF count changed
+    if (status === 'online' && unsyncedCount > 0) {
+      if (unsyncedCount <= lastDismissedCount) {
+        // We already timed out for this amount of changes (or fewer)
+        // Don't show again unless the count INCREASES (new work)
+        return;
+      }
+
+      setVisible(true);
+      setShowOnline(false);
+      
+      const timer = setTimeout(() => {
+        setVisible(false);
+        setLastDismissedCount(unsyncedCount);
+      }, 10000);
+      return () => clearTimeout(timer);
+    }
+
+    // 3. Just changed from offline/syncing to online (and synced): Show success for 3s
+    if (status === 'online' && unsyncedCount === 0) {
+      setShowOnline(true);
+      setVisible(true);
+      setLastDismissedCount(0); // Reset
+      
+      const timer = setTimeout(() => {
+        setShowOnline(false);
+        setVisible(false);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+
+    // 4. Default: Hidden
+    setVisible(false);
+  }, [status, unsyncedCount, lastDismissedCount]);
 
   if (!visible && !showOnline) return null;
 

@@ -224,6 +224,9 @@ export async function createPlan(userId: string, plan: Plan): Promise<void> {
   if (canUseSupabase()) {
     try {
       const { updatedAt, ...payload } = planWithMeta as any;
+      if (typeof payload.progress === 'number') {
+        payload.progress = Math.round(payload.progress);
+      }
       const { error } = await supabase.from('plans').insert(payload);
       if (error) throw error;
       return;
@@ -256,6 +259,9 @@ export async function updatePlan(
   if (canUseSupabase()) {
     try {
       const { updatedAt, ...payload } = updatesWithMeta;
+      if (typeof payload.progress === 'number') {
+        payload.progress = Math.round(payload.progress);
+      }
       const { error } = await supabase.from('plans').update(payload).eq('id', planId);
       if (error) throw error;
       return;
