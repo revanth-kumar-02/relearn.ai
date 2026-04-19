@@ -142,8 +142,14 @@ export const generateLearningPlan = async (
       }
 
       lastError = error;
-      const errorMsg = error?.message || error?.toString() || 'Unknown error';
+      const errorMsg = (error?.message || error?.toString() || '').toLowerCase();
       console.warn(`[PlanGenerator] Model ${currentModel} failed:`, errorMsg);
+
+      // Specific handling for Key Expiration - suggest redeploy
+      if (errorMsg.includes("api key expired") || errorMsg.includes("invalid_argument") || errorMsg.includes("400")) {
+        console.error(`[PlanGenerator] API Key issue detected. Suggesting redeploy.`);
+        throw new Error("Your API key is expired or invalid. PLEASE REDEPLOY YOUR SITE ON NETLIFY to sync your new keys.");
+      }
 
       if (isRetryableError(error)) {
         const isRateLimited = errorMsg.includes('429') || errorMsg.includes('RESOURCE_EXHAUSTED');
