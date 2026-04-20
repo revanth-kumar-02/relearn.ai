@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { fetchEducationalVideos, YouTubeVideo } from '../services/youtubeService';
+import { fetchEducationalVideos, clearVideosCache, YouTubeVideo } from '../services/youtubeService';
 import { useData } from '../contexts/DataContext';
 
 interface VideoResourcesProps {
@@ -195,13 +195,7 @@ const VideoResources: React.FC<VideoResourcesProps> = ({ topic, subject }) => {
       <div className="flex justify-center pt-1">
         <button
           onClick={() => {
-            // Key format must match buildCacheKey: relearn_videos_${vidLang}_${language}_${dayTitle}
-            try {
-              const vidLang = videoLanguage;
-              const lang = subject ? subject.toLowerCase().replace(/\s+/g, '_') : 'general';
-              const tp = topic.toLowerCase().replace(/\s+/g, '_');
-              localStorage.removeItem(`relearn_videos_${vidLang}_${lang}_${tp}`);
-            } catch (e) { console.warn('[VideoResources] Cache clear failed:', e); }
+            clearVideosCache(topic, subject);
             loadVideos();
           }}
           className="text-xs text-stone-400 hover:text-primary flex items-center gap-1.5 transition-colors py-2.5 px-5 rounded-xl hover:bg-primary/5 font-bold"

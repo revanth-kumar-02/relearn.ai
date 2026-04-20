@@ -342,6 +342,17 @@ const setCachedVideos = (language: string, dayTitle: string, videos: YouTubeVide
   }
 };
 
+export const clearVideosCache = (topic: string, subject: string = ''): void => {
+  const language = subject ? detectLanguage(subject) : '';
+  const key = buildCacheKey(language || 'general', topic);
+  try {
+    localStorage.removeItem(key);
+    console.log(`[YouTube] Cleared cache: ${key}`);
+  } catch (e) {
+    console.warn('[YouTube] Failed to clear cache:', e);
+  }
+};
+
 // ═══════════════════════════════════════════════════════════════
 //  1️⃣  Dynamic Query Builder
 // ═══════════════════════════════════════════════════════════════
