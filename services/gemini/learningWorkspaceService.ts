@@ -11,6 +11,7 @@ import { sanitizeInput } from "../utils/sanitize";
 export const generateLessonContent = async (
   topic: string,
   planTitle: string,
+  language: string = 'English',
   pdfContent?: string
 ): Promise<string> => {
   try {
@@ -37,13 +38,15 @@ CRITICAL FORMATTING RULES FOR 'aiExplanation':
    - Add a brief explanation BEFORE and AFTER each code block.
    - Use monospaced styling for inline code using single backticks (\`code\`).
 6. VISUAL SCANNING: The content must be easy to scan. No "walls of text".
+7. LANGUAGE: All explanations, activities, and guidance must be written in **${language}**.
+8. TECHNICAL TERMS: Keep technical terms (e.g., "Variables", "DOM", "State") in English to ensure professional terminology is retained.
 
 Include:
-1. learningObjective: A clear, concise goal for the session.
-2. aiExplanation: The formatted Markdown content following the rules above.
-3. practiceActivities: An array of 3-4 step-by-step learning tasks.
-4. resources: An array of 2-3 relevant resource objects with title, url, and type ('video', 'article', 'link').
-5. practiceQuestion: A high-quality reflection question or small challenge.
+1. learningObjective: A clear, concise goal for the session (written in ${language}).
+2. aiExplanation: The formatted Markdown content (written in ${language}) following the rules above.
+3. practiceActivities: An array of 3-4 step-by-step learning tasks (written in ${language}).
+4. resources: An array of 2-3 relevant resource objects. If possible, prioritize those with content in ${language}.
+5. practiceQuestion: A high-quality reflection question (written in ${language}). or small challenge.
 
 Do not include markdown code fences (like \`\`\`json) outside the JSON structure. Returns ONLY valid JSON.`;
 

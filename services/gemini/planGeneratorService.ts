@@ -49,7 +49,7 @@ function validatePlanStructure(data: any): ValidatedPlan {
   };
 }
 
-const buildPlanRequest = (goal: string, days: number, difficulty: string, userContext?: string) => ({
+const buildPlanRequest = (goal: string, days: number, difficulty: string, language: string, userContext?: string) => ({
   contents: [{
     role: 'user',
     parts: [{ text: `Generate a structured learning plan for the topic: ${sanitizeInput(goal)}. Difficulty Level: ${difficulty}. ${userContext ? `User Context: ${sanitizeInput(userContext)}` : ''}` }]
@@ -60,8 +60,9 @@ Your response MUST be a JSON object.
 Do not include any introductory text, closing text, or markdown code fences.
 The plan should cover exactly ${days} days.
 The difficulty level should be strictly "${difficulty}".
-Guidance for each day should be concise, actionable, and approximately 15-20 words.
-${userContext ? `Tailor the plan to the user's academic level, goals, and preferred study time mentioned in the context.` : ''}`,
+    Guidance for each day should be concise, actionable, and approximately 15-20 words.
+    Guidance MUST be written in ${language}.
+    ${userContext ? `Tailor the plan to the user's academic level, goals, and preferred study time mentioned in the context.` : ''} Proprietary or technical terms like "JavaScript", "Function", "React", or "API" should remain in English for clarity.`,
     responseMimeType: "application/json",
     responseSchema: {
       type: Type.OBJECT,
@@ -92,11 +93,12 @@ export const generateLearningPlan = async (
   days: number = 30,
   difficulty: string = 'Beginner',
   model: string = AI_MODELS.PRIMARY,
+  language: string = 'English',
   userContext?: string,
   signal?: AbortSignal
 ): Promise<string> => {
   const ai = getProxyConfiguredGenAI('plan');
-  const request = buildPlanRequest(goal, days, difficulty, userContext);
+  const request = buildPlanRequest(goal, days, difficulty, language, userContext);
 
   const modelsToTry = [model, ...AI_MODELS.FALLBACK_CHAIN.filter(m => m !== model)];
   let lastError: any = null;

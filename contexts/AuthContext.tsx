@@ -19,7 +19,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const defaultPreferences: UserPreferences = {
+export const defaultPreferences: UserPreferences = {
   theme: 'system',
   videoLanguage: 'en',
   notifications: {

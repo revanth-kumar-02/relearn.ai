@@ -22,7 +22,8 @@ export interface QuizResult {
 export const generateQuiz = async (
   topic: string,
   lessonContent: string,
-  difficulty: string = 'Beginner'
+  difficulty: string = 'Beginner',
+  language: string = 'English'
 ): Promise<QuizResult> => {
   const ai = getProxyConfiguredGenAI('learning');
   const modelsToTry = [AI_MODELS.PRIMARY, ...AI_MODELS.FALLBACK_CHAIN.filter(m => m !== AI_MODELS.PRIMARY)];
@@ -46,12 +47,14 @@ ${sanitizeInput(lessonContent.slice(0, 6000))}
 Difficulty level: ${difficulty}
 
 Requirements:
+- GENERATE ALL TEXT (questions, options, explanations) IN ${language}.
 - Each question must have exactly 4 options
 - Only one correct answer per question
 - correctIndex is 0-based (0, 1, 2, or 3)
 - Explanation should be 1-2 sentences explaining WHY the correct answer is right
 - Questions should test understanding, not just recall
-- Vary question difficulty slightly within the set`
+- Vary question difficulty slightly within the set
+- Keep technical terms (e.g. "React", "Closure", "Variable") in English.`
           }]
         }],
         config: {

@@ -306,51 +306,26 @@ const generateReason = (
 //  5️⃣  localStorage Cache Layer
 // ═══════════════════════════════════════════════════════════════
 
+/**  
+ * USER REQUEST: No localStorage caching for videos.
+ * These are now NOOPs to prevent saving/reading video data from local storage.
+ */
 const buildCacheKey = (language: string, dayTitle: string): string => {
   const vidLang = getVideoLanguagePreference();
   return `relearn_videos_${vidLang}_${language.toLowerCase().replace(/\s+/g, '_')}_${dayTitle.toLowerCase().replace(/\s+/g, '_')}`;
 };
 
-const getCachedVideos = (language: string, dayTitle: string): YouTubeVideo[] | null => {
-  try {
-    const key = buildCacheKey(language, dayTitle);
-    const raw = localStorage.getItem(key);
-    if (!raw) return null;
-
-    const cached: CachedResult = JSON.parse(raw);
-    const age = Date.now() - cached.timestamp;
-
-    if (age > CACHE_TTL_MS) {
-      localStorage.removeItem(key); // Expired
-      return null;
-    }
-
-    console.log(`[YouTube] Cache HIT for "${language} ${dayTitle}" (${Math.round(age / 60000)}min old)`);
-    return cached.videos;
-  } catch {
-    return null;
-  }
+const getCachedVideos = (_language: string, _dayTitle: string): YouTubeVideo[] | null => {
+  return null; // Always return null to force fresh fetch
 };
 
-const setCachedVideos = (language: string, dayTitle: string, videos: YouTubeVideo[]): void => {
-  try {
-    const key = buildCacheKey(language, dayTitle);
-    const entry: CachedResult = { videos, timestamp: Date.now() };
-    localStorage.setItem(key, JSON.stringify(entry));
-  } catch (e) {
-    console.warn('[YouTube] Failed to cache videos:', e);
-  }
+const setCachedVideos = (_language: string, _dayTitle: string, _videos: YouTubeVideo[]): void => {
+  // Noop - don't save to localStorage
 };
 
 export const clearVideosCache = (topic: string, subject: string = ''): void => {
-  const language = subject ? detectLanguage(subject) : '';
-  const key = buildCacheKey(language || 'general', topic);
-  try {
-    localStorage.removeItem(key);
-    console.log(`[YouTube] Cleared cache: ${key}`);
-  } catch (e) {
-    console.warn('[YouTube] Failed to clear cache:', e);
-  }
+  // We still provide this for the UI, but it's a noop now since there's no cache
+  console.log(`[YouTube] Refreshing recommendations for "${topic}"...`);
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -593,50 +568,53 @@ const formatViewCount = (viewCount: string): string => {
 const getMockVideos = (topic: string, language: string): YouTubeVideo[] => {
   const safe = topic.replace(/[^a-zA-Z0-9]/g, '');
   const lang = language || 'Programming';
+  const vidLang = getVideoLanguageLabel(getVideoLanguagePreference());
+  const suffix = vidLang !== 'English' ? ` (In ${vidLang})` : '';
+
   return [
     {
       id: 'mock-1', videoId: 'mock-1',
-      title: `${lang} ${topic}: Complete Beginner Tutorial`,
-      description: `Learn ${topic} in ${lang} from scratch with step-by-step examples and hands-on coding exercises.`,
+      title: `${lang} ${topic}: Beginner Tutorial${suffix}`,
+      description: `Learn ${topic} in ${lang} with visual examples in ${vidLang}.`,
       thumbnail: `https://picsum.photos/seed/${safe}1/320/180`,
       channelTitle: 'Education Hub',
       viewCount: '1.2M views',
       publishedAt: new Date().toISOString(),
-      reason: `Beginner-friendly · Covers ${lang}`,
-      relevanceScore: 85,
+      reason: `Beginner-friendly · ${vidLang}`,
+      relevanceScore: 95,
     },
     {
       id: 'mock-2', videoId: 'mock-2',
-      title: `Understanding ${topic} in ${lang} - Step by Step`,
-      description: `A step-by-step tutorial explaining ${topic} concepts in ${lang} with real-world examples.`,
+      title: `Understanding ${topic} in ${lang}${suffix}`,
+      description: `A comprehensive breakdown of ${topic} explained in ${vidLang}.`,
       thumbnail: `https://picsum.photos/seed/${safe}2/320/180`,
       channelTitle: 'Quick Learning',
       viewCount: '850K views',
       publishedAt: new Date().toISOString(),
-      reason: `Step-by-step · "${topic}"`,
-      relevanceScore: 72,
+      reason: `High relevance · ${vidLang}`,
+      relevanceScore: 88,
     },
     {
       id: 'mock-3', videoId: 'mock-3',
-      title: `${lang} ${topic} Explained for Beginners`,
-      description: `A comprehensive guide to ${topic} in ${lang}, perfect for beginners starting their coding journey.`,
+      title: `Master ${lang} ${topic}${suffix}`,
+      description: `Fast-paced tutorial on ${topic} for ${lang} developers.`,
       thumbnail: `https://picsum.photos/seed/${safe}3/320/180`,
       channelTitle: 'Professor Smith',
       viewCount: '420K views',
       publishedAt: new Date().toISOString(),
-      reason: `Beginner-friendly · Comprehensive`,
-      relevanceScore: 65,
+      reason: `Comprehensive · ${vidLang}`,
+      relevanceScore: 75,
     },
     {
       id: 'mock-4', videoId: 'mock-4',
-      title: `${lang} Tutorial: ${topic} with Examples`,
-      description: `Master ${topic} in ${lang} with practical coding examples and exercises.`,
+      title: `${topic} Concepts in ${lang}${suffix}`,
+      description: `Core concepts of ${topic} detailed in ${vidLang}.`,
       thumbnail: `https://picsum.photos/seed/${safe}4/320/180`,
       channelTitle: 'University Online',
       viewCount: '125K views',
       publishedAt: new Date().toISOString(),
-      reason: `Related to ${lang} ${topic}`,
-      relevanceScore: 50,
+      reason: `Academic quality · ${vidLang}`,
+      relevanceScore: 60,
     },
   ];
 };

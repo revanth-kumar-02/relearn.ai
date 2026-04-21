@@ -5,7 +5,12 @@ import { sanitizeInput } from "../utils/sanitize";
 /**
  * Non-streaming chatbot
  */
-export const sendChatMessage = async (message: string, history: { role: 'user' | 'model', parts: { text: string }[] }[], userContext?: string): Promise<string> => {
+export const sendChatMessage = async (
+  message: string, 
+  history: { role: 'user' | 'model', parts: { text: string }[] }[], 
+  language: string = 'English', 
+  userContext?: string
+): Promise<string> => {
   const ai = getProxyConfiguredGenAI('chat');
   const modelsToTry = [AI_MODELS.CHAT, ...AI_MODELS.FALLBACK_CHAIN.filter(m => m !== AI_MODELS.CHAT)];
   let lastError: any = null;
@@ -16,9 +21,9 @@ export const sendChatMessage = async (message: string, history: { role: 'user' |
         model: currentModel,
         config: {
           systemInstruction: `You are ReLearn.ai, a helpful AI study assistant. 
-            Your goal is to help students manage their time, understand complex topics, and stay motivated.
             ${userContext ? `User Profile Context: ${userContext}` : ''}
-            Be concise, encouraging, and professional.`,
+            Be concise, encouraging, and professional.
+            IMPORTANT: ALWAYS RESPOND IN ${language}. However, technical terms should remain in English for educational clarity.`,
         },
         history: history
       });
@@ -43,6 +48,7 @@ export const sendChatMessageStreaming = async (
   message: string,
   history: { role: 'user' | 'model', parts: { text: string }[] }[],
   onChunk: (accumulatedText: string) => void,
+  language: string = 'English',
   userContext?: string
 ): Promise<string> => {
   const ai = getProxyConfiguredGenAI('chat');
@@ -53,7 +59,8 @@ export const sendChatMessageStreaming = async (
   const systemInstruction = `You are ReLearn.ai, a helpful AI study assistant. 
 Your goal is to help students manage their time, understand complex topics, and stay motivated.
 ${userContext ? `User Profile Context: ${sanitizeInput(userContext)}` : ''}
-Be concise, encouraging, and professional. Use markdown formatting for lists, bold, and headers where appropriate.`;
+Be concise, encouraging, and professional. Use markdown formatting for lists, bold, and headers where appropriate.
+IMPORTANT: ALWAYS RESPOND IN ${language}. However, technical terms should remain in English for educational clarity.`;
 
   const contents = [
     ...history.map(h => ({

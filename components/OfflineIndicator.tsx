@@ -1,148 +1,114 @@
-
-import React, { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import React, { useState, useEffect } from 'react';
 import { useConnection } from '../contexts/ConnectionContext';
+import { motion, AnimatePresence } from 'motion/react';
 
-/**
- * Floating connection status indicator.
- * Shows:
- *  - 🟢 Online (auto-hides after 3s)
- *  - 🟡 Syncing (with spinner)
- *  - 🔴 Offline (persistent) with pending changes count
- */
 const OfflineIndicator: React.FC = () => {
-  const { status, unsyncedCount, isSupabaseConfigured, triggerSync } = useConnection();
-  const [visible, setVisible] = useState(false);
-  const [showOnline, setShowOnline] = useState(false);
-  const [lastDismissedCount, setLastDismissedCount] = useState<number>(0);
+    const { status, unsyncedCount, triggerSync } = useConnection();
+    const [isExpanded, setIsExpanded] = useState(false);
 
-  useEffect(() => {
-    // 1. Offline or Syncing: Always visible, no timeout
-    if (status === 'offline' || status === 'syncing') {
-      setVisible(true);
-      setShowOnline(false);
-      setLastDismissedCount(0); // Reset when status changes significantly
-      return;
-    }
+    // Only show if we're actually offline, currently syncing, or have pending changes
+    const shouldShow = status === 'offline' || status === 'syncing' || unsyncedCount > 0;
 
-    // 2. Online + Unsynced: Show "Sync Now" for 10 seconds IF count changed
-    if (status === 'online' && unsyncedCount > 0) {
-      if (unsyncedCount <= lastDismissedCount) {
-        // We already timed out for this amount of changes (or fewer)
-        // Don't show again unless the count INCREASES (new work)
-        return;
-      }
+    if (!shouldShow) return null;
 
-      setVisible(true);
-      setShowOnline(false);
-      
-      const timer = setTimeout(() => {
-        setVisible(false);
-        setLastDismissedCount(unsyncedCount);
-      }, 10000);
-      return () => clearTimeout(timer);
-    }
+    const getStatusConfig = () => {
+        if (status === 'offline') {
+            return {
+                icon: 'cloud_off',
+                bg: 'bg-red-500',
+                text: 'You are offline',
+                subtext: `${unsyncedCount} changes waiting to sync`,
+                action: 'Sync Now',
+                actionIcon: 'sync'
+            };
+        }
+        if (status === 'syncing') {
+            return {
+                icon: 'sync',
+                bg: 'bg-primary',
+                text: 'Syncing your progress...',
+                subtext: 'Uploading changes to cloud',
+                isSyncing: true
+            };
+        }
+        if (unsyncedCount > 0) {
+            return {
+                icon: 'cloud_upload',
+                bg: 'bg-amber-500',
+                text: 'Unsynced changes',
+                subtext: `${unsyncedCount} items saved locally`,
+                action: 'Push Changes',
+                actionIcon: 'upload'
+            };
+        }
+        return null;
+    };
 
-    // 3. Just changed from offline/syncing to online (and synced): Show success for 3s
-    if (status === 'online' && unsyncedCount === 0) {
-      setShowOnline(true);
-      setVisible(true);
-      setLastDismissedCount(0); // Reset
-      
-      const timer = setTimeout(() => {
-        setShowOnline(false);
-        setVisible(false);
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
+    const config = getStatusConfig();
+    if (!config) return null;
 
-    // 4. Default: Hidden
-    setVisible(false);
-  }, [status, unsyncedCount, lastDismissedCount]);
+    return (
+        <AnimatePresence mode="wait">
+            <motion.div
+                key={status + unsyncedCount}
+                initial={{ y: 100, opacity: 0, scale: 0.9 }}
+                animate={{ y: 0, opacity: 1, scale: 1 }}
+                exit={{ y: 100, opacity: 0, scale: 0.9 }}
+                className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] print:hidden"
+            >
+                <div className={`
+                    ${config.bg} text-white px-4 py-2.5 rounded-full shadow-2xl 
+                    flex items-center gap-3 min-w-[200px] border border-white/20
+                    backdrop-blur-md transition-all duration-500
+                    ${isExpanded ? 'rounded-2xl py-4' : 'rounded-full'}
+                `}>
+                    <div className={`
+                        w-8 h-8 rounded-full bg-white/20 flex items-center justify-center
+                        ${config.isSyncing ? 'animate-spin' : ''}
+                    `}>
+                        <span className="material-symbols-outlined text-lg">{config.icon}</span>
+                    </div>
 
-  if (!visible && !showOnline) return null;
+                    <div className="flex-1 pr-2">
+                        <div className="flex items-center justify-between gap-4">
+                            <div>
+                                <p className="text-[11px] font-black uppercase tracking-wider leading-none">
+                                    {config.text}
+                                </p>
+                                {isExpanded && (
+                                    <p className="text-[10px] text-white/80 mt-1 font-medium italic">
+                                        {config.subtext}
+                                    </p>
+                                )}
+                            </div>
 
-  // Don't show anything if Firebase is not configured and we're online
-  if (!isSupabaseConfigured && status === 'online') return null;
+                            {config.action && (
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        triggerSync();
+                                    }}
+                                    className="bg-white text-stone-900 text-[10px] font-black uppercase tracking-tight px-3 py-1.5 rounded-lg hover:bg-stone-100 transition-colors flex items-center gap-1.5 active:scale-95 whitespace-nowrap"
+                                >
+                                    <span className="material-symbols-outlined text-xs">{config.actionIcon}</span>
+                                    {config.action}
+                                </button>
+                            )}
+                        </div>
+                    </div>
 
-  const getConfig = () => {
-    if (status === 'offline') {
-      return {
-        bg: 'bg-gradient-to-r from-amber-500 to-orange-500',
-        icon: 'cloud_off',
-        text: unsyncedCount > 0
-          ? `Offline — ${unsyncedCount} change${unsyncedCount > 1 ? 's' : ''} pending`
-          : 'You are offline',
-        showRetry: false,
-        animate: 'animate-pulse',
-      };
-    }
-
-    if (status === 'syncing') {
-      return {
-        bg: 'bg-gradient-to-r from-blue-500 to-indigo-500',
-        icon: 'sync',
-        text: 'Syncing changes...',
-        showRetry: false,
-        animate: 'animate-spin',
-      };
-    }
-
-    if (showOnline) {
-      return {
-        bg: 'bg-gradient-to-r from-emerald-500 to-green-500',
-        icon: 'cloud_done',
-        text: 'Back online — all synced ✓',
-        showRetry: false,
-        animate: '',
-      };
-    }
-
-    if (unsyncedCount > 0) {
-      return {
-        bg: 'bg-gradient-to-r from-amber-500 to-orange-500',
-        icon: 'cloud_upload',
-        text: `${unsyncedCount} unsynced change${unsyncedCount > 1 ? 's' : ''}`,
-        showRetry: true,
-        animate: '',
-      };
-    }
-
-    return null;
-  };
-
-  const config = getConfig();
-  if (!config) return null;
-
-  return (
-    <AnimatePresence>
-      {(visible || showOnline) && config && (
-        <motion.div 
-          initial={{ opacity: 0, y: -20, x: '-50%' }}
-          animate={{ opacity: 1, y: 0, x: '-50%' }}
-          exit={{ opacity: 0, y: -20, x: '-50%' }}
-          className="fixed top-4 left-1/2 z-[9999] pointer-events-none"
-        >
-          <div
-            className={`${config.bg} text-white px-5 py-2.5 rounded-full shadow-2xl flex items-center gap-2.5 text-sm font-medium pointer-events-auto backdrop-blur-sm transition-colors duration-500`}
-          >
-            <span className={`material-symbols-outlined text-lg ${config.animate}`}>
-              {config.icon}
-            </span>
-            <span>{config.text}</span>
-            {config.showRetry && (
-              <button
-                onClick={(e) => { e.stopPropagation(); triggerSync(); }}
-                className="ml-1 bg-white/20 hover:bg-white/30 rounded-full px-3 py-0.5 text-xs font-bold transition-colors active:scale-95"
-              >
-                Sync Now
-              </button>
-            )}
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
+                    <button
+                        onClick={() => setIsExpanded(!isExpanded)}
+                        className="w-6 h-6 rounded-full hover:bg-white/10 flex items-center justify-center transition-colors"
+                    >
+                        <span className={`material-symbols-outlined text-base transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>
+                            expand_more
+                        </span>
+                    </button>
+                </div>
+            </motion.div>
+        </AnimatePresence>
+    );
 };
 
 export default OfflineIndicator;

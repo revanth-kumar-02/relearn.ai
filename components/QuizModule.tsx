@@ -12,6 +12,8 @@ import {
   Sparkles,
   Target
 } from 'lucide-react';
+import { useData } from '../contexts/DataContext';
+import { getVideoLanguageLabel } from '../services/youtubeService';
 
 interface QuizModuleProps {
   topic: string;
@@ -26,6 +28,7 @@ const QuizModule: React.FC<QuizModuleProps> = ({
   lessonContent,
   difficulty = 'Beginner'
 }) => {
+  const { videoLanguage } = useData();
   const [quizState, setQuizState] = useState<QuizState>('idle');
   const [quiz, setQuiz] = useState<QuizResult | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -37,7 +40,7 @@ const QuizModule: React.FC<QuizModuleProps> = ({
     setQuizState('loading');
     setError('');
     try {
-      const result = await generateQuiz(topic, lessonContent, difficulty);
+      const result = await generateQuiz(topic, lessonContent, difficulty, getVideoLanguageLabel(videoLanguage));
       setQuiz(result);
       setSelectedAnswers(new Array(result.questions.length).fill(null));
       setCurrentIndex(0);

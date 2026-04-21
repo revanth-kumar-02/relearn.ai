@@ -117,6 +117,15 @@ const VideoResources: React.FC<VideoResourcesProps> = ({ topic, subject }) => {
   // ── Video Grid ───────────────────────────────────────────
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-stone-100 dark:bg-stone-800 rounded-full border border-stone-200 dark:border-stone-800 backdrop-blur-sm">
+          <span className="material-symbols-outlined text-sm text-primary filled">language</span>
+          <span className="text-[10px] font-bold text-stone-500 uppercase tracking-tight">
+            Searching in: <span className="text-primary">{videoLanguage === 'en' ? 'English' : videoLanguage === 'hi' ? 'Hindi' : videoLanguage === 'ta' ? 'Tamil' : videoLanguage === 'te' ? 'Telugu' : 'Malayalam'}</span>
+          </span>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {videos.map((video, index) => {
           const badge = getScoreBadge(video.relevanceScore);
