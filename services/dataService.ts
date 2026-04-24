@@ -46,7 +46,52 @@ function deobfuscate(str: string): string {
     }
 }
 
+function isLocalStorageAvailable(): boolean {
+  try {
+    const testKey = LS_PREFIX + 'test';
+    localStorage.setItem(testKey, '1');
+    localStorage.removeItem(testKey);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Strips large Base64 images from objects before they hit localStorage.
+ * This saves ~90% of space for plans and diary entries.
+ * Images are still available in memory and IndexedDB.
+ */
+function optimizeDataSize(value: any): any {
+  if (!value || typeof value !== 'object') return value;
+  
+  // Handle arrays
+  if (Array.isArray(value)) {
+    return value.map(item => optimizeDataSize(item));
+  }
+
+  const optimized: any = { ...value };
+  let modified = false;
+
+  for (const key in optimized) {
+    const val = optimized[key];
+    if (typeof val === 'string' && val.length > 5000 && val.startsWith('data:image')) {
+      optimized[key] = "[Stored in IndexedDB]"; // Placeholder
+      modified = true;
+    } else if (typeof val === 'object' && val !== null) {
+      const nested = optimizeDataSize(val);
+      if (nested !== val) {
+        optimized[key] = nested;
+        modified = true;
+      }
+    }
+  }
+
+  return modified ? optimized : value;
+}
+
 function lsGet<T>(key: string, fallback: T): T {
+  if (!isLocalStorageAvailable()) return fallback;
   try {
     const raw = localStorage.getItem(LS_PREFIX + key);
     if (!raw) return fallback;
@@ -65,17 +110,61 @@ function lsGet<T>(key: string, fallback: T): T {
 }
 
 function lsSet(key: string, value: unknown): void {
+  if (!isLocalStorageAvailable()) {
+    console.error('[DataService] Local storage is not available (Private mode?)');
+    return;
+  }
+
   try {
-    const serialized = JSON.stringify(value);
+    // Optimize data before saving (strip large images from cache)
+    // BUT: Keep them in unsynced_changes so they reach the server
+    const dataToSave = key === 'unsynced_changes' ? value : optimizeDataSize(value);
+    
+    const serialized = JSON.stringify(dataToSave);
     const obfuscated = obfuscate(serialized);
     localStorage.setItem(LS_PREFIX + key, obfuscated);
-  } catch (err) {
+  } catch (err: any) {
+    // If we hit a QuotaExceededError, try to self-heal by pruning non-critical data
+    if (err.name === 'QuotaExceededError' || err.code === 22 || err.code === 1014) {
+      console.warn('[DataService] Local storage full. Attempting to prune non-critical data...');
+      
+      try {
+        // Prune logic: 
+        // 1. Clear non-essential collections
+        const keysToRemove = Object.keys(localStorage).filter(k => 
+          k.startsWith(LS_PREFIX + 'activity_') || 
+          k.startsWith(LS_PREFIX + 'notifications_') || 
+          k.startsWith(LS_PREFIX + 'analytics_') ||
+          k.startsWith(LS_PREFIX + 'session_')
+        );
+        
+        keysToRemove.forEach(k => localStorage.removeItem(k));
+
+        // 2. If it's the sync queue, we might need to prune very old failed items
+        if (key === 'unsynced_changes' && Array.isArray(value)) {
+           // Keep only the last 100 changes if storage is critical
+           const prunedValue = value.slice(-100);
+           const serialized = JSON.stringify(prunedValue);
+           localStorage.setItem(LS_PREFIX + key, obfuscate(serialized));
+        } else {
+           // Try setting the original item again (now optimized)
+           const serialized = JSON.stringify(optimizeDataSize(value));
+           localStorage.setItem(LS_PREFIX + key, obfuscate(serialized));
+        }
+        
+        console.log(`[DataService] Successfully saved ${key} after pruning.`);
+        return;
+      } catch (retryErr) {
+        console.error('[DataService] Pruning failed to free enough space:', retryErr);
+      }
+    }
+
     console.error('[DataService] localStorage write failed:', err);
     window.dispatchEvent(
       new CustomEvent('relearn:storage-error', {
         detail: {
           key,
-          message: 'Storage is full. Your changes may not be saved offline.',
+          message: 'Storage is full or restricted. Your changes may not be saved offline.',
         },
       })
     );
@@ -833,6 +922,18 @@ export function getFailedSyncCount(): number {
   return getUnsyncedChanges().filter((c) => c.permanentlyFailed).length;
 }
 
+/** Get the detailed list of failed sync items */
+export function getFailedSyncItems(): Array<{ id: string; collection: string; lastError?: string; type: string }> {
+  return getUnsyncedChanges()
+    .filter((c) => c.permanentlyFailed)
+    .map(c => ({
+      id: c.id,
+      collection: c.collection,
+      lastError: c.lastError,
+      type: c.type
+    }));
+}
+
 /** Clear a permanently failed item (user acknowledges the data loss) */
 export function dismissFailedSync(id: string, collection: string): void {
   removeUnsyncedChange(id, collection);
@@ -847,4 +948,61 @@ export function retryFailedSyncs(): void {
       c.permanentlyFailed ? { ...c, retryCount: 0, permanentlyFailed: false } : c
     )
   );
+}
+
+// ────────────────────────── ANALYTICS ──────────────────────────
+
+const ANALYTICS_STORAGE_KEY = 'relearn_analytics_v1';
+
+export type AnalyticsEventType = 
+  | 'app_launch' 
+  | 'plan_created' 
+  | 'session_started' 
+  | 'session_completed' 
+  | 'task_updated' 
+  | 'preferences_changed'
+  | 'manual_generation_skipped_pdf';
+
+interface AnalyticsPayload {
+  timestamp: string;
+  eventType: AnalyticsEventType;
+  metadata?: Record<string, any>;
+  sessionDuration?: number;
+}
+
+function getAnalyticsEvents(): AnalyticsPayload[] {
+  return lsGet(ANALYTICS_STORAGE_KEY, []);
+}
+
+function saveAnalyticsEvents(events: AnalyticsPayload[]) {
+  // Keep only last 200 events
+  const trimmed = events.length > 200 ? events.slice(-200) : events;
+  lsSet(ANALYTICS_STORAGE_KEY, trimmed);
+}
+
+export function trackAnalyticsEvent(eventType: AnalyticsEventType, metadata?: Record<string, any>) {
+  const payload: AnalyticsPayload = {
+    timestamp: new Date().toISOString(),
+    eventType,
+    metadata
+  };
+
+  const events = getAnalyticsEvents();
+  events.push(payload);
+  saveAnalyticsEvents(events);
+  
+  if (import.meta.env.DEV) {
+    console.log(`[Analytics] 📊 EVENT: ${eventType}`, metadata);
+  }
+}
+
+export function startAnalyticsSession(taskId: string): number {
+  const startTime = Date.now();
+  trackAnalyticsEvent('session_started', { taskId, startTime });
+  return startTime;
+}
+
+export function endAnalyticsSession(taskId: string, startTime: number) {
+  const sessionDuration = Math.round((Date.now() - startTime) / 1000);
+  trackAnalyticsEvent('session_completed', { taskId, sessionDuration });
 }

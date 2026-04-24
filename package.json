@@ -14,6 +14,7 @@
     "@netlify/functions": "^5.2.0",
     "@supabase/supabase-js": "^2.49.1",
     "clsx": "^2.1.1",
+    "jspdf": "^4.2.1",
     "lucide-react": "^0.577.0",
     "motion": "^12.34.5",
     "pdfjs-dist": "^3.11.174",

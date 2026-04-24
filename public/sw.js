@@ -1,4 +1,4 @@
-const CACHE_NAME = 'relearn-v3'; // Increment version to force clear old cache
+const CACHE_NAME = 'relearn-v4'; // v4: Fix icon FOUT + font bypass
 const ASSETS = [
     '/',
     '/index.html',
@@ -36,11 +36,12 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
     const url = new URL(event.request.url);
 
-    // Bypass Service Worker for API calls and external services
-    // This ensures Gemini, Supabase, and YouTube requests work reliably
+    // Bypass Service Worker for API calls, external services, and Google Fonts
+    // This ensures Gemini, Supabase, YouTube, and font requests work reliably
     if (url.pathname.startsWith('/api/') || 
         url.hostname.includes('supabase.co') || 
-        url.hostname.includes('googleapis.com')) {
+        url.hostname.includes('googleapis.com') ||
+        url.hostname.includes('fonts.gstatic.com')) {
         return; // Direct network access
     }
 

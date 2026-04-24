@@ -54,7 +54,7 @@ export interface Activity {
 
 export interface Notification {
   id: string;
-  type: 'plan' | 'goal' | 'reminder' | 'system';
+  type: 'plan' | 'goal' | 'reminder' | 'system' | 'achievement';
   title: string;
   message: string;
   time: string;
@@ -87,9 +87,20 @@ export interface UserPreferences {
 
 export interface UserStats {
   studyStreak: number;
+  longestStreak: number;
   totalStudyHours: number;
   plansCreated: number;
   plansCompleted: number;
+  totalXP: number;
+  level: number;
+  badges: string[];
+  lastStudyDate?: string;
+  streakFreezes: number;
+  totalTasksCompleted?: number;
+  totalQuizzesCompleted?: number;
+  totalMessagesSent?: number;
+  totalPDFExports?: number;
+  totalAIPlansGenerated?: number;
 }
 
 export interface ProfileSettings {
@@ -113,4 +124,74 @@ export interface User {
   isVerified?: boolean;
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface PlanTemplate {
+  id: string;
+  title: string;
+  description: string;
+  subject: string;
+  category: 'programming' | 'science' | 'math' | 'language' | 'business' | 'creative';
+  difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
+  totalDays: number;
+  dailyGoalMins: number;
+  coverGradient: string;
+  icon: string;
+  popularity: number;
+  days: Array<{
+    day: number;
+    topic: string;
+    guidance: string;
+  }>;
+}
+
+export interface SharedPlan {
+  id: string;
+  planId: string;
+  userId: string;
+  shareSlug: string;
+  planData: {
+    plan: Plan;
+    tasks: Task[];
+  };
+  createdAt: string;
+  views: number;
+  clones: number;
+  isActive: boolean;
+}
+
+export interface StudyRoom {
+  id: string;
+  name: string;
+  host_id: string;
+  room_code: string;
+  max_members: number;
+  is_active: boolean;
+  created_at: string;
+  settings: {
+    timer: number;
+    break: number;
+    longBreak: number;
+  };
+}
+
+export interface RoomMember {
+  id: string;
+  room_id: string;
+  user_id: string;
+  user_name: string;
+  status: 'studying' | 'break' | 'idle';
+  current_task?: string;
+  joined_at: string;
+  last_active_at: string;
+  study_minutes_session: number;
+}
+
+export interface RoomMessage {
+  id: string;
+  room_id: string;
+  user_id: string;
+  user_name: string;
+  content: string;
+  created_at: string;
 }

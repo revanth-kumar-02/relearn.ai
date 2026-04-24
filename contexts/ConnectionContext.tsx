@@ -12,10 +12,18 @@ interface ConnectionContextType {
   isSupabaseConfigured: boolean;
   /** Number of pending unsynced changes */
   unsyncedCount: number;
+  /** Number of permanently failed sync items */
+  failedSyncCount: number;
+  /** Detailed list of failed sync items */
+  failedItems: Array<{ id: string; collection: string; lastError?: string; type: string }>;
   /** Manually trigger a sync */
   triggerSync: () => Promise<void>;
   /** Last sync timestamp */
   lastSynced: string | null;
+  /** Dismiss a specific failed sync */
+  dismissFailedSync: (id: string, collection: string) => void;
+  /** Retry all failed syncs */
+  retryFailedSyncs: () => void;
 }
 
 const ConnectionContext = createContext<ConnectionContextType | undefined>(undefined);
@@ -25,26 +33,38 @@ export const ConnectionProvider: React.FC<{ children: ReactNode }> = ({ children
     navigator.onLine ? 'online' : 'offline'
   );
   const [unsyncedCount, setUnsyncedCount] = useState(0);
+  const [failedSyncCount, setFailedSyncCount] = useState(0);
+  const [failedItems, setFailedItems] = useState<Array<{ id: string; collection: string; lastError?: string; type: string }>>([]);
   const [lastSynced, setLastSynced] = useState<string | null>(null);
 
   // Update unsynced count reactively via BroadcastChannel events (from dataService)
   // instead of polling every 5 seconds.
+  const updateCounts = useCallback(() => {
+    setUnsyncedCount(getUnsyncedCount());
+    setFailedSyncCount(getFailedSyncCount());
+    import('../services/dataService').then(ds => setFailedItems(ds.getFailedSyncItems()));
+  }, []);
+
   useEffect(() => {
-    const update = () => setUnsyncedCount(getUnsyncedCount());
-    update();
+    updateCounts();
 
     // Listen for cross-tab sync queue changes
-    const handleSyncQueueChanged = () => update();
+    const handleSyncQueueChanged = () => updateCounts();
     window.addEventListener('relearn:sync-queue-changed', handleSyncQueueChanged);
 
-    // Safety-net fallback: poll every 30s in case events are missed
-    const interval = setInterval(update, 30000);
+    // Safety-net fallback: poll every 30s to update counts and retry sync if needed
+    const interval = setInterval(() => {
+      updateCounts();
+      if (navigator.onLine && getUnsyncedCount() > 0) {
+        triggerSync();
+      }
+    }, 30000);
 
     return () => {
       window.removeEventListener('relearn:sync-queue-changed', handleSyncQueueChanged);
       clearInterval(interval);
     };
-  }, []);
+  }, [updateCounts]);
 
   // Trigger sync when coming back online
   const triggerSync = useCallback(async () => {
@@ -53,7 +73,7 @@ export const ConnectionProvider: React.FC<{ children: ReactNode }> = ({ children
     setStatus('syncing');
     try {
       const result = await syncOfflineData();
-      setUnsyncedCount(getUnsyncedCount());
+      updateCounts();
       if (result.synced > 0) {
         setLastSynced(new Date().toISOString());
       }
@@ -61,7 +81,23 @@ export const ConnectionProvider: React.FC<{ children: ReactNode }> = ({ children
       console.warn('[ConnectionProvider] Sync error:', err);
     }
     setStatus(navigator.onLine ? 'online' : 'offline');
-  }, []);
+  }, [updateCounts]);
+
+  const dismissFailedSync = useCallback((id: string, collection: string) => {
+    import('../services/dataService').then(ds => {
+      ds.dismissFailedSync(id, collection);
+      updateCounts();
+    });
+  }, [updateCounts]);
+
+  const retryFailedSyncs = useCallback(() => {
+    import('../services/dataService').then(ds => {
+      ds.retryFailedSyncs();
+      updateCounts();
+      triggerSync();
+    });
+  }, [updateCounts, triggerSync]);
+
 
   // Listen for online/offline events
   useEffect(() => {
@@ -90,8 +126,12 @@ export const ConnectionProvider: React.FC<{ children: ReactNode }> = ({ children
         status,
         isSupabaseConfigured: supabaseAvailable,
         unsyncedCount,
+        failedSyncCount,
+        failedItems,
         triggerSync,
         lastSynced,
+        dismissFailedSync,
+        retryFailedSyncs,
       }}
     >
       {children}

@@ -6,7 +6,7 @@ import { generatePlanCoverImage } from '../services/gemini/imageService';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
-import { triggerHaptic } from '../services/utils/haptics';
+import { triggerHaptic } from '../utils/haptics';
 import { Plan, Task } from '../types';
 import Icon from './common/Icon';
 import { getVideoLanguageLabel } from '../services/youtubeService';
@@ -199,10 +199,26 @@ const CreatePlan: React.FC = () => {
                             <div className="h-12 w-12 rounded-full bg-purple-500/10 text-purple-500 flex items-center justify-center shrink-0">
                                 <Icon name="auto_awesome" className="text-2xl" />
                             </div>
-                            <div>
+                            <div className="flex-1">
                                 <h3 className="font-bold text-sm text-text-primary-light dark:text-text-primary-dark">AI Intelligence</h3>
                                 <p className="text-xs text-text-secondary-light">Describe your goal and let AI handle the heavy lifting.</p>
                             </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-3">
+                            <button
+                                onClick={() => navigate('/templates')}
+                                className="w-full py-3 bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-xl flex items-center gap-3 px-4 hover:border-primary/50 transition-all group"
+                            >
+                                <div className="h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center group-hover:scale-110 transition-transform">
+                                    <Icon name="dashboard_customize" />
+                                </div>
+                                <div className="text-left">
+                                    <div className="text-xs font-bold text-text-primary-light dark:text-text-primary-dark">Browse Templates</div>
+                                    <div className="text-[10px] text-text-secondary-light">Proven learning paths for common topics</div>
+                                </div>
+                                <Icon name="chevron_right" className="ml-auto text-text-secondary-light" />
+                            </button>
                         </div>
 
                         <div className="space-y-4">

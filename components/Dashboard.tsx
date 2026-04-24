@@ -4,6 +4,7 @@ import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import Icon from './common/Icon';
 import Skeleton, { PlanCardSkeleton } from './common/Skeleton';
+import { generateStudyNudges, sendSmartReminder, type StudyNudge } from '../services/smartReminderService';
 
 const Dashboard: React.FC = () => {
     const navigate = useNavigate();
@@ -13,6 +14,7 @@ const Dashboard: React.FC = () => {
     const today = useMemo(() => new Date(), []);
     const [currentViewDate, setCurrentViewDate] = useState(new Date());
     const [showWelcome, setShowWelcome] = useState(true);
+    const [dismissedNudges, setDismissedNudges] = useState<Set<string>>(new Set());
 
     const marqueeRef = useRef<HTMLDivElement>(null);
     const [scrollDist, setScrollDist] = useState(0);
@@ -38,6 +40,23 @@ const Dashboard: React.FC = () => {
         window.addEventListener('resize', calculateScroll);
         return () => window.removeEventListener('resize', calculateScroll);
     }, [activePlans]);
+
+    // Smart Study Reminders
+    const studyNudges = useMemo(() => {
+        if (isLoading || plans.length === 0) return [];
+        return generateStudyNudges(plans, tasks, user?.preferences);
+    }, [plans, tasks, isLoading, user?.preferences]);
+
+    // Send browser notification on first load
+    useEffect(() => {
+        if (studyNudges.length > 0) {
+            sendSmartReminder(studyNudges);
+        }
+    }, [studyNudges]);
+
+    const visibleNudges = useMemo(() =>
+        studyNudges.filter(n => !dismissedNudges.has(n.id)),
+    [studyNudges, dismissedNudges]);
 
     const currentYear = currentViewDate.getFullYear();
     const currentMonthIdx = currentViewDate.getMonth();
@@ -174,6 +193,43 @@ const Dashboard: React.FC = () => {
                                 <Icon name="close" className="text-xl" />
                             </button>
                         </div>
+                    </div>
+                )}
+
+                {/* Smart Study Reminders */}
+                {visibleNudges.length > 0 && (
+                    <div className="space-y-3">
+                        {visibleNudges.map(nudge => (
+                            <div
+                                key={nudge.id}
+                                className={`${nudge.bg} rounded-xl p-4 flex items-start gap-3 border border-black/5 dark:border-white/5 relative group animate-fade-in`}
+                            >
+                                <div className={`w-10 h-10 rounded-full ${nudge.bg} ${nudge.color} flex items-center justify-center shrink-0`}>
+                                    <Icon name={nudge.icon} className="text-xl" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <h4 className={`font-bold text-sm ${nudge.color}`}>{nudge.title}</h4>
+                                    <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark mt-0.5 leading-relaxed">
+                                        {nudge.message}
+                                    </p>
+                                    {nudge.actionLabel && nudge.planId && (
+                                        <button
+                                            onClick={() => navigate('/plan-details', { state: { planId: nudge.planId } })}
+                                            className={`mt-2 text-xs font-bold ${nudge.color} hover:underline`}
+                                        >
+                                            {nudge.actionLabel} →
+                                        </button>
+                                    )}
+                                </div>
+                                <button
+                                    onClick={() => setDismissedNudges(prev => new Set([...prev, nudge.id]))}
+                                    className="p-1 rounded-full opacity-0 group-hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/5 transition-all text-text-secondary-light"
+                                    aria-label="Dismiss reminder"
+                                >
+                                    <Icon name="close" className="text-sm" />
+                                </button>
+                            </div>
+                        ))}
                     </div>
                 )}
 

@@ -5,9 +5,12 @@ import { useTutorial } from '../contexts/TutorialContext';
 import { useToast } from '../contexts/ToastContext';
 import StudyTimer from './StudyTimer';
 import { generatePlanCoverImage } from '../services/gemini/imageService';
+import { exportPlanAsPDF } from '../services/documentService';
 import Icon from './common/Icon';
 import Skeleton from './common/Skeleton';
-import { triggerHaptic } from '../services/utils/haptics';
+import { triggerHaptic } from '../utils/haptics';
+import SharePlanModal from './SharePlanModal';
+import { useAuth } from '../contexts/AuthContext';
 
 const PlanDetails: React.FC = () => {
   const navigate = useNavigate();
@@ -15,8 +18,10 @@ const PlanDetails: React.FC = () => {
   const { plans, tasks, updateTask, updateTasksBatch, updatePlan, deletePlan, addTask } = useData();
   const { isActive, currentStep } = useTutorial();
   const { showToast } = useToast();
+  const { user } = useAuth();
   
   const [animatedProgress, setAnimatedProgress] = useState(0);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   
   const planId = location.state?.planId;
   const currentPlan = useMemo(() => plans.find(p => p.id === planId), [plans, planId]);
@@ -37,6 +42,7 @@ const PlanDetails: React.FC = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showRestartConfirm, setShowRestartConfirm] = useState(false);
   const [isRegeneratingImage, setIsRegeneratingImage] = useState(false);
+  const [isExportingPDF, setIsExportingPDF] = useState(false);
 
   // Image preloading with fallback chain
   const [resolvedImage, setResolvedImage] = useState<string>('');
@@ -158,23 +164,8 @@ const PlanDetails: React.FC = () => {
   };
 
   const handleShare = async () => {
-      if (!currentPlan) return;
-      const shareData = {
-          title: currentPlan.title,
-          text: `I'm learning ${currentPlan.title} via ReLearn.ai! Progress: ${Math.round(progressPercentage)}%`,
-          url: window.location.origin
-      };
-
-      try {
-          if (navigator.share) {
-              await navigator.share(shareData);
-          } else {
-              await navigator.clipboard.writeText(`${shareData.text}\n${shareData.url}`);
-              showToast("Link copied to clipboard!", "success");
-          }
-      } catch (err) {
-          showToast("Sharing failed", "error");
-      }
+      setIsShareModalOpen(true);
+      triggerHaptic('light');
   };
 
   const handleArchive = () => {
@@ -182,6 +173,23 @@ const PlanDetails: React.FC = () => {
           updatePlan(currentPlan.id, { isArchived: true });
           showToast("Plan moved to archives", "info");
           navigate('/dashboard');
+      }
+  };
+
+  const handleExportPDF = async () => {
+      if (!currentPlan) return;
+      setIsExportingPDF(true);
+      try {
+          await exportPlanAsPDF(currentPlan, planTasks, (status) => {
+              console.log(`[PDF Export] ${status}`);
+          });
+          showToast("PDF exported successfully!", "success");
+          triggerHaptic('success');
+      } catch (err) {
+          console.error('[PDF Export] Failed:', err);
+          showToast("Failed to export PDF", "error");
+      } finally {
+          setIsExportingPDF(false);
       }
   };
 
@@ -290,6 +298,15 @@ const PlanDetails: React.FC = () => {
                     <button onClick={handleShare} className="flex-1 md:w-24 flex flex-col items-center justify-center gap-2 py-3 rounded-xl bg-background-light dark:bg-background-dark hover:bg-primary/5 text-text-primary-light dark:text-text-primary-dark font-bold text-[10px] uppercase transition-all hover:scale-105 active:scale-95 border border-transparent hover:border-primary/20 group" aria-label="Share your learning progress">
                         <Icon name="share" className="text-2xl text-text-secondary-light group-hover:text-primary transition-colors" />
                         Share
+                    </button>
+                    <button 
+                        onClick={handleExportPDF} 
+                        disabled={isExportingPDF}
+                        className="flex-1 md:w-24 flex flex-col items-center justify-center gap-2 py-3 rounded-xl bg-background-light dark:bg-background-dark hover:bg-primary/5 text-text-primary-light dark:text-text-primary-dark font-bold text-[10px] uppercase transition-all hover:scale-105 active:scale-95 border border-transparent hover:border-primary/20 group disabled:opacity-50 disabled:cursor-not-allowed" 
+                        aria-label="Export plan as PDF"
+                    >
+                        <Icon name={isExportingPDF ? 'hourglass_top' : 'picture_as_pdf'} className={`text-2xl text-text-secondary-light group-hover:text-primary transition-colors ${isExportingPDF ? 'animate-pulse' : ''}`} />
+                        {isExportingPDF ? 'Exporting...' : 'Export'}
                     </button>
                     <button onClick={() => setShowArchiveConfirm(true)} className="flex-1 md:w-24 flex flex-col items-center justify-center gap-2 py-3 rounded-xl bg-background-light dark:bg-background-dark hover:bg-primary/5 text-text-primary-light dark:text-text-primary-dark font-bold text-[10px] uppercase transition-all hover:scale-105 active:scale-95 border border-transparent hover:border-primary/20 group" aria-label="Move plan to archives">
                         <Icon name="archive" className="text-2xl text-text-secondary-light group-hover:text-primary transition-colors" />
@@ -496,6 +513,13 @@ const PlanDetails: React.FC = () => {
           icon="restart_alt"
         />
       )}
+
+      <SharePlanModal 
+        isOpen={isShareModalOpen} 
+        onClose={() => setIsShareModalOpen(false)} 
+        plan={currentPlan} 
+        tasks={planTasks} 
+      />
 
     </div>
   );

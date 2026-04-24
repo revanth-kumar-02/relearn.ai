@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useData } from '../contexts/DataContext';
 import { generateLessonContent } from '../services/gemini/learningWorkspaceService';
-import { extractTextFromPDF, validatePDFFile } from '../services/pdfService';
+import { extractTextFromPDF, validatePDFFile } from '../services/documentService';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   ArrowLeft,
@@ -27,12 +27,12 @@ import ReactMarkdown from 'react-markdown';
 import StudyTimer from './StudyTimer';
 import VideoResources from './VideoResources';
 import QuizModule from './QuizModule';
-import { analytics } from '../services/analyticsService';
+
 
 const LearningWorkspace: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { tasks, plans, updateTask, addActivity, videoLanguage } = useData();
+  const { user, tasks, plans, updateTask, addActivity, videoLanguage, processGamificationReward, addNotification, startAnalyticsSession, endAnalyticsSession } = useData();
 
   const taskId = location.state?.taskId;
   const task = tasks.find(t => t.id === taskId);
@@ -43,6 +43,8 @@ const LearningWorkspace: React.FC = () => {
   const [notes, setNotes] = useState(task?.notes || '');
   const [isSaving, setIsSaving] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
+
+  // ... (rest of states) ...
 
   // ── PDF Upload State ──
   const [pdfFile, setPdfFile] = useState<File | null>(null);
@@ -59,11 +61,11 @@ const LearningWorkspace: React.FC = () => {
 
   useEffect(() => {
     if (taskId && task) {
-        sessionStartRef.current = analytics.startSession(taskId);
+        sessionStartRef.current = startAnalyticsSession(taskId);
     }
     return () => {
         if (taskId && sessionStartRef.current) {
-            analytics.endSession(taskId, sessionStartRef.current);
+            endAnalyticsSession(taskId, sessionStartRef.current);
         }
     };
   }, [taskId, task]);
@@ -276,6 +278,7 @@ const LearningWorkspace: React.FC = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    handleExportTracking();
   };
 
   const exportToDOC = () => {
@@ -336,10 +339,32 @@ const LearningWorkspace: React.FC = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    handleExportTracking();
   };
 
   const exportToPDF = () => {
     window.print();
+    handleExportTracking();
+  };
+
+  const handleExportTracking = async () => {
+    if (!user) return;
+    
+    const result = await processGamificationReward(5, undefined, {
+      totalPDFExports: (user.stats?.totalPDFExports || 0) + 1
+    });
+
+    if (result && result.newBadges.length > 0) {
+      result.newBadges.forEach(badge => {
+        addNotification({
+          type: 'achievement',
+          title: `${badge.icon} Badge Earned: ${badge.name}`,
+          message: badge.description,
+          time: new Date().toISOString(),
+          read: false,
+        });
+      });
+    }
   };
 
   if (!task) return null;

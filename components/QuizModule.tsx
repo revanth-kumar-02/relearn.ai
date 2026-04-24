@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import { getVideoLanguageLabel } from '../services/youtubeService';
+import { XP_REWARDS } from '../services/gamificationService';
+import { useAuth } from '../contexts/AuthContext';
 
 interface QuizModuleProps {
   topic: string;
@@ -28,7 +30,8 @@ const QuizModule: React.FC<QuizModuleProps> = ({
   lessonContent,
   difficulty = 'Beginner'
 }) => {
-  const { videoLanguage } = useData();
+  const { user } = useAuth();
+  const { videoLanguage, processGamificationReward, addNotification } = useData();
   const [quizState, setQuizState] = useState<QuizState>('idle');
   const [quiz, setQuiz] = useState<QuizResult | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -67,6 +70,43 @@ const QuizModule: React.FC<QuizModuleProps> = ({
       setCurrentIndex(prev => prev + 1);
     } else {
       setQuizState('results');
+      handleQuizCompletion();
+    }
+  };
+
+  const handleQuizCompletion = async () => {
+    if (!quiz) return;
+    
+    // Calculate final score
+    const finalScore = selectedAnswers.reduce((acc, answer, i) => {
+      return acc + (answer === quiz.questions[i]?.correctIndex ? 1 : 0);
+    }, 0);
+    const finalPercentage = Math.round((finalScore / quiz.questions.length) * 100);
+
+    const statUpdates: any = {
+      totalQuizzesCompleted: (user?.stats?.totalQuizzesCompleted || 0) + 1
+    };
+
+    if (finalPercentage === 100) {
+      statUpdates.quizPerfectScores = (user?.stats?.quizPerfectScores || 0) + 1;
+    }
+
+    const result = await processGamificationReward(
+      XP_REWARDS.COMPLETE_QUIZ,
+      { quizPerfectScores: statUpdates.quizPerfectScores },
+      statUpdates
+    );
+
+    if (result && result.newBadges.length > 0) {
+      result.newBadges.forEach((badge: any) => {
+        addNotification({
+          type: 'achievement',
+          title: `${badge.icon} Badge Earned: ${badge.name}`,
+          message: badge.description,
+          time: new Date().toISOString(),
+          read: false,
+        });
+      });
     }
   };
 

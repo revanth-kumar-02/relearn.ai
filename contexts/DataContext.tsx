@@ -1,13 +1,15 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { Plan, Task, Activity, Notification as AppNotification } from '../types';
+import { Plan, Task, Activity, Notification as AppNotification, UserStats } from '../types';
 import { useAuth, defaultPreferences } from './AuthContext';
-import { generatePlanImage } from '../services/geminiService';
+import { generatePlanCoverImage as generatePlanImage } from '../services/gemini/imageService';
 import { sendBrowserNotification } from '../services/notificationService';
+import { awardXP, updateStreak, ensureGamificationStats, XP_REWARDS, XPAwardResult } from '../services/gamificationService';
 import { 
   getPlans, getTasks, getActivity, getNotifications, createNotification, 
   markAllNotificationsRead, clearAllNotifications as dsClearAllNotifications,
   createPlan, createTasksBatch, updatePlan as dsUpdatePlan, deletePlan as dsDeletePlan,
-  createTask, updateTask as dsUpdateTask, updateTasksBatch as dsUpdateTasksBatch, deleteTask as dsDeleteTask
+  createTask, updateTask as dsUpdateTask, updateTasksBatch as dsUpdateTasksBatch, deleteTask as dsDeleteTask,
+  startAnalyticsSession as dsStartAnalyticsSession, endAnalyticsSession as dsEndAnalyticsSession, trackAnalyticsEvent as dsTrackAnalyticsEvent
 } from '../services/dataService';
 import { supabase } from '../services/supabase';
 import { VideoLanguageCode, setVideoLanguagePreference, getVideoLanguagePreference } from '../services/youtubeService';
@@ -33,6 +35,10 @@ interface DataContextType {
   clearAllNotifications: () => void;
   addNotification: (notification: Omit<AppNotification, 'id'>) => Promise<void>;
   refreshData: () => Promise<void>;
+  processGamificationReward: (xpAmount: number, context?: any, statUpdates?: any) => Promise<any>;
+  startAnalyticsSession: (taskId: string) => number;
+  endAnalyticsSession: (taskId: string, startTime: number) => void;
+  trackAnalyticsEvent: (eventType: string, metadata?: any) => void;
   isLoading: boolean;
 }
 
@@ -197,11 +203,27 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [user?.id]);
 
-  const updateUserStats = useCallback(async (updates: Partial<{ studyStreak: number, totalStudyHours: number, plansCreated: number, plansCompleted: number }>) => {
+  const updateUserStats = useCallback(async (updates: Partial<UserStats>) => {
     if (!user || !user.stats) return;
-    const newStats = { ...user.stats, ...updates };
+    const currentStats = ensureGamificationStats(user.stats);
+    const newStats = { ...currentStats, ...updates };
     await updateProfile({ stats: newStats });
   }, [user, updateProfile]);
+
+  /**
+   * Awards XP, updates streak, checks for badges, and persists stats.
+   * Returns the result so callers can show toasts for level-ups and badges.
+   */
+  const processGamificationReward = useCallback(async (xpAmount: number, context?: Parameters<typeof awardXP>[2], statUpdates?: Partial<UserStats>): Promise<XPAwardResult | null> => {
+    if (!user?.stats) return null;
+    
+    const currentStats = { ...ensureGamificationStats(user.stats), ...statUpdates };
+    const streakUpdated = updateStreak(currentStats);
+    const result = awardXP(streakUpdated, xpAmount, context);
+    
+    await updateProfile({ stats: result.stats });
+    return result;
+  }, [user?.stats, updateProfile]);
 
   // =================== DATA OPERATIONS ===================
   const addPlan = async (plan: Plan) => {
@@ -274,7 +296,22 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
 
     if (user?.stats) {
-      updateUserStats({ plansCreated: (user.stats.plansCreated || 0) + 1 });
+      const xpResult = await processGamificationReward(XP_REWARDS.CREATE_PLAN, undefined, { 
+        plansCreated: (user.stats.plansCreated || 0) + 1,
+        totalAIPlansGenerated: (user.stats.totalAIPlansGenerated || 0) + 1
+      });
+      
+      if (xpResult && xpResult.newBadges.length > 0) {
+        xpResult.newBadges.forEach(badge => {
+          addNotification({
+            type: 'achievement',
+            title: `${badge.icon} Badge Earned: ${badge.name}`,
+            message: badge.description,
+            time: new Date().toISOString(),
+            read: false,
+          });
+        });
+      }
     }
   };
 
@@ -355,6 +392,66 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       console.error("[DataContext] Task update sync failed, rolling back:", e);
       setTasks(originalTasks);
       setPlans(originalPlans);
+      return;
+    }
+
+    // 4. Gamification: Award XP when a task is completed
+    if (updates.status === 'Completed' && task.status !== 'Completed') {
+      try {
+        const todayStr = new Date().toISOString().split('T')[0];
+        const todayCompletions = tasks.filter(
+          t => t.status === 'Completed' && t.completedAt?.startsWith(todayStr)
+        ).length + 1;
+
+        const result = await processGamificationReward(XP_REWARDS.COMPLETE_TASK, {
+          tasksCompletedToday: todayCompletions,
+        }, {
+          totalTasksCompleted: (user?.stats?.totalTasksCompleted || 0) + 1
+        });
+
+        if (result) {
+          // Check if plan just completed
+          if (planId) {
+            const planTasks = tasks.filter(t => t.planId === planId);
+            const allComplete = planTasks.every(t => t.id === id || t.status === 'Completed');
+            if (allComplete && planTasks.length > 0) {
+              await processGamificationReward(XP_REWARDS.COMPLETE_PLAN, {
+                plansCompleted: (user?.stats?.plansCompleted || 0) + 1,
+              }, {
+                plansCompleted: (user?.stats?.plansCompleted || 0) + 1
+              });
+            }
+          }
+
+          // Notify level up
+          if (result.leveledUp) {
+            addNotification({
+              type: 'achievement',
+              title: `🎉 Level Up! You're now Level ${result.newLevel}`,
+              message: `You earned ${result.xpGained} XP and reached a new level!`,
+              time: new Date().toISOString(),
+              read: false,
+            });
+            sendBrowserNotification(
+              '🎉 Level Up!',
+              `Congratulations! You're now Level ${result.newLevel}!`
+            );
+          }
+
+          // Notify new badges
+          for (const badge of result.newBadges) {
+            addNotification({
+              type: 'achievement',
+              title: `${badge.icon} Badge Earned: ${badge.name}`,
+              message: badge.description,
+              time: new Date().toISOString(),
+              read: false,
+            });
+          }
+        }
+      } catch (e) {
+        console.error('[DataContext] Gamification reward failed (non-blocking):', e);
+      }
     }
   };
 
@@ -473,6 +570,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       addTask, updateTask, updateTasksBatch, deleteTask,
       addActivity, clearAllActivity, markAllNotificationsAsRead, clearAllNotifications, addNotification,
       refreshData,
+      processGamificationReward,
+      startAnalyticsSession: dsStartAnalyticsSession,
+      endAnalyticsSession: dsEndAnalyticsSession,
+      trackAnalyticsEvent: dsTrackAnalyticsEvent,
       isLoading
     }}>
       {children}

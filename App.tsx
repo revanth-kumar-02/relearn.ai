@@ -13,6 +13,9 @@ import StorageWarningToast from './components/StorageWarningToast';
 import Icon from './components/common/Icon';
 import Skeleton from './components/common/Skeleton';
 import EmailVerificationModal from './components/EmailVerificationModal';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+
+const KeyboardShortcutsModal = lazy(() => import('./components/common/KeyboardShortcutsModal'));
 
 // Lazy Loaded Components
 const Login = lazy(() => import('./components/Login'));
@@ -33,6 +36,10 @@ const HelpCenter = lazy(() => import('./components/HelpCenter'));
 const Feedback = lazy(() => import('./components/Feedback'));
 const ArchivedPlans = lazy(() => import('./components/ArchivedPlans'));
 const ChatBot = lazy(() => import('./components/ChatBot'));
+const TemplateGallery = lazy(() => import('./components/TemplateGallery'));
+const SharedPlanView = lazy(() => import('./components/SharedPlanView'));
+const StudyRooms = lazy(() => import('./components/StudyRooms'));
+const RoomView = lazy(() => import('./components/RoomView'));
 
 const PageLoader = () => (
   <div className="p-4 space-y-6 animate-pulse">
@@ -52,6 +59,18 @@ const AppContent: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(() => {
+    const saved = localStorage.getItem('relearn_sidebar_expanded');
+    return saved !== null ? JSON.parse(saved) : true;
+  });
+  const { showHelp: showShortcuts, setShowHelp: setShowShortcuts } = useKeyboardShortcuts();
+
+  const toggleSidebar = () => {
+    const newState = !isSidebarExpanded;
+    setIsSidebarExpanded(newState);
+    localStorage.setItem('relearn_sidebar_expanded', JSON.stringify(newState));
+    triggerHaptic('light');
+  };
 
   const authPaths = ['/', '/signup'];
   const isAuthPage = authPaths.includes(location.pathname);
@@ -64,10 +83,13 @@ const AppContent: React.FC = () => {
     '/create-plan',
     '/help-center',
     '/feedback',
-    '/archived'
+    '/archived',
+    '/rooms/'
   ];
 
-  const showMobileNav = !hideMobileNavPaths.includes(location.pathname);
+  const showMobileNav = !hideMobileNavPaths.some(path => 
+    path === '/' ? location.pathname === '/' : location.pathname.startsWith(path)
+  );
   const showSidebar = !isAuthPage;
 
   const pageVariants = {
@@ -86,18 +108,28 @@ const AppContent: React.FC = () => {
       </a>
 
       <TutorialGuide />
-      <OfflineIndicator />
+      <OfflineIndicator showMobileNav={showMobileNav} />
+      <Suspense fallback={null}>
+        <KeyboardShortcutsModal isOpen={showShortcuts} onClose={() => setShowShortcuts(false)} />
+      </Suspense>
       <EmailVerificationModal />
 
       {/* Desktop Sidebar */}
       {showSidebar && (
-        <aside className="hidden md:flex flex-col w-64 h-screen bg-white dark:bg-surface-dark border-r border-border-light dark:border-border-dark fixed left-0 top-0 z-50">
-          <div className="p-6 flex items-center gap-3 border-b border-border-light dark:border-border-dark">
-            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-white shadow-lg shadow-primary/20">
+        <aside 
+          className={`hidden md:flex flex-col h-screen bg-white dark:bg-surface-dark border-r border-border-light dark:border-border-dark fixed left-0 top-0 z-50 transition-all duration-300 ease-in-out ${
+            isSidebarExpanded ? 'w-64' : 'w-20'
+          }`}
+        >
+          <div className={`p-4 flex items-center border-b border-border-light dark:border-border-dark ${isSidebarExpanded ? 'gap-3 px-6' : 'justify-center'}`}>
+            <div className="w-10 h-10 min-w-[40px] rounded-xl bg-primary flex items-center justify-center text-white shadow-lg shadow-primary/20 cursor-pointer" onClick={toggleSidebar}>
               <Icon name="school" className="text-2xl" />
             </div>
-            <h1 className="text-xl font-bold text-text-primary-light dark:text-text-primary-dark tracking-tight">ReLearn.ai</h1>
+            {isSidebarExpanded && (
+              <h1 className="text-xl font-bold text-text-primary-light dark:text-text-primary-dark tracking-tight truncate">ReLearn.ai</h1>
+            )}
           </div>
+
 
           <nav className="flex-1 p-4 space-y-2 overflow-y-auto no-scrollbar">
             <SidebarItem
@@ -106,6 +138,7 @@ const AppContent: React.FC = () => {
               active={location.pathname === '/dashboard'}
               onClick={() => navigate('/dashboard')}
               ariaLabel="Navigate to Dashboard"
+              showLabel={isSidebarExpanded}
             />
             <SidebarItem
               id="tutorial-progress"
@@ -114,6 +147,7 @@ const AppContent: React.FC = () => {
               active={location.pathname === '/progress'}
               onClick={() => navigate('/progress')}
               ariaLabel="Navigate to Progress"
+              showLabel={isSidebarExpanded}
             />
             <SidebarItem
               icon="menu_book"
@@ -121,6 +155,23 @@ const AppContent: React.FC = () => {
               active={location.pathname === '/diary'}
               onClick={() => navigate('/diary')}
               ariaLabel="Navigate to Learning Diary"
+              showLabel={isSidebarExpanded}
+            />
+            <SidebarItem
+              icon="dashboard_customize"
+              label="Templates"
+              active={location.pathname === '/templates'}
+              onClick={() => navigate('/templates')}
+              ariaLabel="Navigate to Templates"
+              showLabel={isSidebarExpanded}
+            />
+            <SidebarItem
+              icon="hub"
+              label="Study Rooms"
+              active={location.pathname === '/rooms'}
+              onClick={() => navigate('/rooms')}
+              ariaLabel="Navigate to Study Rooms"
+              showLabel={isSidebarExpanded}
             />
             <SidebarItem
               icon="notifications"
@@ -128,6 +179,7 @@ const AppContent: React.FC = () => {
               active={location.pathname === '/notifications'}
               onClick={() => navigate('/notifications')}
               ariaLabel="Navigate to Notifications"
+              showLabel={isSidebarExpanded}
             />
             <SidebarItem
               icon="settings"
@@ -135,6 +187,7 @@ const AppContent: React.FC = () => {
               active={location.pathname === '/settings'}
               onClick={() => navigate('/settings')}
               ariaLabel="Navigate to Settings"
+              showLabel={isSidebarExpanded}
             />
           </nav>
 
@@ -142,18 +195,25 @@ const AppContent: React.FC = () => {
             <button
               id="tutorial-new-plan"
               onClick={() => { triggerHaptic('medium'); navigate('/create-plan'); }}
-              className="w-full flex items-center justify-center gap-2 bg-primary hover:opacity-90 text-white rounded-xl py-3 font-bold shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+              className={`flex items-center justify-center bg-primary hover:opacity-90 text-white rounded-xl font-bold shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98] ${
+                isSidebarExpanded ? 'w-full gap-2 py-3 px-4' : 'w-12 h-12 mx-auto'
+              }`}
               aria-label="Create New AI Learning Plan"
             >
                 <Icon name="auto_awesome" />
-              <span>New Plan</span>
+              {isSidebarExpanded && <span>New Plan</span>}
             </button>
           </div>
         </aside>
       )}
 
       {/* Main Content Area */}
-      <main id="main-content" className={`flex-1 flex flex-col min-h-screen relative ${showSidebar ? 'md:ml-64' : ''}`}>
+      <main 
+        id="main-content" 
+        className={`flex-1 flex flex-col min-h-screen relative transition-all duration-300 ease-in-out ${
+          showSidebar ? (isSidebarExpanded ? 'md:ml-64' : 'md:ml-20') : ''
+        }`}
+      >
         <div className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar scroll-smooth">
           <div className={`mx-auto w-full ${isAuthPage ? '' : 'max-w-5xl pb-32 md:pb-8'}`}>
             <AnimatePresence mode="wait">
@@ -183,9 +243,13 @@ const AppContent: React.FC = () => {
                         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                         <Route path="/diary" element={<ProtectedRoute><LearningDiary /></ProtectedRoute>} />
                         <Route path="/create-plan" element={<ProtectedRoute><CreatePlan /></ProtectedRoute>} />
+                        <Route path="/templates" element={<ProtectedRoute><TemplateGallery /></ProtectedRoute>} />
+                        <Route path="/shared/:slug" element={<SharedPlanView />} />
                         <Route path="/help-center" element={<ProtectedRoute><HelpCenter /></ProtectedRoute>} />
                         <Route path="/feedback" element={<ProtectedRoute><Feedback /></ProtectedRoute>} />
                         <Route path="/archived" element={<ProtectedRoute><ArchivedPlans /></ProtectedRoute>} />
+                        <Route path="/rooms" element={<ProtectedRoute><StudyRooms /></ProtectedRoute>} />
+                        <Route path="/rooms/:id" element={<ProtectedRoute><RoomView /></ProtectedRoute>} />
                     </Routes>
                     </Suspense>
                 </motion.div>
@@ -266,20 +330,23 @@ interface SidebarItemProps {
   onClick: () => void;
   id?: string;
   ariaLabel: string;
+  showLabel?: boolean;
 }
 
-const SidebarItem: React.FC<SidebarItemProps> = ({ icon, label, active, onClick, id, ariaLabel }) => (
+const SidebarItem: React.FC<SidebarItemProps> = ({ icon, label, active, onClick, id, ariaLabel, showLabel = true }) => (
   <button
     id={id}
     onClick={() => { triggerHaptic('light'); onClick(); }}
     aria-label={ariaLabel}
-    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${active
+    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+        showLabel ? '' : 'justify-center'
+    } ${active
         ? 'bg-primary/10 text-primary font-bold'
         : 'text-text-secondary-light dark:text-text-secondary-dark hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-text-primary-light dark:hover:text-text-primary-dark'
       }`}
   >
-    <Icon name={icon} className={`text-2xl ${active ? 'filled' : ''}`} />
-    <span className="text-sm">{label}</span>
+    <Icon name={icon} className={`text-2xl min-w-[24px] ${active ? 'filled' : ''}`} />
+    {showLabel && <span className="text-sm truncate">{label}</span>}
   </button>
 );
 

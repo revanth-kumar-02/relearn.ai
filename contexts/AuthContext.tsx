@@ -207,9 +207,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       createdAt: new Date().toISOString(),
       stats: {
         studyStreak: 0,
+        longestStreak: 0,
         totalStudyHours: 0,
         plansCreated: 0,
-        plansCompleted: 0
+        plansCompleted: 0,
+        totalXP: 0,
+        level: 1,
+        badges: [],
+        lastStudyDate: undefined,
+        streakFreezes: 1,
       },
       profileSettings: {
         gradientTheme: 'theme-1'

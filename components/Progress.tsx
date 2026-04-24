@@ -2,6 +2,9 @@ import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
 import { useData } from '../contexts/DataContext';
+import { useAuth } from '../contexts/AuthContext';
+import { ensureGamificationStats, levelProgress, xpForLevel, getBadgesWithStatus } from '../services/gamificationService';
+import Icon from './common/Icon';
 
 // Helper to get local YYYY-MM-DD string from a Date object
 const toLocalDateString = (date: Date) => {
@@ -14,6 +17,13 @@ const toLocalDateString = (date: Date) => {
 const Progress: React.FC = () => {
   const navigate = useNavigate();
   const { plans, tasks } = useData();
+  const { user } = useAuth();
+
+  const stats = useMemo(() => ensureGamificationStats(user?.stats), [user?.stats]);
+  const xpProgress = useMemo(() => levelProgress(stats.totalXP), [stats.totalXP]);
+  const nextLevelXP = useMemo(() => xpForLevel(stats.level + 1), [stats.level]);
+  const currentLevelXP = useMemo(() => xpForLevel(stats.level), [stats.level]);
+  const allBadges = useMemo(() => getBadgesWithStatus(stats.badges), [stats.badges]);
 
   // Filters State
   const [selectedPlanId, setSelectedPlanId] = useState<string>('all');
@@ -335,6 +345,88 @@ const Progress: React.FC = () => {
                 <p className="text-xs text-text-secondary-light/70 mt-1">Select a plan with tasks to see stats.</p>
              </div>
         )}
+      </div>
+
+      {/* Gamification: XP & Level */}
+      <div className="px-4 mt-8 space-y-6">
+        <div className="bg-gradient-to-br from-primary/10 via-indigo-500/5 to-purple-500/10 p-5 rounded-2xl border border-primary/20 shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-primary/20 rounded-xl flex items-center justify-center border border-primary/30">
+                <span className="text-2xl font-black text-primary">{stats.level}</span>
+              </div>
+              <div>
+                <h3 className="font-bold text-text-primary-light dark:text-text-primary-dark text-lg">Level {stats.level}</h3>
+                <p className="text-xs text-text-secondary-light">{stats.totalXP} XP Total</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-xs font-bold text-primary">{Math.round(xpProgress * 100)}%</p>
+              <p className="text-[10px] text-text-secondary-light">{nextLevelXP - stats.totalXP} XP to Level {stats.level + 1}</p>
+            </div>
+          </div>
+          <div className="h-3 w-full bg-white/50 dark:bg-black/20 rounded-full overflow-hidden border border-primary/10">
+            <div
+              className="h-full bg-gradient-to-r from-primary to-indigo-500 rounded-full transition-all duration-1000 ease-out relative overflow-hidden"
+              style={{ width: `${Math.max(2, xpProgress * 100)}%` }}
+            >
+              <div className="absolute inset-0 bg-white/25 animate-pulse" />
+            </div>
+          </div>
+          <div className="flex items-center justify-between mt-2 text-[10px] font-bold text-text-secondary-light uppercase tracking-wider">
+            <span>{currentLevelXP} XP</span>
+            <span>{nextLevelXP} XP</span>
+          </div>
+
+          {/* Quick Stats Row */}
+          <div className="grid grid-cols-3 gap-3 mt-4 pt-4 border-t border-primary/10">
+            <div className="text-center">
+              <p className="text-lg font-bold text-primary">{stats.studyStreak}</p>
+              <p className="text-[10px] text-text-secondary-light font-bold uppercase tracking-wider">Day Streak</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg font-bold text-primary">{stats.longestStreak}</p>
+              <p className="text-[10px] text-text-secondary-light font-bold uppercase tracking-wider">Best Streak</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg font-bold text-primary">{stats.badges.length}</p>
+              <p className="text-[10px] text-text-secondary-light font-bold uppercase tracking-wider">Badges</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Badge Gallery */}
+        <div>
+          <h3 className="font-bold text-lg mb-4 text-text-primary-light dark:text-text-primary-dark">Badges</h3>
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
+            {allBadges.map(badge => (
+              <div
+                key={badge.id}
+                className={`relative flex flex-col items-center justify-center p-3 rounded-xl border transition-all ${
+                  badge.earned
+                    ? 'bg-surface-light dark:bg-surface-dark border-primary/20 shadow-sm hover:shadow-md hover:-translate-y-0.5'
+                    : 'bg-gray-100/50 dark:bg-gray-800/30 border-border-light dark:border-border-dark opacity-40 grayscale'
+                }`}
+                title={badge.earned ? `${badge.name}: ${badge.description}` : `Locked: ${badge.description}`}
+              >
+                <span className="text-2xl mb-1">{badge.icon}</span>
+                <p className="text-[9px] font-bold text-text-primary-light dark:text-text-primary-dark text-center leading-tight">
+                  {badge.name}
+                </p>
+                {badge.earned && (
+                  <div className={`absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-br ${badge.color} rounded-full flex items-center justify-center shadow-sm`}>
+                    <Icon name="check" className="text-white text-[8px]" />
+                  </div>
+                )}
+                {!badge.earned && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Icon name="lock" className="text-text-secondary-light text-lg opacity-30" />
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );

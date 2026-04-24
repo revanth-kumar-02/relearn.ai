@@ -495,15 +495,6 @@ export const fetchEducationalVideos = async (
     return cached;
   }
 
-  // ── No API key in dev mode? Return mock data ──────────────
-  // In production the key is server-side (proxy), so we always attempt the fetch.
-  if (IS_DEV && !YOUTUBE_API_KEY_DEV) {
-    console.warn('[YouTube] API Key missing in dev — returning mock data.');
-    return new Promise(resolve =>
-      setTimeout(() => resolve(getMockVideos(topic, language)), 800)
-    );
-  }
-
   try {
     // ── 2. Build primary search query (Gemini AI) ───────────
     const vidLangLabel = getVideoLanguageLabel(getVideoLanguagePreference());
@@ -563,58 +554,4 @@ const formatViewCount = (viewCount: string): string => {
   if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M views`;
   if (count >= 1000) return `${(count / 1000).toFixed(0)}K views`;
   return `${count} views`;
-};
-
-const getMockVideos = (topic: string, language: string): YouTubeVideo[] => {
-  const safe = topic.replace(/[^a-zA-Z0-9]/g, '');
-  const lang = language || 'Programming';
-  const vidLang = getVideoLanguageLabel(getVideoLanguagePreference());
-  const suffix = vidLang !== 'English' ? ` (In ${vidLang})` : '';
-
-  return [
-    {
-      id: 'mock-1', videoId: 'mock-1',
-      title: `${lang} ${topic}: Beginner Tutorial${suffix}`,
-      description: `Learn ${topic} in ${lang} with visual examples in ${vidLang}.`,
-      thumbnail: `https://picsum.photos/seed/${safe}1/320/180`,
-      channelTitle: 'Education Hub',
-      viewCount: '1.2M views',
-      publishedAt: new Date().toISOString(),
-      reason: `Beginner-friendly · ${vidLang}`,
-      relevanceScore: 95,
-    },
-    {
-      id: 'mock-2', videoId: 'mock-2',
-      title: `Understanding ${topic} in ${lang}${suffix}`,
-      description: `A comprehensive breakdown of ${topic} explained in ${vidLang}.`,
-      thumbnail: `https://picsum.photos/seed/${safe}2/320/180`,
-      channelTitle: 'Quick Learning',
-      viewCount: '850K views',
-      publishedAt: new Date().toISOString(),
-      reason: `High relevance · ${vidLang}`,
-      relevanceScore: 88,
-    },
-    {
-      id: 'mock-3', videoId: 'mock-3',
-      title: `Master ${lang} ${topic}${suffix}`,
-      description: `Fast-paced tutorial on ${topic} for ${lang} developers.`,
-      thumbnail: `https://picsum.photos/seed/${safe}3/320/180`,
-      channelTitle: 'Professor Smith',
-      viewCount: '420K views',
-      publishedAt: new Date().toISOString(),
-      reason: `Comprehensive · ${vidLang}`,
-      relevanceScore: 75,
-    },
-    {
-      id: 'mock-4', videoId: 'mock-4',
-      title: `${topic} Concepts in ${lang}${suffix}`,
-      description: `Core concepts of ${topic} detailed in ${vidLang}.`,
-      thumbnail: `https://picsum.photos/seed/${safe}4/320/180`,
-      channelTitle: 'University Online',
-      viewCount: '125K views',
-      publishedAt: new Date().toISOString(),
-      reason: `Academic quality · ${vidLang}`,
-      relevanceScore: 60,
-    },
-  ];
 };

@@ -29,9 +29,19 @@
   <link rel="preconnect" href="https://www.googleapis.com" />
     <link rel="dns-prefetch" href="https://image.pollinations.ai" />
 
-  <!-- Consolidated Google Fonts Import with swap -->
+  <!-- Preload Material Symbols font for instant icon rendering -->
   <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Lexend:wght@100..900&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&family=Playfair+Display:wght@700&display=swap"
+    rel="preload"
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block"
+    as="style" />
+
+  <!-- Consolidated Google Fonts Import -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Lexend:wght@100..900&family=Playfair+Display:wght@700&display=swap"
+    rel="stylesheet" />
+  <!-- Material Symbols loaded separately with display=block to prevent FOUT -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block"
     rel="stylesheet" />
 
   <!-- Material Symbols Styling -->
@@ -70,7 +80,16 @@
       -moz-osx-font-smoothing: grayscale;
       font-feature-settings: 'liga';
       font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-      font-display: swap;
+      /* Hide icon text until font loads — prevents FOUT showing raw names */
+      color: transparent !important;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    /* Once the font is loaded, the JS below adds this class to <html> */
+    html.icons-loaded .material-symbols-outlined {
+      color: inherit !important;
+      opacity: 1;
     }
 
     .material-symbols-outlined.filled {
@@ -143,6 +162,22 @@
       }
     }
   </style>
+
+  <!-- Font loading detection: reveal icons only after Material Symbols font is ready -->
+  <script>
+    (function() {
+      // Use Font Loading API to detect when Material Symbols is available
+      if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(function() {
+          document.documentElement.classList.add('icons-loaded');
+        });
+      }
+      // Safety timeout: always reveal icons after 3 seconds even if detection fails
+      setTimeout(function() {
+        document.documentElement.classList.add('icons-loaded');
+      }, 3000);
+    })();
+  </script>
 </head>
 
 <body

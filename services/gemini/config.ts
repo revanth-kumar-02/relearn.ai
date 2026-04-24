@@ -58,7 +58,7 @@ export const isRetryableError = (error: any): boolean => {
 };
 
 /** Maximum retries before a sync item is marked as permanently failed */
-export const SYNC_MAX_RETRIES = 3;
+export const SYNC_MAX_RETRIES = 5;
 
 /** Exponential backoff base in ms for network retries */
 export const RETRY_BACKOFF_BASE_MS = 2000;
