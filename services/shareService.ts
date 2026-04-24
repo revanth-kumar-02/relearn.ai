@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase';
+import { supabase } from './supabase';
 import { Plan, Task, SharedPlan } from '../types';
 
 export const sharePlan = async (plan: Plan, tasks: Task[], userId: string): Promise<string> => {
