@@ -127,6 +127,13 @@ export function generateStudyNudges(
     });
   }
 
+  // Prioritize "Active Learning" (no_progress_today) to be first
+  nudges.sort((a, b) => {
+    if (a.type === 'no_progress_today') return -1;
+    if (b.type === 'no_progress_today') return 1;
+    return 0;
+  });
+
   // Limit to 3 most relevant nudges
   return nudges.slice(0, 3);
 }

@@ -8,7 +8,7 @@ import { generateStudyNudges, sendSmartReminder, type StudyNudge } from '../serv
 
 const Dashboard: React.FC = () => {
     const navigate = useNavigate();
-    const { plans, tasks, recentActivity, notifications, clearAllActivity, isLoading } = useData();
+    const { plans, tasks, recentActivity, notifications, addNotification, clearAllActivity, isLoading } = useData();
     const { user } = useAuth();
 
     const today = useMemo(() => new Date(), []);
@@ -57,6 +57,33 @@ const Dashboard: React.FC = () => {
     const visibleNudges = useMemo(() =>
         studyNudges.filter(n => !dismissedNudges.has(n.id)),
     [studyNudges, dismissedNudges]);
+
+    const activeLearningNudges = useMemo(() => 
+        visibleNudges.filter(n => n.type === 'no_progress_today'),
+    [visibleNudges]);
+
+    const otherReminders = useMemo(() => 
+        visibleNudges.filter(n => n.type !== 'no_progress_today'),
+    [visibleNudges]);
+
+    // Move "Other Reminders" (orange/red ones) to the notification area automatically
+    useEffect(() => {
+        if (otherReminders.length > 0) {
+            otherReminders.forEach(nudge => {
+                // Check if we've already created a notification for this specific nudge recently
+                const alreadyNotified = notifications.some(notif => notif.title === nudge.title && notif.message === nudge.message);
+                if (!alreadyNotified) {
+                    addNotification({
+                        type: nudge.type === 'overdue_task' ? 'reminder' : 'system',
+                        title: nudge.title,
+                        message: nudge.message,
+                        time: new Date().toISOString(),
+                        read: false
+                    });
+                }
+            });
+        }
+    }, [otherReminders, notifications, addNotification]);
 
     const currentYear = currentViewDate.getFullYear();
     const currentMonthIdx = currentViewDate.getMonth();
@@ -196,13 +223,13 @@ const Dashboard: React.FC = () => {
                     </div>
                 )}
 
-                {/* Smart Study Reminders */}
-                {visibleNudges.length > 0 && (
+                {/* Active Learning Prompts (Prioritized) */}
+                {activeLearningNudges.length > 0 && (
                     <div className="space-y-3">
-                        {visibleNudges.map(nudge => (
+                        {activeLearningNudges.map(nudge => (
                             <div
                                 key={nudge.id}
-                                className={`${nudge.bg} rounded-xl p-4 flex items-start gap-3 border border-black/5 dark:border-white/5 relative group animate-fade-in`}
+                                className={`${nudge.bg} rounded-xl p-4 flex items-start gap-3 border border-black/5 dark:border-white/5 relative group animate-fade-in shadow-sm`}
                             >
                                 <div className={`w-10 h-10 rounded-full ${nudge.bg} ${nudge.color} flex items-center justify-center shrink-0`}>
                                     <Icon name={nudge.icon} className="text-xl" />
