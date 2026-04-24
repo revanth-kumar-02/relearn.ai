@@ -851,17 +851,43 @@ export async function syncOfflineData(): Promise<SyncResult> {
         } catch { /* Item might not exist yet, proceed with sync */ }
       }
 
+      // ── DATA CLEANING (Schema Hardening) ──
+      let payload: Record<string, unknown> = {};
+      if (change.data) {
+        const { updatedAt, ...rawPayload } = change.data as Record<string, unknown>;
+        payload = { ...rawPayload };
+
+        // 1. Fix Plan/Task progress rounding (must be integer for DB)
+        if (typeof payload.progress === 'number') {
+          payload.progress = Math.round(payload.progress);
+        }
+
+        // 2. Fix Task-specific issues
+        if (change.collection === 'tasks') {
+          // Ensure 'type' exists (NOT NULL constraint in DB)
+          if (!payload.type) payload.type = 'reading';
+          // Fix nested objects that might be stringified in some contexts
+          if (typeof payload.tags === 'string') {
+            try { payload.tags = JSON.parse(payload.tags); } catch { payload.tags = []; }
+          }
+        }
+
+        // 3. Fix User-specific issues (Remove columns that don't exist in DB)
+        if (change.collection === 'users') {
+          delete payload.isVerified;
+          delete payload.password; // Security: never push password even if it exists
+        }
+      }
+
       switch (change.type) {
         case 'create':
           if (change.data) {
-            const { updatedAt, ...payload } = change.data as Record<string, unknown>;
             const { error: insErr } = await supabase.from(change.collection).upsert(payload);
             error = insErr;
           }
           break;
         case 'update':
           if (change.data) {
-            const { updatedAt, ...payload } = change.data as Record<string, unknown>;
             const { error: updErr } = await supabase.from(change.collection).update(payload).eq('id', change.id);
             error = updErr;
           }
@@ -939,6 +965,16 @@ export function dismissFailedSync(id: string, collection: string): void {
   removeUnsyncedChange(id, collection);
 }
 
+/** Clear all permanently failed items */
+export function clearAllFailedSyncs(): void {
+  const changes = getUnsyncedChanges();
+  lsSet(
+    'unsynced_changes',
+    changes.filter((c) => !c.permanentlyFailed)
+  );
+  notifyOtherTabs();
+}
+
 /** Retry all permanently failed items (resets their retry count) */
 export function retryFailedSyncs(): void {
   const changes = getUnsyncedChanges();
@@ -948,6 +984,7 @@ export function retryFailedSyncs(): void {
       c.permanentlyFailed ? { ...c, retryCount: 0, permanentlyFailed: false } : c
     )
   );
+  notifyOtherTabs();
 }
 
 // ────────────────────────── ANALYTICS ──────────────────────────

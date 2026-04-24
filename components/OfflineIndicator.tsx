@@ -12,7 +12,9 @@ const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({ showMobileNav }) =>
         unsyncedCount, 
         failedSyncCount, 
         triggerSync, 
-        retryFailedSyncs 
+        retryFailedSyncs,
+        clearAllFailedSyncs,
+        failedItems 
     } = useConnection();
     const [isExpanded, setIsExpanded] = useState(false);
 
@@ -110,22 +112,37 @@ const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({ showMobileNav }) =>
                             </div>
 
                             {config.action && (
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        config.onAction?.();
-                                    }}
-                                    className="bg-white text-stone-900 text-[10px] font-black uppercase tracking-tight px-3 py-1.5 rounded-lg hover:bg-stone-100 transition-colors flex items-center gap-1.5 active:scale-95 whitespace-nowrap"
-                                >
-                                    <span className="material-symbols-outlined text-xs">{config.actionIcon}</span>
-                                    {config.action}
-                                </button>
+                                <div className="flex gap-1.5">
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            config.onAction?.();
+                                        }}
+                                        className="bg-white text-stone-900 text-[10px] font-black uppercase tracking-tight px-3 py-1.5 rounded-lg hover:bg-stone-100 transition-colors flex items-center gap-1.5 active:scale-95 whitespace-nowrap"
+                                    >
+                                        <span className="material-symbols-outlined text-xs">{config.actionIcon}</span>
+                                        {config.action}
+                                    </button>
+                                    
+                                    {failedSyncCount > 0 && isExpanded && (
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                clearAllFailedSyncs();
+                                            }}
+                                            className="bg-red-800/50 text-white text-[10px] font-black uppercase tracking-tight px-3 py-1.5 rounded-lg hover:bg-red-900/50 transition-colors flex items-center gap-1.5 active:scale-95 whitespace-nowrap"
+                                        >
+                                            <span className="material-symbols-outlined text-xs">delete_sweep</span>
+                                            Clear All
+                                        </button>
+                                    )}
+                                </div>
                             )}
                         </div>
 
                         {isExpanded && failedSyncCount > 0 && (
                             <div className="mt-3 pt-3 border-t border-white/10 space-y-2 max-h-[150px] overflow-y-auto no-scrollbar">
-                                {useConnection().failedItems.map((item) => (
+                                {failedItems.map((item) => (
                                     <div key={item.id + item.collection} className="flex items-center justify-between gap-3 bg-black/10 p-2 rounded-lg">
                                         <div className="min-w-0">
                                             <p className="text-[9px] font-bold uppercase opacity-70 leading-none">

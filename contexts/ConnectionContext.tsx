@@ -24,6 +24,8 @@ interface ConnectionContextType {
   dismissFailedSync: (id: string, collection: string) => void;
   /** Retry all failed syncs */
   retryFailedSyncs: () => void;
+  /** Clear all failed syncs */
+  clearAllFailedSyncs: () => void;
 }
 
 const ConnectionContext = createContext<ConnectionContextType | undefined>(undefined);
@@ -98,6 +100,13 @@ export const ConnectionProvider: React.FC<{ children: ReactNode }> = ({ children
     });
   }, [updateCounts, triggerSync]);
 
+  const clearAllFailedSyncs = useCallback(() => {
+    import('../services/dataService').then(ds => {
+      ds.clearAllFailedSyncs();
+      updateCounts();
+    });
+  }, [updateCounts]);
+
 
   // Listen for online/offline events
   useEffect(() => {
@@ -132,6 +141,7 @@ export const ConnectionProvider: React.FC<{ children: ReactNode }> = ({ children
         lastSynced,
         dismissFailedSync,
         retryFailedSyncs,
+        clearAllFailedSyncs,
       }}
     >
       {children}
