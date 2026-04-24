@@ -5,16 +5,19 @@ ReLearn.ai is an intelligent, AI-powered learning platform that helps you organi
 ## Features
 
 - **AI-Powered Plan Generation** — Generate personalized study plans based on your goals, difficulty level, and timeframe using Gemini AI.
+- **Real-time Study Rooms** — Collaborative study spaces with live chat, member presence, and shared timers for focus groups.
+- **Deep Gamification System** — Earn XP, level up, and unlock 30+ unique badges across 4 rarity tiers. Integrated study streaks and reward haptics.
 - **AI Cover Images** — Automatically generates beautiful, topic-relevant cover images for each plan.
-- **Interactive Learning Workspace** — AI-guided study sessions with explanations, practice activities, and resources.
+- **Interactive Learning Workspace** — AI-guided study sessions with deep-dive explanations, practice activities, and curated resources.
+- **Public Plan Sharing** — Share your learning plans via unique slugs and discover others in a public gallery.
+- **Mobile-First Stability** — Self-healing "Offline-First" storage with multi-layered protection (IndexedDB + Optimized localStorage) and background synchronization.
 - **AI Chatbot** — Ask questions and get help from your personal AI study assistant.
 - **YouTube Video Resources** — Curated educational videos fetched from YouTube for each topic.
-- **Progress Tracking** — Visual charts and stats to track your learning journey.
+- **Progress Tracking** — Advanced analytics, heatmaps, and visual charts to track your learning journey.
+- **Interactive Tutorial** — Guided onboarding walkthrough for new users to master the platform.
 - **Learning Diary** — Keep a journal of your learning experiences.
-- **Study Timer** — Built-in Pomodoro-style study timer.
-- **Dark Mode** — Full light/dark theme support.
 - **PWA Ready** — Installable as a Progressive Web App on mobile and desktop.
-- **Google Sign-In** — Quick authentication with Google or email/password.
+- **Keyboard Shortcuts** — Full keyboard navigation support for power users.
 
 ## Tech Stack
 
@@ -49,45 +52,42 @@ ReLearn.ai is an intelligent, AI-powered learning platform that helps you organi
 
 ```
 Relearn.ai/
-├── components/          # React UI components (23 components)
-│   ├── Login.tsx        # Login page with Google Sign-In
-│   ├── CreateAccount.tsx# Signup page
-│   ├── Dashboard.tsx    # Main dashboard with calendar & tasks
+├── components/          # React UI components (35+ components)
+│   ├── StudyRooms.tsx   # Real-time social learning hub
+│   ├── RoomView.tsx     # Collaborative study room with chat
+│   ├── Dashboard.tsx    # Main dashboard with task management
 │   ├── CreatePlan.tsx   # AI plan generation form
-│   ├── PlanDetails.tsx  # Plan view with task management
 │   ├── LearningWorkspace.tsx  # AI-guided study session
-│   ├── ChatBot.tsx      # AI chatbot
-│   ├── Progress.tsx     # Analytics & charts
-│   ├── Profile.tsx      # User profile management
+│   ├── Progress.tsx     # Analytics & Badge gallery
+│   ├── TutorialGuide.tsx# Guided walkthrough system
+│   ├── OfflineIndicator.tsx # Sync status & retry manager
+│   ├── StorageWarningToast.tsx # Storage failure handling
 │   └── ...
 ├── contexts/            # React context providers
 │   ├── AuthContext.tsx   # Supabase Auth state management
-│   ├── DataContext.tsx   # Supabase data management (lessons, plans, etc.)
-│   └── TutorialContext.tsx  # Onboarding tutorial
+│   ├── DataContext.tsx   # Core data & gamification logic
+│   ├── ConnectionContext.tsx # Sync & network stability
+│   └── TutorialContext.tsx  # Onboarding state
 ├── services/            # API and external services
 │   ├── supabase.ts      # Supabase configuration
 │   ├── gemini/          # Gemini AI services
-│   │   ├── planGeneratorService.ts
-│   │   ├── chatbotService.ts
-│   │   ├── coverImageService.ts
-│   │   ├── imageService.ts
-│   │   └── learningWorkspaceService.ts
+│   ├── dataService.ts   # "Self-healing" storage layer
+│   ├── gamificationService.ts # Badge & XP logic
+│   ├── roomService.ts   # Real-time room management
+│   ├── shareService.ts  # Plan sharing & slugs
 │   ├── youtubeService.ts
-│   └── notificationService.ts
+│   └── ...
 ├── types.ts             # TypeScript type definitions
 ├── App.tsx              # Main app with routing
-├── index.tsx            # React entry point
-├── index.html           # HTML template
-├── vite.config.ts       # Vite configuration
-└── package.json         # Dependencies
+└── ...
 ```
 
 ## Environment Variables
 
 See [`.env.example`](.env.example) for all required API keys:
 
-- **Supabase** — Authentication & database
-- **Gemini AI** — Plan generation, chatbot, image generation, learning workspace
+- **Supabase** — Authentication, Database, and Real-time subscriptions
+- **Gemini AI** — Intelligence layer for all AI features
 - **YouTube** — Educational video search
 
 ## Deployment
