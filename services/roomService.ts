@@ -9,36 +9,52 @@ export const roomService = {
 
   // Create a new study room
   createRoom: async (name: string, hostId: string, userName: string) => {
-    const roomCode = roomService.generateRoomCode();
-    
-    // 1. Create the room
-    const { data: room, error: roomError } = await supabase
-      .from('study_rooms')
-      .insert({
-        name,
-        host_id: hostId,
-        room_code: roomCode,
-        max_members: 8,
-        is_active: true
-      })
-      .select()
-      .single();
+    try {
+      const roomCode = roomService.generateRoomCode();
+      
+      // 1. Create the room
+      const { data: room, error: roomError } = await supabase
+        .from('study_rooms')
+        .insert({
+          name: name || 'Study Room',
+          host_id: hostId,
+          room_code: roomCode,
+          max_members: 8,
+          is_active: true,
+          settings: { break: 5, timer: 25, longBreak: 15 }
+        })
+        .select()
+        .single();
 
-    if (roomError) throw roomError;
+      if (roomError) {
+        console.error('Room Insert Error:', roomError);
+        throw new Error(`Failed to create room record: ${roomError.message}`);
+      }
 
-    // 2. Join the room as the host
-    const { error: memberError } = await supabase
-      .from('room_members')
-      .insert({
-        room_id: room.id,
-        user_id: hostId,
-        user_name: userName,
-        status: 'idle'
-      });
+      if (!room) throw new Error('No room data returned after creation');
 
-    if (memberError) throw memberError;
+      // 2. Join the room as the host
+      const { error: memberError } = await supabase
+        .from('room_members')
+        .insert({
+          room_id: room.id,
+          user_id: hostId,
+          user_name: userName || 'Host',
+          status: 'idle',
+          last_active_at: new Date().toISOString()
+        });
 
-    return room as StudyRoom;
+      if (memberError) {
+        console.error('Member Insert Error:', memberError);
+        // We still return the room even if joining fails, 
+        // as the user can try to join manually or we can handle it in the UI
+      }
+
+      return room as StudyRoom;
+    } catch (err: any) {
+      console.error('Room Creation Exception:', err);
+      throw err;
+    }
   },
 
   // Join a room using a code

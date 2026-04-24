@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useConnection } from '../contexts/ConnectionContext';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -9,174 +9,85 @@ interface OfflineIndicatorProps {
 const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({ showMobileNav }) => {
     const { 
         status, 
-        unsyncedCount, 
         failedSyncCount, 
-        triggerSync, 
-        retryFailedSyncs,
         clearAllFailedSyncs,
-        failedItems 
     } = useConnection();
     const [isExpanded, setIsExpanded] = useState(false);
 
-    // Only show if we're actually offline, currently syncing, have pending changes, or failed syncs
-    const shouldShow = status === 'offline' || status === 'syncing' || unsyncedCount > 0 || failedSyncCount > 0;
-
+    // Extremely subtle visibility: only show for actual failures or offline status
+    // Syncing and pending changes are now hidden as they are "background" tasks.
+    const shouldShow = status === 'offline' || failedSyncCount > 0;
+    
     if (!shouldShow) return null;
 
-    const getStatusConfig = () => {
-        if (status === 'offline') {
-            return {
-                icon: 'cloud_off',
-                bg: 'bg-red-500',
-                text: 'You are offline',
-                subtext: `${unsyncedCount} changes waiting to sync`,
-                action: 'Sync Now',
-                actionIcon: 'sync',
-                onAction: triggerSync
-            };
-        }
-        if (status === 'syncing') {
-            return {
-                icon: 'sync',
-                bg: 'bg-primary',
-                text: 'Syncing your progress...',
-                subtext: 'Uploading changes to cloud',
-                isSyncing: true
-            };
-        }
-        if (failedSyncCount > 0) {
-            return {
-                icon: 'report_problem',
-                bg: 'bg-red-600',
-                text: 'Sync Failure',
-                subtext: `${failedSyncCount} items failed to upload after retries`,
-                action: 'Retry All',
-                actionIcon: 'restart_alt',
-                onAction: retryFailedSyncs
-            };
-        }
-        if (unsyncedCount > 0) {
-            return {
-                icon: 'cloud_upload',
-                bg: 'bg-amber-500',
-                text: 'Unsynced changes',
-                subtext: `${unsyncedCount} items saved locally`,
-                action: 'Push Changes',
-                actionIcon: 'upload',
-                onAction: triggerSync
-            };
-        }
-        return null;
-    };
-
-    const config = getStatusConfig();
-    if (!config) return null;
-
     return (
-        <AnimatePresence mode="wait">
+        <AnimatePresence>
             <motion.div
-                key={status + unsyncedCount + failedSyncCount}
-                initial={{ y: 100, opacity: 0, scale: 0.9 }}
+                initial={{ y: 20, opacity: 0 }}
                 animate={{ 
                     y: showMobileNav ? -80 : 0, 
-                    opacity: 1, 
-                    scale: 1 
+                    opacity: 1 
                 }}
-                exit={{ y: 100, opacity: 0, scale: 0.9 }}
-                className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] print:hidden w-full max-w-xs sm:max-w-md px-4"
+                exit={{ y: 20, opacity: 0 }}
+                className="fixed bottom-4 left-4 z-[9999] print:hidden"
             >
-                <div className={`
-                    ${config.bg} text-white px-4 py-2.5 rounded-full shadow-2xl 
-                    flex items-center gap-3 min-w-[200px] border border-white/20
-                    backdrop-blur-md transition-all duration-500
-                    ${isExpanded ? 'rounded-2xl py-4' : 'rounded-full'}
-                `}>
-                    <div className={`
-                        w-8 h-8 min-w-[32px] rounded-full bg-white/20 flex items-center justify-center
-                        ${config.isSyncing ? 'animate-spin' : ''}
-                    `}>
-                        <span className="material-symbols-outlined text-lg">{config.icon}</span>
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2">
-                            <div className="min-w-0">
-                                <p className="text-[11px] font-black uppercase tracking-wider leading-none truncate">
-                                    {config.text}
-                                </p>
-                                {isExpanded && (
-                                    <p className="text-[10px] text-white/80 mt-1 font-medium italic">
-                                        {config.subtext}
-                                    </p>
-                                )}
-                            </div>
-
-                            {config.action && (
-                                <div className="flex gap-1.5">
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            config.onAction?.();
-                                        }}
-                                        className="bg-white text-stone-900 text-[10px] font-black uppercase tracking-tight px-3 py-1.5 rounded-lg hover:bg-stone-100 transition-colors flex items-center gap-1.5 active:scale-95 whitespace-nowrap"
-                                    >
-                                        <span className="material-symbols-outlined text-xs">{config.actionIcon}</span>
-                                        {config.action}
-                                    </button>
-                                    
-                                    {failedSyncCount > 0 && isExpanded && (
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                clearAllFailedSyncs();
-                                            }}
-                                            className="bg-red-800/50 text-white text-[10px] font-black uppercase tracking-tight px-3 py-1.5 rounded-lg hover:bg-red-900/50 transition-colors flex items-center gap-1.5 active:scale-95 whitespace-nowrap"
-                                        >
-                                            <span className="material-symbols-outlined text-xs">delete_sweep</span>
-                                            Clear All
-                                        </button>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-
-                        {isExpanded && failedSyncCount > 0 && (
-                            <div className="mt-3 pt-3 border-t border-white/10 space-y-2 max-h-[150px] overflow-y-auto no-scrollbar">
-                                {failedItems.map((item) => (
-                                    <div key={item.id + item.collection} className="flex items-center justify-between gap-3 bg-black/10 p-2 rounded-lg">
-                                        <div className="min-w-0">
-                                            <p className="text-[9px] font-bold uppercase opacity-70 leading-none">
-                                                {item.collection} • {item.type}
-                                            </p>
-                                            <p className="text-[10px] truncate">
-                                                {item.lastError || 'Unknown error'}
-                                            </p>
-                                        </div>
-                                        <button 
-                                            onClick={() => useConnection().dismissFailedSync(item.id, item.collection)}
-                                            className="text-white/60 hover:text-white"
-                                        >
-                                            <span className="material-symbols-outlined text-sm">close</span>
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
+                <div 
+                    onClick={() => setIsExpanded(!isExpanded)}
+                    className={`
+                        flex items-center gap-2 p-2 rounded-full cursor-pointer shadow-lg border backdrop-blur-md transition-all
+                        ${failedSyncCount > 0 
+                            ? 'bg-red-500/90 border-red-400 text-white' 
+                            : 'bg-surface-light/80 dark:bg-surface-dark/80 border-border-light dark:border-border-dark text-text-secondary-light dark:text-text-secondary-dark'
+                        }
+                        hover:scale-110 active:scale-95
+                    `}
+                >
+                    <div className="relative flex items-center justify-center">
+                        <span className="material-symbols-outlined text-lg">
+                            {failedSyncCount > 0 ? 'report' : 'cloud_off'}
+                        </span>
+                        {failedSyncCount > 0 && !isExpanded && (
+                            <span className="absolute -top-2 -right-2 flex h-4 w-4 items-center justify-center rounded-full bg-white text-[10px] font-bold text-red-500 shadow-sm">
+                                {failedSyncCount}
+                            </span>
                         )}
                     </div>
 
-                    <button
-                        onClick={() => setIsExpanded(!isExpanded)}
-                        className="w-6 h-6 rounded-full hover:bg-white/10 flex items-center justify-center transition-colors shrink-0"
-                    >
-                        <span className={`material-symbols-outlined text-base transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>
-                            expand_more
-                        </span>
-                    </button>
+                    {isExpanded && (
+                        <motion.div 
+                            initial={{ width: 0, opacity: 0 }}
+                            animate={{ width: 'auto', opacity: 1 }}
+                            className="flex flex-col pr-4 pl-1 min-w-[150px] overflow-hidden"
+                        >
+                            <div className="flex items-center justify-between mb-1">
+                                <span className="font-black text-[9px] uppercase tracking-wider">
+                                    {failedSyncCount > 0 ? 'Sync Errors' : 'You are Offline'}
+                                </span>
+                                <span className="material-symbols-outlined text-xs opacity-50">close</span>
+                            </div>
+
+                            {failedSyncCount > 0 ? (
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        clearAllFailedSyncs();
+                                        setIsExpanded(false);
+                                    }}
+                                    className="mt-1 py-1 px-3 bg-white text-red-600 hover:bg-stone-100 rounded-lg text-[9px] font-black uppercase transition-colors"
+                                >
+                                    Clear Errors
+                                </button>
+                            ) : (
+                                <p className="text-[9px] opacity-80 leading-tight">
+                                    Saved locally.
+                                </p>
+                            )}
+                        </motion.div>
+                    )}
                 </div>
             </motion.div>
         </AnimatePresence>
     );
 };
-
 
 export default OfflineIndicator;
