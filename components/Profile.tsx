@@ -262,6 +262,55 @@ const Profile: React.FC = () => {
           <StatCard label="Total Hours" value={`${stats.totalHours}h`} icon="schedule" color="text-purple-500" bg="bg-purple-500/10" />
         </section>
 
+        {/* Obtained Badges (New Section) */}
+        <section className="space-y-4">
+          <h3 className="px-1 text-[11px] font-black text-text-secondary-light/60 dark:text-text-secondary-dark/60 uppercase tracking-[0.15em]">Obtained Badges</h3>
+          <div className="bg-white dark:bg-surface-dark rounded-3xl p-6 border border-border-light dark:border-border-dark shadow-sm overflow-hidden relative">
+            {/* Background Accent */}
+            <div className="absolute -right-6 -top-6 w-24 h-24 bg-primary/5 rounded-full blur-2xl"></div>
+            
+            <div className="flex flex-wrap gap-6 justify-center md:justify-start">
+              <BadgeItem 
+                icon="military_tech" 
+                label="Quick Starter" 
+                unlocked={stats.plansCreated > 0} 
+                description="Created first learning plan"
+                color="text-amber-500"
+              />
+              <BadgeItem 
+                icon="workspace_premium" 
+                label="Goal Crusher" 
+                unlocked={stats.plansCompleted > 0} 
+                description="Completed first study plan"
+                color="text-indigo-500"
+              />
+              <BadgeItem 
+                icon="local_fire_department" 
+                label="Persistent" 
+                unlocked={stats.streak >= 3} 
+                description="Maintain a 3-day streak"
+                color="text-orange-500"
+              />
+              <BadgeItem 
+                icon="auto_awesome" 
+                label="AI Explorer" 
+                unlocked={true} 
+                description="Used AI plan generation"
+                color="text-primary"
+              />
+              {stats.totalHours >= 10 && (
+                <BadgeItem 
+                  icon="history_edu" 
+                  label="Deep Learner" 
+                  unlocked={true} 
+                  description="Studied for over 10 hours"
+                  color="text-emerald-500"
+                />
+              )}
+            </div>
+          </div>
+        </section>
+
         {/* Middle Section: Preferences */}
         <section className="space-y-4">
           <div className="bg-white dark:bg-surface-dark rounded-3xl p-6 border border-border-light dark:border-border-dark shadow-sm space-y-6">
@@ -381,6 +430,26 @@ const StatCard = ({ label, value, icon, color, bg }: any) => (
     </div>
     <p className="text-lg font-black text-text-primary-light dark:text-text-primary-dark">{value}</p>
     <p className="text-[10px] font-bold text-text-secondary-light uppercase tracking-wider">{label}</p>
+  </div>
+);
+
+const BadgeItem = ({ icon, label, unlocked, description, color }: any) => (
+  <div className={`flex flex-col items-center text-center gap-2 transition-all ${unlocked ? 'opacity-100 scale-100' : 'opacity-30 grayscale scale-95'}`}>
+    <div className={`w-16 h-16 rounded-2xl ${unlocked ? 'bg-white dark:bg-background-dark shadow-lg shadow-black/5' : 'bg-gray-100 dark:bg-white/5'} flex items-center justify-center border border-border-light dark:border-border-dark relative group`}>
+      <span className={`material-symbols-outlined text-3xl ${unlocked ? color : 'text-gray-400'}`}>{icon}</span>
+      {unlocked && (
+        <div className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white dark:border-surface-dark flex items-center justify-center">
+          <span className="material-symbols-outlined text-[10px] text-white font-bold">check</span>
+        </div>
+      )}
+      
+      {/* Tooltip on Hover */}
+      <div className="absolute bottom-full mb-2 w-32 p-2 bg-black/90 text-white text-[10px] rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 shadow-xl">
+        <p className="font-bold mb-0.5">{label}</p>
+        <p className="opacity-70">{description}</p>
+      </div>
+    </div>
+    <span className="text-[10px] font-bold text-text-primary-light dark:text-text-primary-dark tracking-tight">{label}</span>
   </div>
 );
 

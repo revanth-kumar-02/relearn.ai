@@ -98,8 +98,10 @@ const AppContent: React.FC = () => {
     exit: { opacity: 0, y: -10 }
   };
 
+  const isDiary = location.pathname === '/diary';
+
   return (
-    <div className="flex min-h-screen bg-background-light dark:bg-background-dark overflow-hidden">
+    <div className={`flex min-h-screen ${isDiary ? 'bg-cream dark:bg-dark-cream' : 'bg-background-light dark:bg-background-dark'} overflow-hidden transition-colors duration-500`}>
       <a 
         href="#main-content" 
         className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:bg-primary focus:text-white focus:px-4 focus:py-2 focus:rounded-lg focus:font-bold focus:shadow-xl"
@@ -215,7 +217,7 @@ const AppContent: React.FC = () => {
         }`}
       >
         <div className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar scroll-smooth">
-          <div className={`mx-auto w-full ${isAuthPage ? '' : 'max-w-5xl pb-32 md:pb-8'}`}>
+          <div className={`mx-auto w-full ${isAuthPage ? '' : (isDiary ? 'pb-32 md:pb-8' : 'max-w-5xl pb-32 md:pb-8')}`}>
             <AnimatePresence mode="wait">
                 <motion.div
                     key={location.pathname}

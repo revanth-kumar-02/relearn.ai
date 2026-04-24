@@ -132,17 +132,19 @@ const LearningDiary: React.FC = () => {
     return (
         <div className="min-h-screen bg-cream dark:bg-dark-cream text-stone-800 dark:text-cream pb-28 animate-fade-in">
             {/* Header */}
-            <header className="p-4 flex items-center justify-between sticky top-0 bg-cream/80 dark:bg-dark-cream/80 backdrop-blur-sm z-10 border-b border-black/5 dark:border-cream/10">
-                <div className="flex items-center gap-3">
-                    <span className="material-symbols-outlined text-2xl text-terracotta">menu_book</span>
-                    <h1 className="font-serif text-xl font-bold">Your Learning Journal</h1>
+            <header className="sticky top-0 bg-cream/90 dark:bg-dark-cream/90 backdrop-blur-md z-10 border-b border-black/5 dark:border-cream/10">
+                <div className="max-w-4xl mx-auto p-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <span className="material-symbols-outlined text-2xl text-terracotta">menu_book</span>
+                        <h1 className="font-serif text-xl font-bold">Your Learning Journal</h1>
+                    </div>
+                    <button className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5">
+                        <span className="material-symbols-outlined">search</span>
+                    </button>
                 </div>
-                <button className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5">
-                    <span className="material-symbols-outlined">search</span>
-                </button>
             </header>
 
-            <main className="p-4">
+            <main className="max-w-4xl mx-auto p-4">
                 {/* Tabs */}
                 <div className="mb-6 bg-stone-200/50 dark:bg-stone-800/50 p-1 rounded-lg flex items-center">
                     {(['current', 'explored', 'archived'] as const).map(tab => (
