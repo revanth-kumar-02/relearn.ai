@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { syncOfflineData, getUnsyncedCount } from '../services/dataService';
+import { syncOfflineData, getUnsyncedCount, getFailedSyncCount } from '../services/dataService';
 import { supabaseAvailable } from '../services/supabase';
 
 export type ConnectionStatus = 'online' | 'offline' | 'syncing';
