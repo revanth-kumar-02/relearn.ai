@@ -60,12 +60,28 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   }
 
   handleReload = (): void => {
-    // Clear any potential cache issues by performing a hard reload if it's a chunk error
+    // If it's a chunk error, we need to be aggressive about clearing cache
     if (this.state.isChunkError) {
-      // Small delay to ensure user sees the button state change if any
-      setTimeout(() => {
-        window.location.reload();
-      }, 100);
+      console.log('[ErrorBoundary] Version mismatch detected. Attempting hard recovery...');
+      
+      // 1. Unregister any service workers that might be serving stale content
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(registrations => {
+          for (let registration of registrations) {
+            registration.unregister();
+          }
+        }).catch(err => console.error('SW unregistration failed:', err));
+      }
+
+      // 2. Clear session storage as a precaution
+      try {
+        sessionStorage.clear();
+      } catch (e) {}
+
+      // 3. Force hard reload with cache busting query param
+      const url = new URL(window.location.href);
+      url.searchParams.set('v', Date.now().toString());
+      window.location.href = url.toString();
     } else {
       window.location.reload();
     }

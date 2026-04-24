@@ -205,7 +205,7 @@ const CreatePlan: React.FC = () => {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <button
                                 onClick={() => navigate('/templates')}
                                 className="w-full py-3 bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-xl flex items-center gap-3 px-4 hover:border-primary/50 transition-all group"
@@ -215,9 +215,21 @@ const CreatePlan: React.FC = () => {
                                 </div>
                                 <div className="text-left">
                                     <div className="text-xs font-bold text-text-primary-light dark:text-text-primary-dark">Browse Templates</div>
-                                    <div className="text-[10px] text-text-secondary-light">Proven learning paths for common topics</div>
+                                    <div className="text-[10px] text-text-secondary-light">Proven learning paths</div>
                                 </div>
-                                <Icon name="chevron_right" className="ml-auto text-text-secondary-light" />
+                            </button>
+
+                            <button
+                                onClick={() => navigate('/rooms')}
+                                className="w-full py-3 bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-xl flex items-center gap-3 px-4 hover:border-primary/50 transition-all group"
+                            >
+                                <div className="h-10 w-10 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                    <Icon name="hub" />
+                                </div>
+                                <div className="text-left">
+                                    <div className="text-xs font-bold text-text-primary-light dark:text-text-primary-dark">Study Rooms</div>
+                                    <div className="text-[10px] text-text-secondary-light">Learn with others</div>
+                                </div>
                             </button>
                         </div>
 

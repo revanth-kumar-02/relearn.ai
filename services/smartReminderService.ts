@@ -127,11 +127,33 @@ export function generateStudyNudges(
     });
   }
 
-  // Prioritize "Active Learning" (no_progress_today) to be first
+  // 4. Streak at Risk
+  if (preferences?.stats?.studyStreak && preferences.stats.studyStreak > 0) {
+    // This is simplified; in a real app, we'd check last_study_date vs today
+    // For now, if no progress today and they have a streak, it's "at risk"
+    if (todayCompletions.length === 0) {
+      nudges.push({
+        id: 'streak-at-risk',
+        type: 'streak_at_risk',
+        title: "Streak at risk!",
+        message: `You've studied for ${preferences.stats.studyStreak} days straight. Don't let it break today!`,
+        icon: 'local_fire_department',
+        color: 'text-orange-500',
+        bg: 'bg-orange-50 dark:bg-orange-950/20',
+        actionLabel: 'Keep Streak',
+      });
+    }
+  }
+
+  // Prioritize "Active Learning" to be first
   nudges.sort((a, b) => {
-    if (a.type === 'no_progress_today') return -1;
-    if (b.type === 'no_progress_today') return 1;
-    return 0;
+    const priority: Record<string, number> = {
+      'no_progress_today': 1,
+      'streak_at_risk': 2,
+      'stale_plan': 3,
+      'overdue_task': 4
+    };
+    return (priority[a.type] || 99) - (priority[b.type] || 99);
   });
 
   // Limit to 3 most relevant nudges

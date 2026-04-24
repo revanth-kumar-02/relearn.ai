@@ -59,11 +59,11 @@ const Dashboard: React.FC = () => {
     [studyNudges, dismissedNudges]);
 
     const activeLearningNudges = useMemo(() => 
-        visibleNudges.filter(n => n.type === 'no_progress_today'),
+        visibleNudges.filter(n => n.type === 'no_progress_today' || n.type === 'streak_at_risk'),
     [visibleNudges]);
 
     const otherReminders = useMemo(() => 
-        visibleNudges.filter(n => n.type !== 'no_progress_today'),
+        visibleNudges.filter(n => n.type !== 'no_progress_today' && n.type !== 'streak_at_risk'),
     [visibleNudges]);
 
     // Move "Other Reminders" (orange/red ones) to the notification area automatically
@@ -181,6 +181,13 @@ const Dashboard: React.FC = () => {
                     </button>
                     <div className="flex items-center gap-2">
                         <button 
+                            onClick={() => { /* triggerHaptic('light'); */ navigate('/rooms'); }} 
+                            className="w-10 h-10 flex items-center justify-center rounded-full bg-white dark:bg-surface-dark text-indigo-500 shadow-sm border border-border-light dark:border-border-dark hover:scale-110 active:scale-95 transition-all"
+                            aria-label="Study Rooms Hub"
+                        >
+                            <span className="material-symbols-outlined font-bold">hub</span>
+                        </button>
+                        <button 
                             onClick={() => navigate('/notifications')} 
                             className="w-10 h-10 rounded-full bg-surface-light dark:bg-surface-dark flex items-center justify-center text-text-primary-light dark:text-text-primary-dark hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors relative"
                             aria-label={`${notifications.length} notifications, ${hasUnreadNotifications ? 'new messages available' : 'no new messages'}`}
@@ -189,6 +196,13 @@ const Dashboard: React.FC = () => {
                             {hasUnreadNotifications && (
                                 <span className="absolute top-2 right-2.5 w-2 h-2 bg-red-500 rounded-full border border-white dark:border-surface-dark"></span>
                             )}
+                        </button>
+                        <button 
+                            onClick={() => navigate('/settings')} 
+                            className="w-10 h-10 rounded-full bg-surface-light dark:bg-surface-dark flex items-center justify-center text-text-primary-light dark:text-text-primary-dark hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                            aria-label="Settings"
+                        >
+                            <Icon name="settings" />
                         </button>
                     </div>
                 </div>

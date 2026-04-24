@@ -28,21 +28,34 @@ const OBF_KEY = 'v1_rlrn_s3cr3t'; // Key for basic obfuscation
  * This is NOT strong encryption, but a defense-in-depth layer for local storage.
  */
 function obfuscate(str: string): string {
-    return btoa(
-        str.split('').map((char, i) => 
-            String.fromCharCode(char.charCodeAt(0) ^ OBF_KEY.charCodeAt(i % OBF_KEY.length))
-        ).join('')
-    );
+    try {
+        const bytes = new TextEncoder().encode(str);
+        const xored = bytes.map((byte, i) => 
+            byte ^ OBF_KEY.charCodeAt(i % OBF_KEY.length)
+        );
+        const binString = Array.from(xored, (byte) => String.fromCharCode(byte)).join("");
+        return btoa(binString);
+    } catch (e) {
+        console.error('[DataService] Obfuscation failed:', e);
+        return btoa(unescape(encodeURIComponent(str))); // Fallback to basic btoa trick
+    }
 }
 
 function deobfuscate(str: string): string {
     try {
-        const decoded = atob(str);
-        return decoded.split('').map((char, i) => 
-            String.fromCharCode(char.charCodeAt(0) ^ OBF_KEY.charCodeAt(i % OBF_KEY.length))
-        ).join('');
+        const binString = atob(str);
+        const bytes = Uint8Array.from(binString, (char) => char.charCodeAt(0));
+        const dexored = bytes.map((byte, i) => 
+            byte ^ OBF_KEY.charCodeAt(i % OBF_KEY.length)
+        );
+        return new TextDecoder().decode(dexored);
     } catch {
-        return str; 
+        // Fallback for legacy plain-text or old obfuscation format
+        try {
+            return decodeURIComponent(escape(atob(str)));
+        } catch {
+            return str;
+        }
     }
 }
 

@@ -344,6 +344,7 @@ const Profile: React.FC = () => {
         <section className="space-y-3">
           <h3 className="px-1 text-[11px] font-black text-text-secondary-light/60 dark:text-text-secondary-dark/60 uppercase tracking-[0.15em]">Account Settings</h3>
           <div className="bg-white dark:bg-surface-dark rounded-2xl overflow-hidden border border-border-light dark:border-border-dark shadow-sm">
+            <SettingItem icon="settings" label="System Settings" onClick={() => navigate('/settings')} />
             <SettingItem icon="lock" label="Change Password" onClick={() => setShowPasswordModal(true)} />
             <SettingItem icon="logout" label="Logout" onClick={logout} isLast color="text-red-500" />
           </div>

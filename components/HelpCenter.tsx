@@ -65,24 +65,29 @@ const HelpCenter: React.FC = () => {
         <div className="bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm overflow-hidden border border-border-light dark:border-border-dark">
            
            <HelpItem 
-             title="Dashboard Navigation" 
-             icon="dashboard"
-             isOpen={openSection === "Dashboard Navigation"}
-             onToggle={() => toggleSection("Dashboard Navigation")}
+             title="Momentum-First Dashboard" 
+             icon="bolt"
+             isOpen={openSection === "Momentum-First Dashboard"}
+             onToggle={() => toggleSection("Momentum-First Dashboard")}
            >
                <ul className="list-disc pl-5 space-y-3">
-                   <li><strong>Overview:</strong> The dashboard is your central hub, showing your active learning plans, a progress overview, and your schedule calendar.</li>
-                   <li><strong>AI Access:</strong> Get quick access to the <strong>ReLearn.ai</strong> assistant for immediate help.</li>
-                   <li><strong>Navigation:</strong> Easily switch between key areas using the bottom bar:
-                       <ul className="list-circle pl-5 mt-1 space-y-1 text-xs">
-                           <li><strong>Dashboard:</strong> Your main home screen.</li>
-                           <li><strong>Progress:</strong> Track your stats and growth.</li>
-                           <li><strong>Learning Diary:</strong> Review your learning journey.</li>
-                           <li><strong>Notifications:</strong> Stay updated on tasks and alerts.</li>
-                           <li><strong>Profile:</strong> View your identity card and level.</li>
-                           <li><strong>Settings:</strong> Manage app preferences.</li>
-                       </ul>
-                   </li>
+                   <li><strong>Active Learning First:</strong> Your dashboard is now optimized for momentum. High-priority "Active Learning" nudges (like streak reminders and daily goals) always appear at the top.</li>
+                   <li><strong>Smart Focus:</strong> Secondary reminders (like stale plans or general tips) are automatically routed to the <strong>Notification Center</strong> to keep your main workspace distraction-free.</li>
+                   <li><strong>Quick Actions:</strong> Use the <strong>Study Hub</strong> button in the header for instant access to collaborative rooms.</li>
+               </ul>
+           </HelpItem>
+
+           <HelpItem 
+             title="Collaborative Study Rooms" 
+             icon="groups"
+             isOpen={openSection === "Collaborative Study Rooms"}
+             onToggle={() => toggleSection("Collaborative Study Rooms")}
+           >
+               <ul className="list-disc pl-5 space-y-3">
+                   <li><strong>Real-Time Learning:</strong> Join or create public study rooms to learn with peers in real-time.</li>
+                   <li><strong>Live Interaction:</strong> Chat with other students, share resources, and track session productivity together.</li>
+                   <li><strong>Easy Access:</strong> Find the <strong>Study Rooms</strong> tab in your bottom navigation (mobile) or via the <strong>Study Hub</strong> on your dashboard.</li>
+                   <li><strong>Privacy:</strong> Rooms are designed for academic collaboration with a focus on shared focus and mutual support.</li>
                </ul>
            </HelpItem>
 
@@ -101,7 +106,7 @@ const HelpCenter: React.FC = () => {
                            <li><strong>ReLearn.ai</strong> instantly generates a structured learning roadmap.</li>
                        </ol>
                    </li>
-                   <li><strong>Document learning:</strong> By uploading a PDF, the AI uses your specific document as the primary source for all lessons and activities.</li>
+                   <li><strong>Shared Learning:</strong> When creating a plan, you can choose to join an existing <strong>Study Room</strong> related to your topic to learn with others.</li>
                    <li><strong>Plan Features:</strong> Every plan includes daily tasks, estimated study times, and AI-generated cover images.</li>
                </ul>
            </HelpItem>
@@ -122,21 +127,31 @@ const HelpCenter: React.FC = () => {
                            <li><strong>Study Timer:</strong> A built-in timer to help you maintain a productive study rhythm.</li>
                        </ul>
                    </li>
-                   <li><strong>Knowledge Retention:</strong> Every lesson includes a reflection activity to ensure you've mastered the concept.</li>
                </ul>
            </HelpItem>
 
            <HelpItem 
-             title="Progress Tracking" 
-             icon="bar_chart"
-             isOpen={openSection === "Progress Tracking"}
-             onToggle={() => toggleSection("Progress Tracking")}
+             title="Universal Navigation" 
+             icon="explore"
+             isOpen={openSection === "Universal Navigation"}
+             onToggle={() => toggleSection("Universal Navigation")}
            >
                <ul className="list-disc pl-5 space-y-3">
-                   <li><strong>Track Your Growth:</strong> Completing tasks in the workspace automatically updates your plan progress.</li>
-                   <li><strong>Visual Feedback:</strong> Progress bars provide a clear view of your overall completion status for each plan.</li>
-                   <li><strong>Long-Term Tracking:</strong> Monitor your learning journey over time to see how far you've come.</li>
-                   <li><strong>Level Up:</strong> All your progress contributes directly to your <strong>Student Level Advancement</strong>.</li>
+                   <li><strong>Mobile Bottom Bar:</strong> Quick access to Home, Progress, Plans, Diary, Rooms, and Settings.</li>
+                   <li><strong>Header Shortcuts:</strong> On the dashboard, use the top header to quickly check <strong>Notifications</strong>, enter the <strong>Study Hub</strong>, or adjust <strong>Settings</strong>.</li>
+                   <li><strong>Desktop Sidebar:</strong> A persistent sidebar for easy multi-tasking across all learning modules.</li>
+               </ul>
+           </HelpItem>
+
+           <HelpItem 
+             title="Smart Notifications" 
+             icon="notifications_active"
+             isOpen={openSection === "Smart Notifications"}
+             onToggle={() => toggleSection("Smart Notifications")}
+           >
+               <ul className="list-disc pl-5 space-y-3">
+                   <li><strong>Intelligent Alerting:</strong> Notifications are now smarter. They handle "Passive Nudges" like stale plans or overdue tasks, keeping your Dashboard focused only on "Active Learning".</li>
+                   <li><strong>System Alerts:</strong> Receive real-time updates when peers join your study rooms or when you achieve new milestones.</li>
                </ul>
            </HelpItem>
 
@@ -165,14 +180,7 @@ const HelpCenter: React.FC = () => {
              onToggle={() => toggleSection("Learning Diary")}
            >
                <ul className="list-disc pl-5 space-y-3">
-                   <li><strong>Your Journey:</strong> The Learning Diary is your personal archive of knowledge.</li>
-                   <li><strong>Features:</strong>
-                       <ul className="list-circle pl-5 mt-1 space-y-1 text-xs">
-                           <li>View all your currently active learning plans.</li>
-                           <li>Revisit plans you have already explored.</li>
-                           <li>Access your complete history of archived learning journeys.</li>
-                       </ul>
-                   </li>
+                   <li><strong>Your Journey:</strong> The Learning Diary is your personal archive. Revisit any plan you've explored or check your history of archived journeys.</li>
                </ul>
            </HelpItem>
 
@@ -183,22 +191,8 @@ const HelpCenter: React.FC = () => {
              onToggle={() => toggleSection("Profile & Identity Card")}
            >
                <ul className="list-disc pl-5 space-y-3">
-                   <li><strong>Identity Card:</strong> View your personal learning identity card, showcasing your achievements.</li>
-                   <li><strong>Student Level System:</strong> Your profile features a dynamic leveling system that grows with you.</li>
-                   <li><strong>Advancement:</strong> Make progress in your plans to earn XP and advance your student level.</li>
-                   <li><strong>Shareable Identity:</strong> Use your unique QR profile identity to share your learning status.</li>
-               </ul>
-           </HelpItem>
-
-           <HelpItem 
-             title="Notifications" 
-             icon="notifications"
-             isOpen={openSection === "Notifications"}
-             onToggle={() => toggleSection("Notifications")}
-           >
-               <ul className="list-disc pl-5 space-y-3">
-                   <li><strong>Stay Consistent:</strong> Notifications are designed to help you maintain a consistent study habit.</li>
-                   <li><strong>Updates:</strong> Track important updates about your plans and achievements so you never miss a beat.</li>
+                   <li><strong>Identity Card:</strong> View your personal learning identity card, showcasing your achievements and unique QR code.</li>
+                   <li><strong>Student Level System:</strong> Earn XP by completing tasks and advance through a dynamic leveling system that grows with you.</li>
                </ul>
            </HelpItem>
 

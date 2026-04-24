@@ -310,6 +310,13 @@ const AppContent: React.FC = () => {
               ariaLabel="Learning Diary"
             />
             <NavItem
+              icon="hub"
+              label="Rooms"
+              active={location.pathname === '/rooms'}
+              onClick={() => navigate('/rooms')}
+              ariaLabel="Study Rooms"
+            />
+            <NavItem
               icon="settings"
               label="Settings"
               active={location.pathname === '/settings'}

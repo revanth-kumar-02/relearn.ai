@@ -5,19 +5,12 @@ ReLearn.ai is an intelligent, AI-powered learning platform that helps you organi
 ## Features
 
 - **AI-Powered Plan Generation** — Generate personalized study plans based on your goals, difficulty level, and timeframe using Gemini AI.
-- **Real-time Study Rooms** — Collaborative study spaces with live chat, member presence, and shared timers for focus groups.
-- **Deep Gamification System** — Earn XP, level up, and unlock 30+ unique badges across 4 rarity tiers. Integrated study streaks and reward haptics.
-- **AI Cover Images** — Automatically generates beautiful, topic-relevant cover images for each plan.
-- **Interactive Learning Workspace** — AI-guided study sessions with deep-dive explanations, practice activities, and curated resources.
-- **Public Plan Sharing** — Share your learning plans via unique slugs and discover others in a public gallery.
-- **Mobile-First Stability** — Self-healing "Offline-First" storage with multi-layered protection (IndexedDB + Optimized localStorage) and background synchronization.
-- **AI Chatbot** — Ask questions and get help from your personal AI study assistant.
-- **YouTube Video Resources** — Curated educational videos fetched from YouTube for each topic.
-- **Progress Tracking** — Advanced analytics, heatmaps, and visual charts to track your learning journey.
-- **Interactive Tutorial** — Guided onboarding walkthrough for new users to master the platform.
-- **Learning Diary** — Keep a journal of your learning experiences.
-- **PWA Ready** — Installable as a Progressive Web App on mobile and desktop.
-- **Keyboard Shortcuts** — Full keyboard navigation support for power users.
+- **Collaborative Study Hub** — Real-time social learning with live chat, member presence, and shared focus sessions.
+- **Momentum-First Dashboard** — Intelligent UI that prioritizes "Active Learning" nudges (Streaks, Daily Goals) while auto-routing passive reminders to the Notification Center.
+- **Deep Gamification System** — Earn XP, level up, and unlock 30+ unique badges across 4 rarity tiers with native haptic feedback.
+- **AI-Guided Learning Workspace** — Contextual deep-dives, practice activities, and curated educational resources for every topic.
+- **Self-Healing Sync Engine** — Advanced background synchronization with "invisible" state recovery and multi-layered local persistence (IndexedDB + localStorage).
+- **Interactive Onboarding** — Smart tutorial guide that masters the platform in minutes.
 
 ## Tech Stack
 
