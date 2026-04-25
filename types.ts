@@ -110,6 +110,7 @@ export interface ProfileSettings {
 
 export interface User {
   id: string;
+  role?: 'user' | 'admin';
   name: string;
   email: string;
   password?: string;

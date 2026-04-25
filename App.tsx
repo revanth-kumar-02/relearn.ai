@@ -13,6 +13,7 @@ import StorageWarningToast from './components/StorageWarningToast';
 import Icon from './components/common/Icon';
 import Skeleton from './components/common/Skeleton';
 import EmailVerificationModal from './components/EmailVerificationModal';
+import MaintenanceOverlay from './components/MaintenanceOverlay';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 
 const KeyboardShortcutsModal = lazy(() => import('./components/common/KeyboardShortcutsModal'));
@@ -40,6 +41,7 @@ const TemplateGallery = lazy(() => import('./components/TemplateGallery'));
 const SharedPlanView = lazy(() => import('./components/SharedPlanView'));
 const StudyRooms = lazy(() => import('./components/StudyRooms'));
 const RoomView = lazy(() => import('./components/RoomView'));
+const AdminDashboard = lazy(() => import('./components/AdminDashboard'));
 
 const PageLoader = () => (
   <div className="p-4 space-y-6 animate-pulse">
@@ -123,6 +125,7 @@ const AppContent: React.FC = () => {
         <KeyboardShortcutsModal isOpen={showShortcuts} onClose={() => setShowShortcuts(false)} />
       </Suspense>
       <EmailVerificationModal />
+      <MaintenanceOverlay />
 
       {/* Desktop Sidebar */}
       {showSidebar && (
@@ -252,6 +255,7 @@ const AppContent: React.FC = () => {
                         <Route path="/archived" element={<ProtectedRoute><ArchivedPlans /></ProtectedRoute>} />
                         <Route path="/rooms" element={<ProtectedRoute><StudyRooms /></ProtectedRoute>} />
                         <Route path="/rooms/:id" element={<ProtectedRoute><RoomView /></ProtectedRoute>} />
+                        <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
                     </Routes>
                     </Suspense>
                 </motion.div>
