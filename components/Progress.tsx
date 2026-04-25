@@ -186,9 +186,6 @@ const Progress: React.FC = () => {
     <div className="pb-24 animate-fade-in">
       <div className="sticky top-0 z-10 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-sm p-4 border-b border-border-light dark:border-border-dark flex justify-between items-center">
          <h1 className="text-xl font-bold text-text-primary-light dark:text-text-primary-dark">Progress</h1>
-         <button onClick={() => navigate('/settings')} className="text-text-primary-light dark:text-text-primary-dark hover:bg-black/5 dark:hover:bg-white/5 p-2 rounded-full transition-colors">
-            <span className="material-symbols-outlined">settings</span>
-         </button>
       </div>
 
       {/* Functional Filters */}

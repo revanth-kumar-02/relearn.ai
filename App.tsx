@@ -168,14 +168,6 @@ const AppContent: React.FC = () => {
               showLabel={isSidebarExpanded}
             />
             <SidebarItem
-              icon="hub"
-              label="Study Rooms"
-              active={location.pathname === '/rooms'}
-              onClick={() => navigate('/rooms')}
-              ariaLabel="Navigate to Study Rooms"
-              showLabel={isSidebarExpanded}
-            />
-            <SidebarItem
               icon="notifications"
               label="Notifications"
               active={location.pathname === '/notifications'}
@@ -310,13 +302,6 @@ const AppContent: React.FC = () => {
               active={location.pathname === '/diary'}
               onClick={() => navigate('/diary')}
               ariaLabel="Learning Diary"
-            />
-            <NavItem
-              icon="hub"
-              label="Rooms"
-              active={location.pathname === '/rooms'}
-              onClick={() => navigate('/rooms')}
-              ariaLabel="Study Rooms"
             />
             <NavItem
               icon="settings"

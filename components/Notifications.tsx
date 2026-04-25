@@ -54,9 +54,6 @@ const Notifications: React.FC = () => {
              <span className="material-symbols-outlined">arrow_back</span>
          </button>
          <h1 className="flex-1 text-center text-lg font-bold text-text-primary-light dark:text-text-primary-dark">Notifications</h1>
-         <button onClick={() => navigate('/notification-settings')} className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-text-primary-light dark:text-text-primary-dark shrink-0">
-             <span className="material-symbols-outlined">settings</span>
-         </button>
       </div>
 
       {/* Actions & Filters */}

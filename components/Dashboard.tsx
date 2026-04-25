@@ -197,13 +197,6 @@ const Dashboard: React.FC = () => {
                                 <span className="absolute top-2 right-2.5 w-2 h-2 bg-red-500 rounded-full border border-white dark:border-surface-dark"></span>
                             )}
                         </button>
-                        <button 
-                            onClick={() => navigate('/settings')} 
-                            className="w-10 h-10 rounded-full bg-surface-light dark:bg-surface-dark flex items-center justify-center text-text-primary-light dark:text-text-primary-dark hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                            aria-label="Settings"
-                        >
-                            <Icon name="settings" />
-                        </button>
                     </div>
                 </div>
             </div>

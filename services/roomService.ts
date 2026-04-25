@@ -181,6 +181,29 @@ export const roomService = {
     return data as StudyRoom;
   },
 
+  // Delete a study room (only by host)
+  deleteRoom: async (roomId: string) => {
+    const { error } = await supabase
+      .from('study_rooms')
+      .delete()
+      .eq('id', roomId);
+
+    if (error) throw error;
+  },
+
+  // Ping activity to keep 'Active Now' status
+  pingActivity: async (roomId: string, userId: string) => {
+    const { error } = await supabase
+      .from('room_members')
+      .update({
+        last_active_at: new Date().toISOString()
+      })
+      .eq('room_id', roomId)
+      .eq('user_id', userId);
+
+    if (error) throw error;
+  },
+
   // Real-time subscription helper
   subscribeToRoom: (
     roomId: string, 
