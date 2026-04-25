@@ -87,10 +87,18 @@ const AppContent: React.FC = () => {
     '/rooms/'
   ];
 
+  const hideSidebarPaths = [
+    ...authPaths,
+    '/rooms/'
+  ];
+
   const showMobileNav = !hideMobileNavPaths.some(path => 
     path === '/' ? location.pathname === '/' : location.pathname.startsWith(path)
   );
-  const showSidebar = !isAuthPage;
+
+  const showSidebar = !hideSidebarPaths.some(path => 
+    path === '/' ? location.pathname === '/' : location.pathname.startsWith(path)
+  );
 
   const pageVariants = {
     initial: { opacity: 0, y: 10 },
@@ -209,7 +217,7 @@ const AppContent: React.FC = () => {
         }`}
       >
         <div className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar scroll-smooth">
-          <div className={`mx-auto w-full ${isAuthPage ? '' : (isDiary ? 'pb-32 md:pb-8' : 'max-w-5xl pb-32 md:pb-8')}`}>
+          <div className={`mx-auto w-full ${isAuthPage || location.pathname.startsWith('/rooms/') ? '' : (isDiary ? 'pb-32 md:pb-8' : 'max-w-5xl pb-32 md:pb-8')}`}>
             <AnimatePresence mode="wait">
                 <motion.div
                     key={location.pathname}

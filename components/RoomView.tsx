@@ -28,7 +28,7 @@ const RoomView: React.FC = () => {
   const subscriptionRef = useRef<any>(null);
 
   useEffect(() => {
-    if (id && user) {
+    if (id && user?.id) {
       initRoom();
       
       // Ping activity every 45 seconds to stay "Active"
@@ -43,7 +43,7 @@ const RoomView: React.FC = () => {
         }
       };
     }
-  }, [id, user]);
+  }, [id, user?.id]);
 
   useEffect(() => {
     scrollToBottom();
@@ -179,7 +179,7 @@ const RoomView: React.FC = () => {
   ];
 
   return (
-    <div className="h-[calc(100vh-64px)] md:h-[calc(100vh-80px)] flex flex-col overflow-hidden bg-background-light dark:bg-background-dark">
+    <div className="h-screen flex flex-col overflow-hidden bg-background-light dark:bg-background-dark">
       
       {/* Mobile Tabs Header */}
       <div className="md:hidden flex border-b border-border-light dark:border-border-dark bg-white/50 dark:bg-surface-dark/50 backdrop-blur-md sticky top-0 z-20">
@@ -210,6 +210,13 @@ const RoomView: React.FC = () => {
           <div className="p-6 space-y-8">
             <div className="space-y-4">
                 <div className="flex items-center gap-3">
+                    <button 
+                        onClick={() => navigate('/dashboard')}
+                        className="w-10 h-10 rounded-xl bg-white dark:bg-surface-dark border border-border-light dark:border-border-dark flex items-center justify-center text-text-secondary-light hover:text-primary transition-all active:scale-95"
+                        title="Back to Dashboard"
+                    >
+                        <Icon name="grid_view" className="text-xl" />
+                    </button>
                     <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shadow-inner">
                         <Icon name="hub" className="text-xl" />
                     </div>
@@ -476,7 +483,7 @@ const RoomView: React.FC = () => {
             </div>
 
             {/* Chat Input */}
-            <div className="p-4 border-t border-border-light dark:border-border-dark bg-white/80 dark:bg-surface-dark/80 backdrop-blur-md">
+            <div className="p-4 pb-6 border-t border-border-light dark:border-border-dark bg-white/80 dark:bg-surface-dark/80 backdrop-blur-md">
                 <form onSubmit={handleSendMessage} className="flex gap-2">
                     <input
                         type="text"
