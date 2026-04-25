@@ -44,8 +44,8 @@ const Dashboard: React.FC = () => {
     // Smart Study Reminders
     const studyNudges = useMemo(() => {
         if (isLoading || plans.length === 0) return [];
-        return generateStudyNudges(plans, tasks, user?.preferences);
-    }, [plans, tasks, isLoading, user?.preferences]);
+        return generateStudyNudges(plans, tasks, user?.preferences, user?.stats);
+    }, [plans, tasks, isLoading, user?.preferences, user?.stats]);
 
     // Send browser notification on first load
     useEffect(() => {

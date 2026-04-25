@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useData } from '../contexts/DataContext';
+import { useAuth } from '../contexts/AuthContext';
 import { generateLessonContent } from '../services/gemini/learningWorkspaceService';
 import { extractTextFromPDF, validatePDFFile } from '../services/documentService';
 import { motion, AnimatePresence } from 'motion/react';
@@ -32,7 +33,12 @@ import QuizModule from './QuizModule';
 const LearningWorkspace: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, tasks, plans, updateTask, addActivity, videoLanguage, processGamificationReward, addNotification, startAnalyticsSession, endAnalyticsSession } = useData();
+  const { user } = useAuth();
+  const { 
+    tasks, plans, updateTask, addActivity, videoLanguage, 
+    processGamificationReward, addNotification, 
+    startAnalyticsSession, endAnalyticsSession, trackAnalyticsEvent 
+  } = useData();
 
   const taskId = location.state?.taskId;
   const task = tasks.find(t => t.id === taskId);
@@ -190,7 +196,7 @@ const LearningWorkspace: React.FC = () => {
     setIsLoading(true);
     
     if (manualTrigger) {
-      analytics.track('manual_generation_skipped_pdf', { taskId: task?.id });
+      trackAnalyticsEvent('manual_generation_skipped_pdf', { taskId: task?.id });
     }
 
     generateLessonContent(task!.title, plan?.title || 'General Study', getVideoLanguageLabel(videoLanguage))
@@ -247,7 +253,7 @@ const LearningWorkspace: React.FC = () => {
         color: "text-green-500",
         bg: "bg-green-500/10"
       });
-      analytics.track('session_completed', { taskId: task.id, title: task.title });
+      trackAnalyticsEvent('session_completed', { taskId: task.id, title: task.title });
       navigate(-1);
     }
   };

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useData } from '../contexts/DataContext';
+import { useAuth } from '../contexts/AuthContext';
 import { roomService } from '../services/roomService';
 import { StudyRoom, RoomMember, RoomMessage } from '../types';
 import Icon from './common/Icon';
@@ -8,7 +9,8 @@ import StudyTimer from './StudyTimer';
 
 const RoomView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { user, processGamificationReward, addNotification } = useData();
+  const { user } = useAuth();
+  const { processGamificationReward, addNotification } = useData();
   const navigate = useNavigate();
   
   const [room, setRoom] = useState<StudyRoom | null>(null);

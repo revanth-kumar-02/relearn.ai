@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../contexts/DataContext';
+import { useAuth } from '../contexts/AuthContext';
 import { roomService } from '../services/roomService';
 import { StudyRoom } from '../types';
 import Icon from './common/Icon';
 
 const StudyRooms: React.FC = () => {
-  const { user } = useData();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [rooms, setRooms] = useState<StudyRoom[]>([]);
   const [loading, setLoading] = useState(true);

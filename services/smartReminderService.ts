@@ -1,4 +1,4 @@
-import { Plan, Task, UserPreferences, Notification } from '../types';
+import { Plan, Task, UserPreferences, UserStats, Notification } from '../types';
 import { sendBrowserNotification } from './notificationService';
 
 export interface StudyNudge {
@@ -22,7 +22,8 @@ const NUDGE_COOLDOWN_KEY = 'relearn_nudge_last_shown';
 export function generateStudyNudges(
   plans: Plan[],
   tasks: Task[],
-  preferences?: UserPreferences
+  preferences?: UserPreferences,
+  stats?: UserStats
 ): StudyNudge[] {
   const nudges: StudyNudge[] = [];
   const now = new Date();
@@ -128,7 +129,7 @@ export function generateStudyNudges(
   }
 
   // 4. Streak at Risk
-  if (preferences?.stats?.studyStreak && preferences.stats.studyStreak > 0) {
+  if (stats?.studyStreak && stats.studyStreak > 0) {
     // This is simplified; in a real app, we'd check last_study_date vs today
     // For now, if no progress today and they have a streak, it's "at risk"
     if (todayCompletions.length === 0) {
@@ -136,7 +137,7 @@ export function generateStudyNudges(
         id: 'streak-at-risk',
         type: 'streak_at_risk',
         title: "Streak at risk!",
-        message: `You've studied for ${preferences.stats.studyStreak} days straight. Don't let it break today!`,
+        message: `You've studied for ${stats.studyStreak} days straight. Don't let it break today!`,
         icon: 'local_fire_department',
         color: 'text-orange-500',
         bg: 'bg-orange-50 dark:bg-orange-950/20',

@@ -101,6 +101,7 @@ export interface UserStats {
   totalMessagesSent?: number;
   totalPDFExports?: number;
   totalAIPlansGenerated?: number;
+  quizPerfectScores?: number;
 }
 
 export interface ProfileSettings {
@@ -147,17 +148,21 @@ export interface PlanTemplate {
 
 export interface SharedPlan {
   id: string;
-  planId: string;
-  userId: string;
-  shareSlug: string;
-  planData: {
-    plan: Plan;
-    tasks: Task[];
-  };
-  createdAt: string;
+  title: string;
+  description: string;
+  subject: string;
+  tasks: {
+    title: string;
+    description: string;
+    durationMinutes: number;
+  }[];
+  authorId: string;
+  shareId: string;
+  slug: string;
+  isPublic: boolean;
   views: number;
-  clones: number;
-  isActive: boolean;
+  imports: number;
+  createdAt: string;
 }
 
 export interface StudyRoom {

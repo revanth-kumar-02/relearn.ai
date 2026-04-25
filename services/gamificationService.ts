@@ -4,6 +4,8 @@ import { UserStats } from '../types';
 export const XP_REWARDS = {
   COMPLETE_TASK: 25,
   COMPLETE_PLAN: 100,
+  COMPLETE_QUIZ: 50,    // New quiz completion reward
+  CREATE_PLAN: 50,      // New plan creation reward
   PASS_QUIZ: 50,        // ≥80% score
   STUDY_SESSION_30: 15, // ≥30 min session
   DAILY_LOGIN: 5,
