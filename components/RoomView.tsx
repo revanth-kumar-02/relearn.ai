@@ -422,10 +422,10 @@ const RoomView: React.FC = () => {
             <AnimatePresence>
                 {showTimer && (
                     <motion.div 
-                        initial={{ y: 50, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        exit={{ y: 50, opacity: 0 }}
-                        className="fixed bottom-24 md:bottom-12 left-1/2 -translate-x-1/2 z-50 w-full max-w-xs px-4"
+                        initial={{ opacity: 0, scale: 0.9, translate: '-50% -40%' }}
+                        animate={{ opacity: 1, scale: 1, translate: '-50% -50%' }}
+                        exit={{ opacity: 0, scale: 0.9, translate: '-50% -40%' }}
+                        className="absolute top-1/2 left-1/2 z-50 w-full max-w-xs px-4"
                     >
                         <div className="bg-white dark:bg-surface-dark rounded-3xl p-2 border-2 border-primary/30 shadow-2xl shadow-primary/20">
                             <StudyTimer 
