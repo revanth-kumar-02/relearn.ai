@@ -770,9 +770,9 @@ export async function getUserProfile(userId: string): Promise<User | null> {
         .from('users')
         .select('id, name, email, role, preferences, stats, profileSettings, academicLevel, learningGoals, preferredStudyTime, weakSubjects, strongSubjects, createdAt')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
         
-      if (error && error.code !== 'PGRST116') throw error; // PGRST116 = not found
+      if (error) throw error; 
 
       if (data) {
         const userData = data as User;
