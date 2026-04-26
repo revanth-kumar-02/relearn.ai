@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
 import { User, UserPreferences } from '../types';
 import { supabase, supabaseAvailable } from '../services/supabase';
 import { getUserProfile, saveUserProfile } from '../services/dataService';
@@ -71,6 +71,7 @@ async function hashPassword(password: string): Promise<string> {
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const syncLock = useRef<string | null>(null);
 
   useEffect(() => {
     // 1. Initial check: load session from local storage immediately for fast UI
@@ -87,7 +88,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (supabaseAvailable) {
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (session && session.user) {
-          syncSupabaseUser(session.user.id);
+          syncSupabaseUser(session.user.id, session.user);
         } else {
           setLoading(false);
         }
@@ -95,7 +96,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
         if (session && session.user) {
-          syncSupabaseUser(session.user.id);
+          syncSupabaseUser(session.user.id, session.user);
         } else {
           setUser(null);
           clearSession();
@@ -111,26 +112,37 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, []);
 
-  const syncSupabaseUser = async (authId: string) => {
-    // 1. Get auth status from Supabase to check verification
-    let isVerified = true;
-    if (supabaseAvailable) {
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-      isVerified = !!authUser?.email_confirmed_at;
-    }
+  const syncSupabaseUser = async (authId: string, authUser?: any) => {
+    // Prevent concurrent syncs for the same user
+    if (syncLock.current === authId) return;
+    syncLock.current = authId;
 
-    // 2. Fetch deeper profile from our `users` table
-    const profile = await getUserProfile(authId);
-    if (profile) {
-      const updatedProfile = { ...profile, isVerified };
-      setUser(updatedProfile);
-      setSession(profile.id);
-      
-      const users = getStoredUsers();
-      users[profile.id] = updatedProfile;
-      saveStoredUsers(users);
+    try {
+      // 1. Get auth status from Supabase to check verification
+      let isVerified = true;
+      if (supabaseAvailable) {
+        // If we don't have the authUser, fetch it (rarely needed now)
+        const currentAuthUser = authUser || (await supabase.auth.getUser()).data.user;
+        isVerified = !!currentAuthUser?.email_confirmed_at;
+      }
+
+      // 2. Fetch deeper profile from our `users` table
+      const profile = await getUserProfile(authId);
+      if (profile) {
+        const updatedProfile = { ...profile, isVerified };
+        setUser(updatedProfile);
+        setSession(profile.id);
+        
+        const users = getStoredUsers();
+        users[profile.id] = updatedProfile;
+        saveStoredUsers(users);
+      }
+    } catch (err) {
+      console.warn('[AuthContext] Sync failed:', err);
+    } finally {
+      setLoading(false);
+      syncLock.current = null;
     }
-    setLoading(false);
   };
 
   // Theme effect
@@ -156,7 +168,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
       
       if (data.user) {
-        await syncSupabaseUser(data.user.id);
+        await syncSupabaseUser(data.user.id, data.user);
         return { success: true };
       }
     }
