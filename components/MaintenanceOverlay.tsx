@@ -10,7 +10,7 @@ const MaintenanceOverlay: React.FC = () => {
   const { user } = useAuth();
   
   // Don't lock out the admin
-  const isAdmin = user?.role === 'admin' || user?.email === 'admin@relearn.ai'; 
+  const isAdmin = user?.role === 'admin' || user?.email === 'admin@relearn.ai' || user?.email === 'imposterz.rev02@gmail.com'; 
 
   useEffect(() => {
     // Initial fetch

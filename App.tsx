@@ -5,7 +5,9 @@ import { AuthProvider } from './contexts/AuthContext';
 import { ConnectionProvider } from './contexts/ConnectionContext';
 import { TutorialProvider } from './contexts/TutorialContext';
 import { ToastProvider } from './contexts/ToastContext';
+import { useAuth } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
+import AdminRoute from './components/AdminRoute';
 import TutorialGuide from './components/TutorialGuide';
 import OfflineIndicator from './components/OfflineIndicator';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -73,6 +75,9 @@ const AppContent: React.FC = () => {
     localStorage.setItem('relearn_sidebar_expanded', JSON.stringify(newState));
     triggerHaptic('light');
   };
+
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin' || user?.email === 'admin@relearn.ai' || user?.email === 'imposterz.rev02@gmail.com';
 
   const authPaths = ['/', '/signup'];
   const isAuthPage = authPaths.includes(location.pathname);
@@ -196,19 +201,31 @@ const AppContent: React.FC = () => {
             />
           </nav>
 
-          <div className="p-4 border-t border-border-light dark:border-border-dark">
-            <button
-              id="tutorial-new-plan"
-              onClick={() => { triggerHaptic('medium'); navigate('/create-plan'); }}
-              className={`flex items-center justify-center bg-primary hover:opacity-90 text-white rounded-xl font-bold shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98] ${
-                isSidebarExpanded ? 'w-full gap-2 py-3 px-4' : 'w-12 h-12 mx-auto'
-              }`}
-              aria-label="Create New AI Learning Plan"
-            >
-                <Icon name="auto_awesome" />
-              {isSidebarExpanded && <span>New Plan</span>}
-            </button>
-          </div>
+            {isAdmin && (
+              <div className="p-4 border-t border-border-light dark:border-border-dark">
+                <SidebarItem
+                  icon="admin_panel_settings"
+                  label="Admin Panel"
+                  active={location.pathname === '/admin'}
+                  onClick={() => navigate('/admin')}
+                  ariaLabel="Navigate to Admin Panel"
+                  showLabel={isSidebarExpanded}
+                />
+              </div>
+            )}
+            <div className="p-4 border-t border-border-light dark:border-border-dark">
+              <button
+                id="tutorial-new-plan"
+                onClick={() => { triggerHaptic('medium'); navigate('/create-plan'); }}
+                className={`flex items-center justify-center bg-primary hover:opacity-90 text-white rounded-xl font-bold shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98] ${
+                  isSidebarExpanded ? 'w-full gap-2 py-3 px-4' : 'w-12 h-12 mx-auto'
+                }`}
+                aria-label="Create New AI Learning Plan"
+              >
+                  <Icon name="auto_awesome" />
+                {isSidebarExpanded && <span>New Plan</span>}
+              </button>
+            </div>
         </aside>
       )}
 
@@ -255,7 +272,7 @@ const AppContent: React.FC = () => {
                         <Route path="/archived" element={<ProtectedRoute><ArchivedPlans /></ProtectedRoute>} />
                         <Route path="/rooms" element={<ProtectedRoute><StudyRooms /></ProtectedRoute>} />
                         <Route path="/rooms/:id" element={<ProtectedRoute><RoomView /></ProtectedRoute>} />
-                        <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+                        <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
                     </Routes>
                     </Suspense>
                 </motion.div>

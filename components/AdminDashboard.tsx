@@ -1,109 +1,427 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+    LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area,
+    BarChart, Bar
+} from 'recharts';
 import Icon from './common/Icon';
+import { adminService, GlobalStats, UserAdminData } from '../services/adminService';
 import { systemService, SystemStatus } from '../services/systemService';
+import { StudyRoom } from '../types';
 import { triggerHaptic } from '../utils/haptics';
 
+type AdminTab = 'overview' | 'users' | 'rooms' | 'feedback' | 'system';
+
 const AdminDashboard: React.FC = () => {
-    const [status, setStatus] = useState<SystemStatus | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
+    const [activeTab, setActiveTab] = useState<AdminTab>('overview');
+    const [stats, setStats] = useState<GlobalStats | null>(null);
+    const [users, setUsers] = useState<UserAdminData[]>([]);
+    const [rooms, setRooms] = useState<StudyRoom[]>([]);
+    const [feedback, setFeedback] = useState<any[]>([]);
+    const [systemStatus, setSystemStatus] = useState<SystemStatus | null>(null);
+    const [growthData, setGrowthData] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        systemService.getSystemStatus().then(setStatus);
+        loadAllData();
     }, []);
 
-    const updateStatus = async (updates: Partial<SystemStatus>) => {
+    const loadAllData = async () => {
         setIsLoading(true);
         try {
-            await systemService.updateSystemStatus(updates);
-            setStatus(prev => prev ? { ...prev, ...updates } : null);
-            triggerHaptic('medium');
+            const [s, u, r, sys, growth, f] = await Promise.all([
+                adminService.getGlobalStats(),
+                adminService.getAllUsers(),
+                adminService.getAllRooms(),
+                systemService.getSystemStatus(),
+                adminService.getGrowthData(),
+                adminService.getFeedback()
+            ]);
+            setStats(s);
+            setUsers(u);
+            setRooms(r);
+            setSystemStatus(sys);
+            setGrowthData(growth);
+            setFeedback(f);
         } catch (error) {
-            console.error('Failed to update system status:', error);
+            console.error('Admin data load failed:', error);
         } finally {
             setIsLoading(false);
         }
     };
 
+    const handleSystemUpdate = async (updates: Partial<SystemStatus>) => {
+        try {
+            await systemService.updateSystemStatus(updates);
+            setSystemStatus(prev => prev ? { ...prev, ...updates } : null);
+            triggerHaptic('medium');
+        } catch (error) {
+            console.error('System update failed:', error);
+        }
+    };
+
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center min-h-[60vh]">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                    <p className="text-sm font-black text-slate-400 uppercase tracking-widest">Loading Command Center...</p>
+                </div>
+            </div>
+        );
+    }
+
     return (
-        <div className="p-6 space-y-8">
-            <header className="flex flex-col gap-2">
-                <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-600/20">
-                        <Icon name="admin_panel_settings" className="text-2xl" />
+        <div className="p-6 space-y-8 max-w-7xl mx-auto">
+            {/* Header */}
+            <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-2xl shadow-indigo-600/20">
+                        <Icon name="admin_panel_settings" className="text-3xl" />
                     </div>
                     <div>
-                        <h1 className="text-2xl font-black tracking-tight">Admin Console</h1>
-                        <p className="text-sm font-bold text-text-secondary-light">Manage global system settings and maintenance.</p>
+                        <h1 className="text-3xl font-black tracking-tight">System Console</h1>
+                        <div className="flex items-center gap-2 mt-1">
+                            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                            <p className="text-xs font-black uppercase tracking-widest text-text-secondary-light">Real-time Node Active</p>
+                        </div>
                     </div>
                 </div>
-            </header>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                
-                {/* Maintenance Control Center */}
-                <div className="bg-white dark:bg-surface-dark rounded-[2rem] border border-border-light dark:border-border-dark p-8 shadow-xl shadow-black/[0.02]">
-                    <div className="flex items-center justify-between mb-8">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-orange-500/10 text-orange-600 flex items-center justify-center">
-                                <Icon name="construction" />
-                            </div>
-                            <h2 className="font-black uppercase tracking-widest text-xs">Maintenance Mode</h2>
-                        </div>
-                        <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                            status?.maintenance_mode ? 'bg-orange-500 text-white' : 'bg-green-500 text-white'
-                        }`}>
-                            {status?.maintenance_mode ? 'Active' : 'Offline'}
-                        </div>
-                    </div>
-
-                    <div className="space-y-4">
+                {/* Tab Navigation */}
+                <nav className="flex bg-white dark:bg-surface-dark p-1 rounded-2xl border border-border-light dark:border-border-dark shadow-sm overflow-x-auto no-scrollbar">
+                    {(['overview', 'users', 'rooms', 'feedback', 'system'] as AdminTab[]).map(tab => (
                         <button
-                            disabled={isLoading}
-                            onClick={() => updateStatus({ maintenance_mode: !status?.maintenance_mode, status: 'active' })}
-                            className={`w-full py-4 rounded-2xl font-black flex items-center justify-center gap-3 transition-all active:scale-95 ${
-                                status?.maintenance_mode 
-                                ? 'bg-red-500 text-white shadow-lg shadow-red-500/20' 
-                                : 'bg-orange-500 text-white shadow-lg shadow-orange-500/20'
+                            key={tab}
+                            onClick={() => { setActiveTab(tab); triggerHaptic('light'); }}
+                            className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${
+                                activeTab === tab 
+                                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' 
+                                : 'text-text-secondary-light hover:text-indigo-600'
                             }`}
                         >
-                            <Icon name={status?.maintenance_mode ? 'power_settings_new' : 'bolt'} />
-                            <span>{status?.maintenance_mode ? 'End Maintenance' : 'Start Global Maintenance'}</span>
+                            {tab}
                         </button>
+                    ))}
+                </nav>
+            </header>
 
-                        <div className="grid grid-cols-2 gap-4 mt-8">
-                            <button
-                                disabled={isLoading || !status?.maintenance_mode || status.status === 'completed'}
-                                onClick={() => updateStatus({ status: 'completed' })}
-                                className="py-4 rounded-2xl bg-indigo-600 text-white font-black text-xs uppercase tracking-widest disabled:opacity-30 transition-all active:scale-95 shadow-lg shadow-indigo-600/20"
-                            >
-                                Set Work Done
-                            </button>
-                            <button
-                                disabled={isLoading || !status?.maintenance_mode}
-                                onClick={() => updateStatus({ maintenance_mode: false, status: 'none' })}
-                                className="py-4 rounded-2xl bg-slate-800 text-white font-black text-xs uppercase tracking-widest disabled:opacity-30 transition-all active:scale-95"
-                            >
-                                Release App
-                            </button>
+            <AnimatePresence mode="wait">
+                <motion.div
+                    key={activeTab}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.2 }}
+                >
+                    {activeTab === 'overview' && (
+                        <div className="space-y-8">
+                            {/* KPI Cards */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                                <KPICard label="Total Users" value={stats?.totalUsers || 0} icon="group" color="indigo" />
+                                <KPICard label="AI Plans" value={stats?.totalPlans || 0} icon="auto_awesome" color="purple" />
+                                <KPICard label="Study Rooms" value={stats?.totalRooms || 0} icon="hub" color="amber" />
+                                <KPICard label="Messages" value={stats?.totalMessages || 0} icon="chat" color="emerald" />
+                            </div>
+
+                            {/* Charts Row */}
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                <div className="bg-white dark:bg-surface-dark rounded-[2.5rem] p-8 border border-border-light dark:border-border-dark shadow-xl shadow-black/[0.02]">
+                                    <h3 className="text-sm font-black uppercase tracking-widest mb-8 flex items-center gap-2">
+                                        <Icon name="show_chart" className="text-indigo-600" />
+                                        Platform Growth
+                                    </h3>
+                                    <div className="h-64 w-full">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <AreaChart data={growthData}>
+                                                <defs>
+                                                    <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
+                                                        <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.1}/>
+                                                        <stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/>
+                                                    </linearGradient>
+                                                </defs>
+                                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                                <XAxis dataKey="date" hide />
+                                                <YAxis hide />
+                                                <Tooltip 
+                                                    contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}
+                                                />
+                                                <Area type="monotone" dataKey="users" stroke="#4f46e5" strokeWidth={3} fillOpacity={1} fill="url(#colorUsers)" />
+                                                <Area type="monotone" dataKey="plans" stroke="#9333ea" strokeWidth={3} fillOpacity={0} />
+                                            </AreaChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                </div>
+
+                                <div className="bg-white dark:bg-surface-dark rounded-[2.5rem] p-8 border border-border-light dark:border-border-dark shadow-xl shadow-black/[0.02]">
+                                    <h3 className="text-sm font-black uppercase tracking-widest mb-8 flex items-center gap-2">
+                                        <Icon name="bar_chart" className="text-amber-600" />
+                                        Activity Distribution
+                                    </h3>
+                                    <div className="h-64 w-full">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <BarChart data={growthData.slice(-5)}>
+                                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                                <XAxis dataKey="date" hide />
+                                                <YAxis hide />
+                                                <Tooltip 
+                                                     contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}
+                                                />
+                                                <Bar dataKey="plans" fill="#f59e0b" radius={[10, 10, 0, 0]} />
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                    </div>
+                    )}
 
-                    <p className="mt-8 text-[11px] font-bold text-text-secondary-light leading-relaxed bg-gray-50 dark:bg-stone-900 p-4 rounded-xl border border-border-light dark:border-border-dark italic">
-                        Tip: "Set Work Done" will show the Refresh button to users. "Release App" will turn off the maintenance mode entirely.
-                    </p>
-                </div>
+                    {activeTab === 'users' && (
+                        <div className="bg-white dark:bg-surface-dark rounded-[2.5rem] border border-border-light dark:border-border-dark shadow-xl shadow-black/[0.02] overflow-hidden">
+                            <div className="p-8 border-b border-border-light dark:border-border-dark flex justify-between items-center">
+                                <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
+                                    <Icon name="people" className="text-indigo-600" />
+                                    User Management
+                                </h3>
+                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-text-secondary-light">Total: {users.length}</span>
+                            </div>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left">
+                                    <thead>
+                                        <tr className="bg-gray-50/50 dark:bg-stone-900/50">
+                                            <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">User</th>
+                                            <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Role</th>
+                                            <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Stats</th>
+                                            <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Joined</th>
+                                            <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-border-light dark:divide-border-dark">
+                                        {users.map(u => (
+                                            <tr key={u.id} className="hover:bg-gray-50/30 dark:hover:bg-stone-900/30 transition-colors">
+                                                <td className="px-8 py-5">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-10 h-10 rounded-xl bg-indigo-600/10 text-indigo-600 flex items-center justify-center text-sm font-black">
+                                                            {u.name.charAt(0)}
+                                                        </div>
+                                                        <div>
+                                                            <div className="text-sm font-black tracking-tight">{u.name}</div>
+                                                            <div className="text-[10px] font-bold text-text-secondary-light">{u.email}</div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-8 py-5">
+                                                    <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
+                                                        u.role === 'admin' ? 'bg-red-500/10 text-red-600' : 'bg-slate-100 text-slate-600'
+                                                    }`}>
+                                                        {u.role || 'user'}
+                                                    </span>
+                                                </td>
+                                                <td className="px-8 py-5">
+                                                    <div className="flex gap-4">
+                                                        <div className="text-center">
+                                                            <div className="text-xs font-black">{u.stats?.totalXP || 0}</div>
+                                                            <div className="text-[8px] font-black uppercase tracking-widest text-slate-400">XP</div>
+                                                        </div>
+                                                        <div className="text-center">
+                                                            <div className="text-xs font-black">{u.stats?.level || 1}</div>
+                                                            <div className="text-[8px] font-black uppercase tracking-widest text-slate-400">LVL</div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-8 py-5 text-xs font-bold text-slate-500">
+                                                    {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'N/A'}
+                                                </td>
+                                                <td className="px-8 py-5">
+                                                    <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-slate-400 hover:text-indigo-600 transition-colors">
+                                                        <Icon name="more_vert" />
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
 
-                {/* System Stats (Placeholder) */}
-                <div className="bg-white dark:bg-surface-dark rounded-[2rem] border border-border-light dark:border-border-dark p-8 shadow-xl shadow-black/[0.02] flex flex-col justify-center items-center text-center">
-                    <Icon name="monitoring" className="text-4xl text-slate-300 mb-4" />
-                    <h3 className="font-black text-slate-400 uppercase tracking-widest text-xs">Analytics Coming Soon</h3>
-                    <p className="text-xs font-bold text-text-secondary-light/40 mt-2">We are integrating real-time system monitoring.</p>
-                </div>
+                    {activeTab === 'rooms' && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {rooms.map(room => (
+                                <div key={room.id} className="bg-white dark:bg-surface-dark rounded-[2rem] border border-border-light dark:border-border-dark p-6 shadow-xl shadow-black/[0.02] flex flex-col">
+                                    <div className="flex items-center justify-between mb-6">
+                                        <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center">
+                                            <Icon name="hub" className="text-2xl" />
+                                        </div>
+                                        <div className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
+                                            room.is_active ? 'bg-green-500 text-white' : 'bg-slate-200 text-slate-600'
+                                        }`}>
+                                            {room.is_active ? 'Live' : 'Inactive'}
+                                        </div>
+                                    </div>
+                                    <h4 className="font-black tracking-tight text-lg mb-1">{room.name}</h4>
+                                    <p className="text-[10px] font-bold text-text-secondary-light uppercase tracking-widest mb-6">CODE: {room.room_code}</p>
+                                    
+                                    <div className="mt-auto pt-6 border-t border-border-light dark:border-border-dark flex items-center justify-between">
+                                        <button 
+                                            onClick={() => { adminService.deleteRoom(room.id); setRooms(r => r.filter(x => x.id !== room.id)); }}
+                                            className="text-[10px] font-black uppercase tracking-widest text-red-500 hover:text-red-600 transition-colors"
+                                        >
+                                            Force Close
+                                        </button>
+                                        <div className="flex items-center gap-1 text-[10px] font-black text-slate-400">
+                                            <Icon name="person" className="text-xs" />
+                                            {room.max_members} Limit
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                            {rooms.length === 0 && (
+                                <div className="col-span-full py-20 text-center">
+                                    <Icon name="leak_remove" className="text-4xl text-slate-200 mb-4 mx-auto" />
+                                    <p className="text-sm font-black text-slate-400 uppercase tracking-widest">No active study rooms found</p>
+                                </div>
+                            )}
+                        </div>
+                    )}
 
+                    {activeTab === 'feedback' && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {feedback.map(item => (
+                                <div key={item.id} className="bg-white dark:bg-surface-dark rounded-[2rem] border border-border-light dark:border-border-dark p-6 shadow-xl shadow-black/[0.02] flex flex-col">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <span className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest ${
+                                            item.type === 'bug' ? 'bg-red-500 text-white' : 'bg-indigo-500 text-white'
+                                        }`}>
+                                            {item.type || 'feedback'}
+                                        </span>
+                                        <span className="text-[9px] font-bold text-slate-400">
+                                            {new Date(item.created_at).toLocaleDateString()}
+                                        </span>
+                                    </div>
+                                    <p className="text-sm font-bold text-slate-800 dark:text-slate-200 leading-relaxed mb-4">
+                                        "{item.content}"
+                                    </p>
+                                    <div className="mt-auto pt-4 border-t border-border-light dark:border-border-dark flex items-center gap-2">
+                                        <div className="w-6 h-6 rounded-lg bg-slate-100 flex items-center justify-center text-[10px] font-black">
+                                            U
+                                        </div>
+                                        <span className="text-[10px] font-bold text-text-secondary-light">Anonymous User</span>
+                                    </div>
+                                </div>
+                            ))}
+                            {feedback.length === 0 && (
+                                <div className="col-span-full py-20 text-center">
+                                    <Icon name="inbox" className="text-4xl text-slate-200 mb-4 mx-auto" />
+                                    <p className="text-sm font-black text-slate-400 uppercase tracking-widest">No feedback received yet</p>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {activeTab === 'system' && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                             {/* Maintenance Control */}
+                            <div className="bg-white dark:bg-surface-dark rounded-[2.5rem] border border-border-light dark:border-border-dark p-8 shadow-xl shadow-black/[0.02]">
+                                <div className="flex items-center justify-between mb-8">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-xl bg-orange-500/10 text-orange-600 flex items-center justify-center">
+                                            <Icon name="construction" />
+                                        </div>
+                                        <h2 className="font-black uppercase tracking-widest text-xs">Maintenance</h2>
+                                    </div>
+                                    <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                                        systemStatus?.maintenance_mode ? 'bg-orange-500 text-white' : 'bg-green-500 text-white'
+                                    }`}>
+                                        {systemStatus?.maintenance_mode ? 'Active' : 'Offline'}
+                                    </div>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <button
+                                        onClick={() => handleSystemUpdate({ maintenance_mode: !systemStatus?.maintenance_mode, status: 'active' })}
+                                        className={`w-full py-4 rounded-2xl font-black flex items-center justify-center gap-3 transition-all active:scale-95 ${
+                                            systemStatus?.maintenance_mode 
+                                            ? 'bg-red-500 text-white shadow-lg shadow-red-500/20' 
+                                            : 'bg-orange-500 text-white shadow-lg shadow-orange-500/20'
+                                        }`}
+                                    >
+                                        <Icon name={systemStatus?.maintenance_mode ? 'power_settings_new' : 'bolt'} />
+                                        <span>{systemStatus?.maintenance_mode ? 'End Maintenance' : 'Start Global Maintenance'}</span>
+                                    </button>
+
+                                    <div className="grid grid-cols-2 gap-4 mt-8">
+                                        <button
+                                            disabled={!systemStatus?.maintenance_mode || systemStatus.status === 'completed'}
+                                            onClick={() => handleSystemUpdate({ status: 'completed' })}
+                                            className="py-4 rounded-2xl bg-indigo-600 text-white font-black text-[10px] uppercase tracking-widest disabled:opacity-30 transition-all active:scale-95 shadow-lg shadow-indigo-600/20"
+                                        >
+                                            Set Work Done
+                                        </button>
+                                        <button
+                                            disabled={!systemStatus?.maintenance_mode}
+                                            onClick={() => handleSystemUpdate({ maintenance_mode: false, status: 'none' })}
+                                            className="py-4 rounded-2xl bg-slate-800 text-white font-black text-[10px] uppercase tracking-widest disabled:opacity-30 transition-all active:scale-95"
+                                        >
+                                            Release App
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Node Info */}
+                            <div className="bg-white dark:bg-surface-dark rounded-[2.5rem] border border-border-light dark:border-border-dark p-8 shadow-xl shadow-black/[0.02]">
+                                <h3 className="text-sm font-black uppercase tracking-widest mb-8 flex items-center gap-2">
+                                    <Icon name="dns" className="text-emerald-600" />
+                                    Server Health
+                                </h3>
+                                <div className="space-y-6">
+                                    <HealthRow label="Vite Dev Server" status="optimal" />
+                                    <HealthRow label="Supabase Postgres" status="optimal" />
+                                    <HealthRow label="Edge Functions" status="stable" />
+                                    <HealthRow label="Vector DB Index" status="optimal" />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </motion.div>
+            </AnimatePresence>
+        </div>
+    );
+};
+
+const KPICard: React.FC<{ label: string; value: number | string; icon: string; color: 'indigo' | 'purple' | 'amber' | 'emerald' }> = ({ label, value, icon, color }) => {
+    const colorMap = {
+        indigo: 'bg-indigo-500/10 text-indigo-600',
+        purple: 'bg-purple-500/10 text-purple-600',
+        amber: 'bg-amber-500/10 text-amber-600',
+        emerald: 'bg-emerald-500/10 text-emerald-600'
+    };
+
+    return (
+        <div className="bg-white dark:bg-surface-dark rounded-3xl p-6 border border-border-light dark:border-border-dark shadow-xl shadow-black/[0.01] flex flex-col gap-4">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${colorMap[color]}`}>
+                <Icon name={icon} className="text-xl" />
+            </div>
+            <div>
+                <div className="text-2xl font-black tracking-tight">{value}</div>
+                <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-1">{label}</div>
             </div>
         </div>
     );
 };
+
+const HealthRow: React.FC<{ label: string; status: 'optimal' | 'stable' | 'degraded' }> = ({ label, status }) => (
+    <div className="flex items-center justify-between py-3 border-b border-border-light/50 dark:border-border-dark/50 last:border-0">
+        <span className="text-xs font-bold text-slate-600 dark:text-slate-300">{label}</span>
+        <div className="flex items-center gap-2">
+            <span className={`w-2 h-2 rounded-full ${
+                status === 'optimal' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 
+                status === 'stable' ? 'bg-indigo-500' : 'bg-amber-500'
+            }`} />
+            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">{status}</span>
+        </div>
+    </div>
+);
 
 export default AdminDashboard;

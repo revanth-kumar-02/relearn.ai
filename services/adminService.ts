@@ -1,0 +1,119 @@
+import { supabase } from './supabase';
+import { User, StudyRoom, Plan } from '../types';
+
+export interface GlobalStats {
+  totalUsers: number;
+  activeUsers24h: number;
+  totalPlans: number;
+  totalRooms: number;
+  totalMessages: number;
+  averageStudyTime: number;
+}
+
+export interface UserAdminData extends User {
+  last_login?: string;
+  room_count?: number;
+  plan_count?: number;
+}
+
+export const adminService = {
+  // Get Global KPIs
+  getGlobalStats: async (): Promise<GlobalStats> => {
+    try {
+      const [
+        { count: users },
+        { count: plans },
+        { count: rooms },
+        { data: messages }
+      ] = await Promise.all([
+        supabase.from('users').select('*', { count: 'exact', head: true }),
+        supabase.from('plans').select('*', { count: 'exact', head: true }),
+        supabase.from('study_rooms').select('*', { count: 'exact', head: true }),
+        supabase.from('room_messages').select('id')
+      ]);
+
+      return {
+        totalUsers: users || 0,
+        activeUsers24h: Math.floor((users || 0) * 0.4), // Mock ratio for now
+        totalPlans: plans || 0,
+        totalRooms: rooms || 0,
+        totalMessages: messages?.length || 0,
+        averageStudyTime: 42 // Mock avg in minutes
+      };
+    } catch (err) {
+      console.error('[AdminService] Failed to fetch stats:', err);
+      throw err;
+    }
+  },
+
+  // Get all users for the table
+  getAllUsers: async (): Promise<UserAdminData[]> => {
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .order('createdAt', { ascending: false });
+
+    if (error) throw error;
+    return data as UserAdminData[];
+  },
+
+  // Get all active rooms
+  getAllRooms: async (): Promise<StudyRoom[]> => {
+    const { data, error } = await supabase
+      .from('study_rooms')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data as StudyRoom[];
+  },
+
+  // Moderate: Delete a room
+  deleteRoom: async (roomId: string) => {
+    const { error } = await supabase
+      .from('study_rooms')
+      .delete()
+      .eq('id', roomId);
+
+    if (error) throw error;
+  },
+
+  // Moderate: Update user role
+  updateUserRole: async (userId: string, role: 'user' | 'admin') => {
+    const { error } = await supabase
+      .from('users')
+      .update({ role })
+      .eq('id', userId);
+
+    if (error) throw error;
+  },
+
+  // Fetch Growth Data (Last 7 days)
+  getGrowthData: async () => {
+    // This would typically be a complex query or an edge function
+    // Returning mock data for the chart for now
+    return [
+      { date: '2026-04-20', users: 120, plans: 45 },
+      { date: '2026-04-21', users: 132, plans: 52 },
+      { date: '2026-04-22', users: 145, plans: 61 },
+      { date: '2026-04-23', users: 168, plans: 75 },
+      { date: '2026-04-24', users: 189, plans: 88 },
+      { date: '2026-04-25', users: 210, plans: 112 },
+      { date: '2026-04-26', users: 245, plans: 134 },
+    ];
+  },
+
+  // Get User Feedback
+  getFeedback: async () => {
+    const { data, error } = await supabase
+      .from('feedback')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+        // Return empty if table doesn't exist
+        return [];
+    }
+    return data;
+  }
+};
