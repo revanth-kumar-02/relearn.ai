@@ -31,8 +31,11 @@ export const systemService = {
         throw error;
       }
       return data;
-    } catch (err) {
-      console.warn('[SystemService] Failed to fetch system status:', err);
+    } catch (err: any) {
+      // Suppress logging if the table just doesn't exist yet (prevents console spam)
+      if (err?.code !== 'PGRST116' && err?.message !== 'relation "system_config" does not exist') {
+        console.warn('[SystemService] Failed to fetch system status:', err);
+      }
       return {
         maintenance_mode: false,
         message: '',

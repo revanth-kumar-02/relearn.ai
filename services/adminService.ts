@@ -40,32 +40,51 @@ export const adminService = {
         totalMessages: messages?.length || 0,
         averageStudyTime: 42 // Mock avg in minutes
       };
-    } catch (err) {
-      console.error('[AdminService] Failed to fetch stats:', err);
-      throw err;
+    } catch (err: any) {
+      if (err?.message?.includes('relation') && err?.message?.includes('does not exist')) {
+        // Silent fail for missing tables
+      } else {
+        console.error('[AdminService] Failed to fetch stats:', err);
+      }
+      return {
+        totalUsers: 0,
+        activeUsers24h: 0,
+        totalPlans: 0,
+        totalRooms: 0,
+        totalMessages: 0,
+        averageStudyTime: 0
+      };
     }
   },
 
   // Get all users for the table
   getAllUsers: async (): Promise<UserAdminData[]> => {
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .order('createdAt', { ascending: false });
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .order('createdAt', { ascending: false });
 
-    if (error) throw error;
-    return data as UserAdminData[];
+      if (error) throw error;
+      return data as UserAdminData[];
+    } catch (err) {
+      return [];
+    }
   },
 
   // Get all active rooms
   getAllRooms: async (): Promise<StudyRoom[]> => {
-    const { data, error } = await supabase
-      .from('study_rooms')
-      .select('*')
-      .order('created_at', { ascending: false });
+    try {
+      const { data, error } = await supabase
+        .from('study_rooms')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-    if (error) throw error;
-    return data as StudyRoom[];
+      if (error) throw error;
+      return data as StudyRoom[];
+    } catch (err) {
+      return [];
+    }
   },
 
   // Moderate: Delete a room
