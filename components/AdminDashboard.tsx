@@ -10,12 +10,13 @@ import { systemService, SystemStatus } from '../services/systemService';
 import { StudyRoom } from '../types';
 import { triggerHaptic } from '../utils/haptics';
 
-type AdminTab = 'overview' | 'users' | 'rooms' | 'feedback' | 'system';
+type AdminTab = 'overview' | 'users' | 'plans' | 'rooms' | 'feedback' | 'system';
 
 const AdminDashboard: React.FC = () => {
     const [activeTab, setActiveTab] = useState<AdminTab>('overview');
     const [stats, setStats] = useState<GlobalStats | null>(null);
     const [users, setUsers] = useState<UserAdminData[]>([]);
+    const [plans, setPlans] = useState<any[]>([]);
     const [rooms, setRooms] = useState<StudyRoom[]>([]);
     const [feedback, setFeedback] = useState<any[]>([]);
     const [systemStatus, setSystemStatus] = useState<SystemStatus | null>(null);
@@ -36,9 +37,10 @@ const AdminDashboard: React.FC = () => {
     const loadAllData = async () => {
         setIsLoading(true);
         try {
-            const [s, u, r, sys, growth, f] = await Promise.all([
+            const [s, u, p, r, sys, growth, f] = await Promise.all([
                 adminService.getGlobalStats(),
                 adminService.getAllUsers(),
+                adminService.getAllPlans(),
                 adminService.getAllRooms(),
                 systemService.getSystemStatus(),
                 adminService.getGrowthData(),
@@ -46,6 +48,7 @@ const AdminDashboard: React.FC = () => {
             ]);
             setStats(s);
             setUsers(u);
+            setPlans(p);
             setRooms(r);
             setSystemStatus(sys);
             setGrowthData(growth);
@@ -123,7 +126,7 @@ const AdminDashboard: React.FC = () => {
 
                 {/* Tab Navigation */}
                 <nav className="flex bg-white dark:bg-surface-dark p-1 rounded-2xl border border-border-light dark:border-border-dark shadow-sm overflow-x-auto no-scrollbar">
-                    {(['overview', 'users', 'rooms', 'feedback', 'system'] as AdminTab[]).map(tab => (
+                    {(['overview', 'users', 'plans', 'rooms', 'feedback', 'system'] as AdminTab[]).map(tab => (
                         <button
                             key={tab}
                             onClick={() => { setActiveTab(tab); triggerHaptic('light'); }}
@@ -151,9 +154,9 @@ const AdminDashboard: React.FC = () => {
                         <div className="space-y-8">
                             {/* KPI Cards */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                                <KPICard label="Total Users" value={stats?.totalUsers || 0} icon="group" color="indigo" />
-                                <KPICard label="AI Plans" value={stats?.totalPlans || 0} icon="auto_awesome" color="purple" />
-                                <KPICard label="Study Rooms" value={stats?.totalRooms || 0} icon="hub" color="amber" />
+                                <KPICard label="Total Users" value={stats?.totalUsers || 0} icon="group" color="indigo" onClick={() => setActiveTab('users')} />
+                                <KPICard label="AI Plans" value={stats?.totalPlans || 0} icon="auto_awesome" color="purple" onClick={() => setActiveTab('plans')} />
+                                <KPICard label="Study Rooms" value={stats?.totalRooms || 0} icon="hub" color="amber" onClick={() => setActiveTab('rooms')} />
                                 <KPICard label="Messages" value={stats?.totalMessages || 0} icon="chat" color="emerald" />
                             </div>
 
@@ -301,6 +304,62 @@ const AdminDashboard: React.FC = () => {
                                         ))}
                                     </tbody>
                                 </table>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'plans' && (
+                        <div className="bg-white dark:bg-surface-dark rounded-[2.5rem] border border-border-light dark:border-border-dark shadow-xl shadow-black/[0.02] overflow-hidden">
+                            <div className="p-8 border-b border-border-light dark:border-border-dark flex justify-between items-center">
+                                <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
+                                    <Icon name="auto_awesome" className="text-purple-600" />
+                                    AI Plans Overview
+                                </h3>
+                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-text-secondary-light">Total: {plans.length}</span>
+                            </div>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left">
+                                    <thead>
+                                        <tr className="bg-gray-50/50 dark:bg-stone-900/50">
+                                            <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Plan Title</th>
+                                            <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Creator</th>
+                                            <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Created At</th>
+                                            <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-border-light dark:divide-border-dark">
+                                        {plans.map(p => (
+                                            <tr key={p.id} className="hover:bg-gray-50/30 dark:hover:bg-stone-900/30 transition-colors">
+                                                <td className="px-8 py-5 font-bold text-sm text-slate-800 dark:text-white">
+                                                    {p.title}
+                                                </td>
+                                                <td className="px-8 py-5">
+                                                    <div className="flex flex-col">
+                                                        <span className="text-sm font-black">{p.users?.name || 'Unknown'}</span>
+                                                        <span className="text-[10px] font-bold text-text-secondary-light">{p.users?.email || 'N/A'}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-8 py-5 text-xs font-bold text-slate-500">
+                                                    {p.createdAt ? new Intl.DateTimeFormat('en-US', {
+                                                        year: 'numeric', month: 'short', day: 'numeric',
+                                                        hour: 'numeric', minute: 'numeric', hour12: true
+                                                    }).format(new Date(p.createdAt)) : 'N/A'}
+                                                </td>
+                                                <td className="px-8 py-5">
+                                                    <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-slate-400 hover:text-indigo-600 transition-colors">
+                                                        <Icon name="visibility" />
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                                {plans.length === 0 && (
+                                    <div className="py-20 text-center">
+                                        <Icon name="auto_awesome" className="text-4xl text-slate-200 mb-4 mx-auto" />
+                                        <p className="text-sm font-black text-slate-400 uppercase tracking-widest">No plans generated yet</p>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
@@ -499,7 +558,7 @@ const AdminDashboard: React.FC = () => {
     );
 };
 
-const KPICard: React.FC<{ label: string; value: number | string; icon: string; color: 'indigo' | 'purple' | 'amber' | 'emerald' }> = ({ label, value, icon, color }) => {
+const KPICard: React.FC<{ label: string; value: number | string; icon: string; color: 'indigo' | 'purple' | 'amber' | 'emerald'; onClick?: () => void }> = ({ label, value, icon, color, onClick }) => {
     const colorMap = {
         indigo: 'bg-indigo-500/10 text-indigo-600',
         purple: 'bg-purple-500/10 text-purple-600',
@@ -508,7 +567,10 @@ const KPICard: React.FC<{ label: string; value: number | string; icon: string; c
     };
 
     return (
-        <div className="bg-white dark:bg-surface-dark rounded-3xl p-6 border border-border-light dark:border-border-dark shadow-xl shadow-black/[0.01] flex flex-col gap-4">
+        <div 
+            onClick={onClick}
+            className={`bg-white dark:bg-surface-dark rounded-3xl p-6 border border-border-light dark:border-border-dark shadow-xl shadow-black/[0.01] flex flex-col gap-4 transition-all ${onClick ? 'cursor-pointer hover:-translate-y-1 hover:shadow-2xl hover:shadow-black/[0.05]' : ''}`}
+        >
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${colorMap[color]}`}>
                 <Icon name={icon} className="text-xl" />
             </div>

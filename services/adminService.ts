@@ -126,6 +126,30 @@ export const adminService = {
     if (error) throw error;
   },
 
+  // Get all plans for admin dashboard
+  getAllPlans: async (): Promise<any[]> => {
+    try {
+      const { data, error } = await supabase
+        .from('plans')
+        .select(`
+          id,
+          title,
+          createdAt,
+          users:userId (
+            name,
+            email
+          )
+        `)
+        .order('createdAt', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (err) {
+      console.error('[AdminService] Error fetching plans:', err);
+      return [];
+    }
+  },
+
   // Fetch Growth Data (Last 7 days)
   getGrowthData: async () => {
     // This would typically be a complex query or an edge function
