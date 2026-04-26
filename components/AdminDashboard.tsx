@@ -21,6 +21,13 @@ const AdminDashboard: React.FC = () => {
     const [systemStatus, setSystemStatus] = useState<SystemStatus | null>(null);
     const [growthData, setGrowthData] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    
+    // User Filter State
+    const [verificationFilter, setVerificationFilter] = useState<'all' | 'verified' | 'unverified'>('all');
+    
+    // Delete Modal State
+    const [deleteModalUser, setDeleteModalUser] = useState<UserAdminData | null>(null);
+    const [deleteReason, setDeleteReason] = useState('');
 
     useEffect(() => {
         loadAllData();
@@ -59,6 +66,32 @@ const AdminDashboard: React.FC = () => {
             console.error('System update failed:', error);
         }
     };
+
+    const handleDeleteUser = async () => {
+        if (!deleteModalUser || !deleteReason.trim()) return;
+        try {
+            await adminService.deleteUser(deleteModalUser.id);
+            setUsers(users.filter(u => u.id !== deleteModalUser.id));
+            
+            // Trigger Mailto
+            const subject = encodeURIComponent('Notice regarding your ReLearn.ai account');
+            const body = encodeURIComponent(`Hello,\n\nYour account has been deleted for the following reason:\n\n${deleteReason}\n\nRegards,\nThe ReLearn.ai Admin Team`);
+            window.location.href = `mailto:${deleteModalUser.email}?subject=${subject}&body=${body}`;
+            
+            setDeleteModalUser(null);
+            setDeleteReason('');
+            triggerHaptic('success');
+        } catch (err) {
+            console.error('Delete failed', err);
+            alert('Failed to delete user');
+        }
+    };
+
+    const filteredUsers = users.filter(u => {
+        if (verificationFilter === 'verified') return u.is_verified;
+        if (verificationFilter === 'unverified') return !u.is_verified;
+        return true;
+    });
 
     if (isLoading) {
         return (
@@ -178,12 +211,20 @@ const AdminDashboard: React.FC = () => {
 
                     {activeTab === 'users' && (
                         <div className="bg-white dark:bg-surface-dark rounded-[2.5rem] border border-border-light dark:border-border-dark shadow-xl shadow-black/[0.02] overflow-hidden">
-                            <div className="p-8 border-b border-border-light dark:border-border-dark flex justify-between items-center">
+                            <div className="p-8 border-b border-border-light dark:border-border-dark flex justify-between items-center flex-wrap gap-4">
                                 <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
                                     <Icon name="people" className="text-indigo-600" />
                                     User Management
                                 </h3>
-                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-text-secondary-light">Total: {users.length}</span>
+                                
+                                <div className="flex items-center gap-4">
+                                    <div className="flex bg-gray-100 dark:bg-stone-800 rounded-xl p-1">
+                                        <button onClick={() => setVerificationFilter('all')} className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${verificationFilter === 'all' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500'}`}>All</button>
+                                        <button onClick={() => setVerificationFilter('verified')} className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${verificationFilter === 'verified' ? 'bg-white shadow-sm text-green-600' : 'text-slate-500'}`}>Verified</button>
+                                        <button onClick={() => setVerificationFilter('unverified')} className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${verificationFilter === 'unverified' ? 'bg-white shadow-sm text-orange-600' : 'text-slate-500'}`}>Unverified</button>
+                                    </div>
+                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-text-secondary-light">Total: {filteredUsers.length}</span>
+                                </div>
                             </div>
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left">
@@ -211,11 +252,19 @@ const AdminDashboard: React.FC = () => {
                                                     </div>
                                                 </td>
                                                 <td className="px-8 py-5">
-                                                    <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
-                                                        u.role === 'admin' ? 'bg-red-500/10 text-red-600' : 'bg-slate-100 text-slate-600'
-                                                    }`}>
-                                                        {u.role || 'user'}
-                                                    </span>
+                                                    <div className="flex flex-col gap-1 items-start">
+                                                        <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
+                                                            u.role === 'admin' ? 'bg-red-500/10 text-red-600' : 'bg-slate-100 text-slate-600'
+                                                        }`}>
+                                                            {u.role || 'user'}
+                                                        </span>
+                                                        <span className={`text-[8px] font-black uppercase tracking-widest flex items-center gap-1 ${
+                                                            u.is_verified ? 'text-green-500' : 'text-orange-500'
+                                                        }`}>
+                                                            <Icon name={u.is_verified ? 'verified' : 'pending'} className="text-[10px]" />
+                                                            {u.is_verified ? 'Verified' : 'Unverified'}
+                                                        </span>
+                                                    </div>
                                                 </td>
                                                 <td className="px-8 py-5">
                                                     <div className="flex gap-4">
@@ -233,9 +282,20 @@ const AdminDashboard: React.FC = () => {
                                                     {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'N/A'}
                                                 </td>
                                                 <td className="px-8 py-5">
-                                                    <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-slate-400 hover:text-indigo-600 transition-colors">
-                                                        <Icon name="more_vert" />
-                                                    </button>
+                                                    <div className="flex items-center gap-2">
+                                                        <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-slate-400 hover:text-indigo-600 transition-colors">
+                                                            <Icon name="more_vert" />
+                                                        </button>
+                                                        {u.role !== 'admin' && (
+                                                            <button 
+                                                                onClick={() => setDeleteModalUser(u)}
+                                                                className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-slate-400 hover:text-red-600 transition-colors"
+                                                                title="Delete User"
+                                                            >
+                                                                <Icon name="delete" />
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))}
@@ -385,6 +445,55 @@ const AdminDashboard: React.FC = () => {
                         </div>
                     )}
                 </motion.div>
+            </AnimatePresence>
+
+            {/* Delete User Modal */}
+            <AnimatePresence>
+                {deleteModalUser && (
+                    <motion.div 
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+                    >
+                        <motion.div 
+                            initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }}
+                            className="bg-white dark:bg-surface-dark rounded-[2.5rem] p-8 max-w-md w-full shadow-2xl"
+                        >
+                            <div className="w-16 h-16 rounded-2xl bg-red-500/10 text-red-600 flex items-center justify-center mx-auto mb-6">
+                                <Icon name="warning" className="text-3xl" />
+                            </div>
+                            <h3 className="text-xl font-black text-center mb-2">Delete User Account</h3>
+                            <p className="text-sm font-bold text-slate-500 text-center mb-6">
+                                You are about to permanently delete <span className="text-slate-800 dark:text-white">{deleteModalUser.email}</span>. This action cannot be undone.
+                            </p>
+
+                            <div className="mb-8">
+                                <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-3">Reason for Deletion</label>
+                                <textarea 
+                                    value={deleteReason}
+                                    onChange={e => setDeleteReason(e.target.value)}
+                                    placeholder="Provide a reason (this will be emailed to the user)..."
+                                    className="w-full bg-gray-50 dark:bg-stone-900 border-none rounded-2xl p-4 text-sm font-bold text-slate-800 dark:text-slate-200 focus:ring-4 ring-red-500/20 outline-none resize-none h-24"
+                                />
+                            </div>
+
+                            <div className="flex gap-4">
+                                <button 
+                                    onClick={() => { setDeleteModalUser(null); setDeleteReason(''); }}
+                                    className="flex-1 py-4 rounded-2xl bg-slate-100 dark:bg-stone-800 font-black text-xs uppercase tracking-widest text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-stone-700 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button 
+                                    disabled={!deleteReason.trim()}
+                                    onClick={handleDeleteUser}
+                                    className="flex-1 py-4 rounded-2xl bg-red-600 font-black text-xs uppercase tracking-widest text-white disabled:opacity-50 hover:bg-red-700 transition-colors"
+                                >
+                                    Confirm Delete
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
             </AnimatePresence>
         </div>
     );

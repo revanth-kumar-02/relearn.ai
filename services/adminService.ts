@@ -14,6 +14,7 @@ export interface UserAdminData extends User {
   last_login?: string;
   room_count?: number;
   plan_count?: number;
+  is_verified?: boolean;
 }
 
 export const adminService = {
@@ -60,16 +61,34 @@ export const adminService = {
   // Get all users for the table
   getAllUsers: async (): Promise<UserAdminData[]> => {
     try {
+      // Query the specialized view which includes verification status
       const { data, error } = await supabase
-        .from('users')
-        .select('id, name, email, role, stats, createdAt')
+        .from('admin_users_view')
+        .select('*')
         .order('createdAt', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        // Fallback to normal users table if view doesn't exist yet
+        if (error.code === 'PGRST205' || error.message.includes('relation')) {
+          const { data: fallbackData, error: fallbackError } = await supabase
+            .from('users')
+            .select('id, name, email, role, stats, createdAt')
+            .order('createdAt', { ascending: false });
+          if (fallbackError) throw fallbackError;
+          return fallbackData as UserAdminData[];
+        }
+        throw error;
+      }
       return data as UserAdminData[];
     } catch (err) {
       return [];
     }
+  },
+
+  // Admin: Delete a user completely (requires RPC)
+  deleteUser: async (userId: string) => {
+    const { error } = await supabase.rpc('delete_user_by_admin', { target_user_id: userId });
+    if (error) throw error;
   },
 
   // Get all active rooms
