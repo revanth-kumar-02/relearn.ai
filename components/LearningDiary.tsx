@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../contexts/DataContext';
+import { useTutorial } from '../contexts/TutorialContext';
 import { Plan } from '../types';
 
 const DiaryCard: React.FC<{ plan: Plan }> = ({ plan }) => {
@@ -120,7 +121,12 @@ const DiaryCard: React.FC<{ plan: Plan }> = ({ plan }) => {
 const LearningDiary: React.FC = () => {
     const navigate = useNavigate();
     const { plans } = useData();
+    const { startTutorial } = useTutorial();
     const [activeTab, setActiveTab] = useState<'current' | 'explored' | 'archived'>('current');
+
+    useEffect(() => {
+        startTutorial('diary');
+    }, [startTutorial]);
 
     const displayPlans = plans.filter(plan => {
         if (activeTab === 'current') return !plan.isArchived && plan.progress < 100;
@@ -146,7 +152,7 @@ const LearningDiary: React.FC = () => {
 
             <main className="max-w-4xl mx-auto p-4">
                 {/* Tabs */}
-                <div className="mb-6 bg-stone-200/50 dark:bg-stone-800/50 p-1 rounded-lg flex items-center">
+                <div id="tutorial-diary-tabs" className="mb-6 bg-stone-200/50 dark:bg-stone-800/50 p-1 rounded-lg flex items-center">
                     {(['current', 'explored', 'archived'] as const).map(tab => (
                         <button
                             key={tab}
@@ -177,6 +183,7 @@ const LearningDiary: React.FC = () => {
 
             {/* Floating Action Button */}
             <button
+                id="tutorial-diary-fab"
                 onClick={() => navigate('/create-plan')}
                 className="fixed bottom-[6.5rem] left-6 md:bottom-6 md:left-72 h-14 w-14 bg-terracotta text-white rounded-full shadow-lg shadow-terracotta/30 flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-40 group"
                 aria-label="Create New Learning Plan"

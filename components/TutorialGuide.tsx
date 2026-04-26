@@ -4,73 +4,112 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useTutorial } from '../contexts/TutorialContext';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const steps = [
-  {
-    target: 'tutorial-new-plan',
-    title: 'Start Here',
-    content: 'Start by generating your first AI learning plan.',
-    position: 'right' as const
-  },
-  {
-    target: 'tutorial-active-plans',
-    title: 'Your Plans',
-    content: 'Your generated learning plans appear here.',
-    position: 'bottom' as const
-  },
-  {
-    target: 'tutorial-plan-card',
-    title: 'View Roadmap',
-    content: 'Click a plan to see your learning roadmap.',
-    position: 'bottom' as const,
-    waitForAction: true
-  },
-  {
-    target: 'tutorial-plan-progress-card',
-    title: 'Track Status',
-    content: 'See your overall completion and daily goals at a glance.',
-    position: 'bottom' as const
-  },
-  {
-    target: 'tutorial-plan-actions',
-    title: 'Manage Plan',
-    content: 'Edit details, share your progress, or archive the plan here.',
-    position: 'top' as const
-  },
-  {
-    target: 'tutorial-start-learning',
-    title: 'Start Learning',
-    content: 'This opens your guided learning workspace.',
-    position: 'top' as const
-  },
-  {
-    target: 'tutorial-progress',
-    title: 'Deep Dive',
-    content: 'Click here to view detailed analytics and insights.',
-    position: 'right' as const,
-    waitForAction: true
-  },
-  {
-    target: 'tutorial-progress-stats',
-    title: 'Key Metrics',
-    content: 'Track your total study time and current streak.',
-    position: 'bottom' as const
-  },
-  {
-    target: 'tutorial-progress-chart',
-    title: 'Visualize Habits',
-    content: 'See your daily study activity over time.',
-    position: 'top' as const
-  },
-  {
-    target: 'tutorial-chatbot',
-    title: 'AI Assistant',
-    content: 'Ask the AI assistant questions while learning.',
-    position: 'left' as const
-  }
-];
+const tutorialSequences: Record<string, any[]> = {
+  dashboard: [
+    {
+      target: 'tutorial-new-plan',
+      title: 'Start Here',
+      content: 'Start by generating your first AI learning plan.',
+      position: 'right' as const
+    },
+    {
+      target: 'tutorial-active-plans',
+      title: 'Your Plans',
+      content: 'Your generated learning plans appear here.',
+      position: 'bottom' as const
+    },
+    {
+      target: 'tutorial-plan-card',
+      title: 'View Roadmap',
+      content: 'Click a plan to see your learning roadmap.',
+      position: 'bottom' as const,
+      waitForAction: true
+    },
+    {
+      target: 'tutorial-plan-progress-card',
+      title: 'Track Status',
+      content: 'See your overall completion and daily goals at a glance.',
+      position: 'bottom' as const
+    },
+    {
+      target: 'tutorial-plan-actions',
+      title: 'Manage Plan',
+      content: 'Edit details, share your progress, or archive the plan here.',
+      position: 'top' as const
+    },
+    {
+      target: 'tutorial-start-learning',
+      title: 'Start Learning',
+      content: 'This opens your guided learning workspace.',
+      position: 'top' as const
+    },
+    {
+      target: 'tutorial-chatbot',
+      title: 'AI Assistant',
+      content: 'Ask the AI assistant questions while learning.',
+      position: 'left' as const
+    }
+  ],
+  progress: [
+    {
+      target: 'tutorial-progress-stats',
+      title: 'Key Metrics',
+      content: 'Track your total study time and current streak.',
+      position: 'bottom' as const
+    },
+    {
+      target: 'tutorial-progress-chart',
+      title: 'Visualize Habits',
+      content: 'See your daily study activity over time.',
+      position: 'top' as const
+    }
+  ],
+  diary: [
+    {
+      target: 'tutorial-diary-tabs',
+      title: 'Diary Organization',
+      content: 'Switch between entries, drafts, and notes.',
+      position: 'bottom' as const
+    },
+    {
+      target: 'tutorial-diary-fab',
+      title: 'New Entry',
+      content: 'Click here to create a new learning diary entry.',
+      position: 'left' as const
+    }
+  ],
+  settings: [
+    {
+      target: 'tutorial-settings-profile',
+      title: 'Profile Info',
+      content: 'Update your display name and academic level.',
+      position: 'bottom' as const
+    },
+    {
+      target: 'tutorial-settings-preferences',
+      title: 'Preferences',
+      content: 'Adjust notifications and study reminders.',
+      position: 'bottom' as const
+    }
+  ],
+  profile: [
+    {
+      target: 'tutorial-profile-badges',
+      title: 'Achievements',
+      content: 'View the badges you have earned along your journey.',
+      position: 'bottom' as const
+    },
+    {
+      target: 'tutorial-profile-stats',
+      title: 'Your Stats',
+      content: 'See your all-time learning statistics.',
+      position: 'top' as const
+    }
+  ]
+};
 
 const TutorialGuide: React.FC = () => {
-  const { isActive, currentStep, nextStep, prevStep, skipTutorial, completeTutorial } = useTutorial();
+  const { isActive, activeTutorialId, currentStep, nextStep, prevStep, skipTutorial, completeTutorial } = useTutorial();
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
@@ -78,10 +117,11 @@ const TutorialGuide: React.FC = () => {
   // We need to track if the element is actually visible
   const [isElementVisible, setIsElementVisible] = useState(false);
 
-  const currentStepData = steps[currentStep];
+  const steps = activeTutorialId ? tutorialSequences[activeTutorialId] : [];
+  const currentStepData = steps ? steps[currentStep] : null;
 
   useEffect(() => {
-    if (!isActive) return;
+    if (!isActive || !currentStepData) return;
 
     const updatePosition = () => {
       // Handle mobile/desktop ID variations for navigation items
@@ -125,29 +165,15 @@ const TutorialGuide: React.FC = () => {
 
   // Auto-advance logic for navigation steps
   useEffect(() => {
-    if (!isActive) return;
+    if (!isActive || !activeTutorialId) return;
 
-    // Step 3: Click Plan Card -> Plan Details
-    if (currentStep === 2 && location.pathname === '/plan-details') {
+    // Dashboard Step 3: Click Plan Card -> Plan Details
+    if (activeTutorialId === 'dashboard' && currentStep === 2 && location.pathname === '/plan-details') {
         nextStep();
     }
-    
-    // Step 6: Click Progress Nav -> Progress Page
-    // Note: The step index is 6 because we added 3 new steps before it (Plan Progress, Actions, Start Learning)
-    // Original index was 4. New index logic:
-    // 0: New Plan
-    // 1: Active Plans
-    // 2: Click Card (Wait)
-    // 3: Plan Progress Card
-    // 4: Plan Actions
-    // 5: Start Learning
-    // 6: Click Progress Nav (Wait)
-    if (currentStep === 6 && location.pathname === '/progress') {
-        nextStep();
-    }
-  }, [location.pathname, currentStep, isActive, nextStep]);
+  }, [location.pathname, currentStep, isActive, activeTutorialId, nextStep]);
 
-  if (!isActive) return null;
+  if (!isActive || !activeTutorialId || !steps) return null;
 
   // Render final success message
   if (currentStep >= steps.length) {

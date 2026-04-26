@@ -2,10 +2,11 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 
 interface TutorialContextType {
   isActive: boolean;
+  activeTutorialId: string | null;
   currentStep: number;
-  startTutorial: () => void;
+  startTutorial: (tutorialId: string) => void;
   completeTutorial: () => void;
-  resetTutorial: () => void;
+  resetTutorial: (tutorialId?: string) => void;
   nextStep: () => void;
   prevStep: () => void;
   skipTutorial: () => void;
@@ -23,33 +24,62 @@ export const useTutorial = () => {
 
 export const TutorialProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isActive, setIsActive] = useState(false);
+  const [activeTutorialId, setActiveTutorialId] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
 
-  // Removed automatic check on mount. 
-  // Tutorial should now be triggered explicitly by calling startTutorial()
+  const getCompletedTutorials = (): Record<string, boolean> => {
+    try {
+      const stored = localStorage.getItem('completed_tutorials');
+      return stored ? JSON.parse(stored) : {};
+    } catch {
+      return {};
+    }
+  };
 
-  const startTutorial = () => {
-    const isCompleted = localStorage.getItem('tutorial_completed');
-    if (!isCompleted) {
+  const markCompleted = (id: string) => {
+    const completed = getCompletedTutorials();
+    completed[id] = true;
+    localStorage.setItem('completed_tutorials', JSON.stringify(completed));
+    // Also set legacy key so we don't accidentally re-trigger for existing users
+    localStorage.setItem('tutorial_completed', 'true');
+  };
+
+  const startTutorial = (tutorialId: string) => {
+    // Check legacy key to prevent showing tutorials to people who already did the old one
+    const legacyCompleted = localStorage.getItem('tutorial_completed');
+    const completed = getCompletedTutorials();
+    
+    if (!completed[tutorialId] && !legacyCompleted) {
+        setActiveTutorialId(tutorialId);
         setCurrentStep(0);
         setIsActive(true);
     }
   };
 
   const completeTutorial = () => {
+    if (activeTutorialId) markCompleted(activeTutorialId);
     setIsActive(false);
-    localStorage.setItem('tutorial_completed', 'true');
+    setActiveTutorialId(null);
   };
 
   const skipTutorial = () => {
+    if (activeTutorialId) markCompleted(activeTutorialId);
     setIsActive(false);
-    localStorage.setItem('tutorial_completed', 'true');
+    setActiveTutorialId(null);
   };
 
-  const resetTutorial = () => {
-    localStorage.removeItem('tutorial_completed');
-    setCurrentStep(0);
-    setIsActive(true);
+  const resetTutorial = (tutorialId?: string) => {
+    if (tutorialId) {
+      const completed = getCompletedTutorials();
+      delete completed[tutorialId];
+      localStorage.setItem('completed_tutorials', JSON.stringify(completed));
+      startTutorial(tutorialId);
+    } else {
+      localStorage.removeItem('completed_tutorials');
+      localStorage.removeItem('tutorial_completed');
+      setIsActive(false);
+      setActiveTutorialId(null);
+    }
   };
 
   const nextStep = () => {
@@ -63,6 +93,7 @@ export const TutorialProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   return (
     <TutorialContext.Provider value={{ 
       isActive, 
+      activeTutorialId,
       currentStep, 
       startTutorial,
       completeTutorial, 

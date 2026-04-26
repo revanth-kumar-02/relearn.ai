@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
 import { useToast } from '../contexts/ToastContext';
+import { useTutorial } from '../contexts/TutorialContext';
 import { User } from '../types';
 
 const GRADIENT_THEMES = [
@@ -23,6 +24,7 @@ const Profile: React.FC = () => {
   const { plans, tasks } = useData();
   const { user, updateProfile, changePassword, logout } = useAuth();
   const { showToast } = useToast();
+  const { startTutorial } = useTutorial();
 
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<Partial<User>>({});
@@ -31,6 +33,10 @@ const Profile: React.FC = () => {
   const [newPassword, setNewPassword] = useState('');
 
   const [isFlipped, setIsFlipped] = useState(false);
+
+  useEffect(() => {
+    startTutorial('profile');
+  }, [startTutorial]);
 
   useEffect(() => {
     if (user) {
@@ -129,7 +135,7 @@ const Profile: React.FC = () => {
 
       <div className="max-w-4xl mx-auto p-4 md:p-8 space-y-8">
         {/* Luxury Identity Flip Card */}
-        <div className="relative w-full max-w-[500px] mx-auto aspect-[1.586/1] [perspective:1000px] group cursor-pointer" onClick={() => setIsFlipped(!isFlipped)}>
+        <div id="tutorial-profile-header" className="relative w-full max-w-[500px] mx-auto aspect-[1.586/1] [perspective:1000px] group cursor-pointer" onClick={() => setIsFlipped(!isFlipped)}>
           <div className={`relative w-full h-full transition-all duration-700 ease-[cubic-bezier(0.4,0,0.2,1)] [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateY(180deg)]' : ''}`}>
 
             {/* FRONT SIDE */}
@@ -255,7 +261,7 @@ const Profile: React.FC = () => {
         </div>
 
         {/* Stats Section */}
-        <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <section id="tutorial-profile-stats" className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <StatCard label="Plans Created" value={stats.plansCreated} icon="inventory_2" color="text-blue-500" bg="bg-blue-500/10" />
           <StatCard label="Completion" value={`${stats.completionRate}%`} icon="task_alt" color="text-green-500" bg="bg-green-500/10" />
           <StatCard label="Study Streak" value={`${stats.streak}d`} icon="local_fire_department" color="text-orange-500" bg="bg-orange-500/10" />
@@ -312,7 +318,7 @@ const Profile: React.FC = () => {
         </section>
 
         {/* Middle Section: Preferences */}
-        <section className="space-y-4">
+        <section id="tutorial-profile-preferences" className="space-y-4">
           <div className="bg-white dark:bg-surface-dark rounded-3xl p-6 border border-border-light dark:border-border-dark shadow-sm space-y-6">
             <h3 className="font-bold text-text-primary-light dark:text-text-primary-dark flex items-center gap-2">
               <span className="material-symbols-outlined text-primary">school</span>

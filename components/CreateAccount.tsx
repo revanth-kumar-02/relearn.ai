@@ -1,12 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { useTutorial } from '../contexts/TutorialContext';
 
 const CreateAccount: React.FC = () => {
     const navigate = useNavigate();
     const { signup } = useAuth();
-    const { startTutorial } = useTutorial();
 
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');

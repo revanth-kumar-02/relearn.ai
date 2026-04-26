@@ -2,6 +2,7 @@ import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useTutorial } from '../contexts/TutorialContext';
 import Icon from './common/Icon';
 import Skeleton, { PlanCardSkeleton } from './common/Skeleton';
 import { generateStudyNudges, sendSmartReminder, type StudyNudge } from '../services/smartReminderService';
@@ -10,6 +11,11 @@ const Dashboard: React.FC = () => {
     const navigate = useNavigate();
     const { plans, tasks, recentActivity, notifications, addNotification, clearAllActivity, isLoading } = useData();
     const { user } = useAuth();
+    const { startTutorial } = useTutorial();
+
+    useEffect(() => {
+        startTutorial('dashboard');
+    }, [startTutorial]);
 
     const today = useMemo(() => new Date(), []);
     const [currentViewDate, setCurrentViewDate] = useState(new Date());

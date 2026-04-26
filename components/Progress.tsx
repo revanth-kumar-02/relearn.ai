@@ -1,8 +1,9 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useTutorial } from '../contexts/TutorialContext';
 import { ensureGamificationStats, levelProgress, xpForLevel, getBadgesWithStatus } from '../services/gamificationService';
 import Icon from './common/Icon';
 
@@ -18,6 +19,11 @@ const Progress: React.FC = () => {
   const navigate = useNavigate();
   const { plans, tasks } = useData();
   const { user } = useAuth();
+  const { startTutorial } = useTutorial();
+
+  useEffect(() => {
+    startTutorial('progress');
+  }, [startTutorial]);
 
   const stats = useMemo(() => ensureGamificationStats(user?.stats), [user?.stats]);
   const xpProgress = useMemo(() => levelProgress(stats.totalXP), [stats.totalXP]);
