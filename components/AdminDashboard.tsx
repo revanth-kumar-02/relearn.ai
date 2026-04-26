@@ -238,7 +238,7 @@ const AdminDashboard: React.FC = () => {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-border-light dark:divide-border-dark">
-                                        {users.map(u => (
+                                        {filteredUsers.map(u => (
                                             <tr key={u.id} className="hover:bg-gray-50/30 dark:hover:bg-stone-900/30 transition-colors">
                                                 <td className="px-8 py-5">
                                                     <div className="flex items-center gap-3">
