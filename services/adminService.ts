@@ -62,7 +62,7 @@ export const adminService = {
     try {
       const { data, error } = await supabase
         .from('users')
-        .select('*')
+        .select('id, name, email, role, stats, createdAt')
         .order('createdAt', { ascending: false });
 
       if (error) throw error;
