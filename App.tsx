@@ -1,4 +1,4 @@
-import React, { useState, lazy, Suspense } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { HashRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { DataProvider } from './contexts/DataContext';
 import { AuthProvider } from './contexts/AuthContext';
@@ -19,6 +19,7 @@ import MaintenanceOverlay from './components/MaintenanceOverlay';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { usePresence } from './hooks/usePresence';
 import { SystemBanner } from './components/SystemBanner';
+import { CommandPalette } from './components/admin/CommandPalette';
 
 const KeyboardShortcutsModal = lazy(() => import('./components/common/KeyboardShortcutsModal'));
 
@@ -70,6 +71,21 @@ const AppContent: React.FC = () => {
     return saved !== null ? JSON.parse(saved) : true;
   });
   const { showHelp: showShortcuts, setShowHelp: setShowShortcuts } = useKeyboardShortcuts();
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin' || user?.email === 'admin@relearn.ai' || user?.email === 'imposterz.rev02@gmail.com';
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsCommandPaletteOpen(true);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isAdmin]);
 
   const toggleSidebar = () => {
     const newState = !isSidebarExpanded;
@@ -77,9 +93,6 @@ const AppContent: React.FC = () => {
     localStorage.setItem('relearn_sidebar_expanded', JSON.stringify(newState));
     triggerHaptic('light');
   };
-
-  const { user } = useAuth();
-  const isAdmin = user?.role === 'admin' || user?.email === 'admin@relearn.ai' || user?.email === 'imposterz.rev02@gmail.com';
 
   usePresence(user?.id);
 
@@ -136,6 +149,13 @@ const AppContent: React.FC = () => {
       </Suspense>
       <EmailVerificationModal />
       <MaintenanceOverlay />
+      {isAdmin && (
+        <CommandPalette 
+          isOpen={isCommandPaletteOpen} 
+          onClose={() => setIsCommandPaletteOpen(false)}
+          onNavigate={(tab) => navigate(`/admin?tab=${tab}`)}
+        />
+      )}
 
       {/* Desktop Sidebar */}
       {showSidebar && (
@@ -302,7 +322,7 @@ const AppContent: React.FC = () => {
 
         {/* Mobile Bottom Navigation */}
         {showMobileNav && (
-          <nav className="md:hidden h-20 w-full bg-white dark:bg-surface-dark border-t border-border-light dark:border-border-dark flex justify-around items-center px-2 z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.05)] fixed bottom-0 left-0" aria-label="Mobile Navigation">
+          <nav className="md:hidden h-20 w-full bg-white dark:bg-surface-dark border-t border-border-light dark:border-border-dark flex justify-around items-center px-4 z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] fixed bottom-0 left-0 safe-area-bottom" aria-label="Mobile Navigation">
             <NavItem
               icon="home"
               label="Home"
@@ -311,7 +331,7 @@ const AppContent: React.FC = () => {
               ariaLabel="Home"
             />
             <NavItem
-              id="tutorial-progress-mobile"
+              id="tutorial-progress"
               icon="bar_chart"
               label="Progress"
               active={location.pathname === '/progress'}
@@ -319,11 +339,11 @@ const AppContent: React.FC = () => {
               ariaLabel="Progress"
             />
 
-            <div className="relative w-14 flex justify-center pointer-events-none shrink-0">
+            <div className="relative w-16 flex justify-center pointer-events-none">
               <button
-                id="tutorial-new-plan-mobile"
+                id="tutorial-new-plan"
                 onClick={() => { triggerHaptic('medium'); navigate('/create-plan'); }}
-                className="bg-primary hover:bg-primary/90 text-white rounded-full w-12 h-12 flex items-center justify-center shadow-lg shadow-primary/30 transition-transform hover:scale-105 active:scale-95 relative -top-5 pointer-events-auto shrink-0 aspect-square"
+                className="bg-primary hover:bg-primary/90 text-white rounded-full w-14 h-14 flex items-center justify-center shadow-xl shadow-primary/30 transition-transform hover:scale-110 active:scale-95 relative -top-6 pointer-events-auto shrink-0"
                 aria-label="Create New Plan"
               >
                 <Icon name="add" className="text-3xl" />

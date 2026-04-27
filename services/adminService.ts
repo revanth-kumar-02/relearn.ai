@@ -25,6 +25,7 @@ export interface GlobalStats {
 
 export interface UserAdminData extends User {
   last_login?: string;
+  last_seen?: string;
   room_count?: number;
   plan_count?: number;
   is_verified?: boolean;
@@ -135,6 +136,7 @@ export const adminService = {
     }
   },
 
+
   // Moderate: Delete a room
   deleteRoom: async (roomId: string) => {
     const { error } = await supabase
@@ -163,6 +165,7 @@ export const adminService = {
         .select(`
           id,
           title,
+          subject,
           createdAt,
           users:userId (
             name,
@@ -181,17 +184,41 @@ export const adminService = {
 
   // Fetch Growth Data (Last 7 days)
   getGrowthData: async () => {
-    // This would typically be a complex query or an edge function
-    // Returning mock data for the chart for now
-    return [
-      { date: '2026-04-20', users: 120, plans: 45 },
-      { date: '2026-04-21', users: 132, plans: 52 },
-      { date: '2026-04-22', users: 145, plans: 61 },
-      { date: '2026-04-23', users: 168, plans: 75 },
-      { date: '2026-04-24', users: 189, plans: 88 },
-      { date: '2026-04-25', users: 210, plans: 112 },
-      { date: '2026-04-26', users: 245, plans: 134 },
-    ];
+    try {
+      const dates = [...Array(7)].map((_, i) => {
+        const d = new Date();
+        d.setDate(d.getDate() - (6 - i));
+        return d.toISOString().split('T')[0];
+      });
+
+      const [usersResponse, plansResponse] = await Promise.all([
+        supabase.from('users').select('createdAt'),
+        supabase.from('plans').select('createdAt')
+      ]);
+
+      const userData = usersResponse.data || [];
+      const planData = plansResponse.data || [];
+
+      return dates.map(date => {
+        const dayStart = new Date(date).getTime();
+        const dayEnd = dayStart + 24 * 60 * 60 * 1000;
+
+        return {
+          date: new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          users: userData.filter(u => {
+            const time = new Date(u.createdAt).getTime();
+            return time < dayEnd; // Cumulative
+          }).length,
+          plans: planData.filter(p => {
+            const time = new Date(p.createdAt).getTime();
+            return time >= dayStart && time < dayEnd; // Daily activity
+          }).length
+        };
+      });
+    } catch (err) {
+      console.error('[AdminService] Growth data fetch failed:', err);
+      return [];
+    }
   },
 
   // Get User Feedback
@@ -236,7 +263,18 @@ export const adminService = {
   resendConfirmationEmail: async (email: string) => {
     const { error } = await supabase.auth.resend({
       type: 'signup',
-      email: email
+      email: email,
+      options: {
+        emailRedirectTo: `${window.location.origin}/`
+      }
+    });
+    if (error) throw error;
+  },
+
+  // Trigger password reset email (Admin initiated)
+  sendPasswordResetEmail: async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
     });
     if (error) throw error;
   },

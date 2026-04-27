@@ -14,6 +14,7 @@ interface AuthContextType {
   deleteAccount: () => void;
   checkVerification: () => Promise<boolean>;
   resendVerification: () => Promise<{ success: boolean; message?: string }>;
+  forgotPassword: (email: string) => Promise<{ success: boolean; message?: string }>;
   loading: boolean;
 }
 
@@ -335,6 +336,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return { success: true };
   };
 
+  const forgotPassword = async (email: string) => {
+    if (!supabaseAvailable || !navigator.onLine) {
+      return { success: false, message: 'Unable to send reset email. Please check your connection.' };
+    }
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+
+    if (error) return { success: false, message: error.message };
+    return { success: true };
+  };
+
   return (
     <AuthContext.Provider value={{
       user,
@@ -346,6 +360,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       deleteAccount,
       checkVerification,
       resendVerification,
+      forgotPassword,
       loading
     }}>
       {!loading && children}

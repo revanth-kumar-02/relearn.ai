@@ -219,6 +219,7 @@ const Dashboard: React.FC = () => {
                                     ReLearn.ai helps you structure your learning with AI. Create your first personalized plan to get started on your journey.
                                 </p>
                                 <button
+                                    id="tutorial-new-plan"
                                     onClick={() => navigate('/create-plan')}
                                     className="mt-4 px-6 py-2.5 bg-primary text-white font-bold text-sm rounded-xl hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 active:scale-95"
                                 >
@@ -305,7 +306,10 @@ const Dashboard: React.FC = () => {
                             <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark text-center mt-3 max-w-xs relative z-10 leading-relaxed">
                                 You don't have any active learning plans. Create one now and let AI guide your success.
                             </p>
-                            <div className="mt-8 px-10 py-3.5 bg-primary text-white rounded-xl font-bold text-sm shadow-xl shadow-primary/20 group-hover:shadow-primary/30 group-hover:-translate-y-1 transition-all">
+                            <div 
+                                id={isNewUser ? "tutorial-new-plan" : undefined}
+                                className="mt-8 px-10 py-3.5 bg-primary text-white rounded-xl font-bold text-sm shadow-xl shadow-primary/20 group-hover:shadow-primary/30 group-hover:-translate-y-1 transition-all"
+                            >
                                 Generate New Plan
                             </div>
                         </button>

@@ -42,6 +42,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
         const lowerQuery = query.toLowerCase();
         const users = await adminService.getAllUsers();
         const rooms = await adminService.getAllRooms();
+        const plans = await adminService.getAllPlans();
         
         const matchedUsers = users
           .filter(u => u.email.toLowerCase().includes(lowerQuery) || u.name.toLowerCase().includes(lowerQuery))
@@ -51,9 +52,14 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
         const matchedRooms = rooms
           .filter(r => r.name.toLowerCase().includes(lowerQuery) || r.room_code.toLowerCase().includes(lowerQuery))
           .slice(0, 3)
-          .map(r => ({ id: r.id, type: 'room', title: r.name, subtitle: \`Code: \${r.room_code}\`, icon: 'hub', action: () => { onNavigate('rooms'); onClose(); } }));
+          .map(r => ({ id: r.id, type: 'room', title: r.name, subtitle: `Code: ${r.room_code}`, icon: 'hub', action: () => { onNavigate('rooms'); onClose(); } }));
 
-        setResults([...matchedUsers, ...matchedRooms]);
+        const matchedPlans = plans
+          .filter(p => p.title.toLowerCase().includes(lowerQuery) || (p.subject && p.subject.toLowerCase().includes(lowerQuery)))
+          .slice(0, 3)
+          .map(p => ({ id: p.id, type: 'plan', title: p.title, subtitle: p.subject, icon: 'auto_awesome', action: () => { onNavigate('plans'); onClose(); } }));
+
+        setResults([...matchedUsers, ...matchedRooms, ...matchedPlans]);
         setSelectedIndex(0);
       } catch (err) {
         console.error('Search failed', err);
@@ -126,13 +132,13 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
                     key={item.id}
                     onMouseEnter={() => setSelectedIndex(index)}
                     onClick={() => { item.action(); onClose(); }}
-                    className={\`flex items-center gap-4 px-4 py-3 rounded-2xl transition-colors text-left \${
+                    className={`flex items-center gap-4 px-4 py-3 rounded-2xl transition-colors text-left ${
                       index === selectedIndex ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600' : 'hover:bg-slate-50 dark:hover:bg-stone-800/50 text-slate-700 dark:text-slate-300'
-                    }\`}
+                    }`}
                   >
-                    <div className={\`w-10 h-10 rounded-xl flex items-center justify-center \${
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
                       index === selectedIndex ? 'bg-indigo-100 dark:bg-indigo-500/20' : 'bg-slate-100 dark:bg-stone-800'
-                    }\`}>
+                    }`}>
                       <Icon name={item.icon} className="text-lg" />
                     </div>
                     <div>

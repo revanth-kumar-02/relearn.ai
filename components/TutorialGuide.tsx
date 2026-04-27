@@ -124,26 +124,22 @@ const TutorialGuide: React.FC = () => {
     if (!isActive || !currentStepData) return;
 
     const updatePosition = () => {
-      // Handle mobile/desktop ID variations for navigation items
-      let targetId = currentStepData?.target;
-      if (window.innerWidth < 768) {
-          if (targetId === 'tutorial-new-plan') targetId = 'tutorial-new-plan-mobile';
-          if (targetId === 'tutorial-progress') targetId = 'tutorial-progress-mobile';
-      }
-
+      const targetId = currentStepData?.target;
       const element = document.getElementById(targetId);
+      
       if (element) {
         const rect = element.getBoundingClientRect();
         // Check if element is in viewport and has size
         if (rect.width > 0 && rect.height > 0) {
             setTargetRect(rect);
             setIsElementVisible(true);
-        } else {
-            setIsElementVisible(false);
+            return;
         }
-      } else {
-        setIsElementVisible(false);
       }
+      
+      // Fallback: If element is missing or hidden, we still want to show the instructions
+      setTargetRect(null);
+      setIsElementVisible(true); // Always true now to show the instructions
     };
 
     // Initial check
@@ -203,54 +199,45 @@ const TutorialGuide: React.FC = () => {
     );
   }
 
-  if (!isElementVisible || !targetRect) return null;
-
-  // Calculate tooltip position
   const getTooltipStyle = () => {
-    const gap = 16;
     const tooltipWidth = 300;
-    const tooltipHeight = 180; // Approximate
-    
-    let top = 0;
-    let left = 0;
+    const tooltipHeight = 180; // Estimated height including buttons
 
-    // Default positions
+    if (!targetRect) {
+      // Center screen fallback
+      return {
+        top: (window.innerHeight / 2) - (tooltipHeight / 2),
+        left: (window.innerWidth / 2) - (tooltipWidth / 2)
+      };
+    }
+
+    const margin = 12;
+    let top = targetRect.top;
+    let left = targetRect.left;
+
     switch (currentStepData.position) {
       case 'right':
-        top = targetRect.top + (targetRect.height / 2) - 60;
-        left = targetRect.right + gap;
+        top = targetRect.top + targetRect.height / 2 - tooltipHeight / 2;
+        left = targetRect.right + margin;
         break;
       case 'left':
-        top = targetRect.top + (targetRect.height / 2) - 60;
-        left = targetRect.left - tooltipWidth - gap;
-        break;
-      case 'bottom':
-        top = targetRect.bottom + gap;
-        left = targetRect.left + (targetRect.width / 2) - (tooltipWidth / 2);
+        top = targetRect.top + targetRect.height / 2 - tooltipHeight / 2;
+        left = targetRect.left - tooltipWidth - margin;
         break;
       case 'top':
-        top = targetRect.top - tooltipHeight - gap;
-        left = targetRect.left + (targetRect.width / 2) - (tooltipWidth / 2);
+        top = targetRect.top - tooltipHeight - margin;
+        left = targetRect.left + targetRect.width / 2 - tooltipWidth / 2;
+        break;
+      case 'bottom':
+      default:
+        top = targetRect.bottom + margin;
+        left = targetRect.left + targetRect.width / 2 - tooltipWidth / 2;
         break;
     }
 
-    // Viewport Boundary Checks
-    const padding = 20;
-    
-    // Horizontal check
-    if (left < padding) left = padding;
-    if (left + tooltipWidth > window.innerWidth - padding) {
-        left = window.innerWidth - tooltipWidth - padding;
-    }
-
-    // Vertical check
-    if (top < padding) {
-        // Flip to bottom if top is clipped
-        top = targetRect.bottom + gap;
-    } else if (top + tooltipHeight > window.innerHeight - padding) {
-        // Flip to top if bottom is clipped
-        top = targetRect.top - tooltipHeight - gap;
-    }
+    // Viewport bounds check
+    top = Math.max(margin, Math.min(top, window.innerHeight - tooltipHeight - margin));
+    left = Math.max(margin, Math.min(left, window.innerWidth - tooltipWidth - margin));
 
     return { top, left };
   };
@@ -260,24 +247,30 @@ const TutorialGuide: React.FC = () => {
   return createPortal(
     <div className="fixed inset-0 z-[90] overflow-hidden pointer-events-none">
       {/* Spotlight with Overlay using box-shadow */}
-      <motion.div
-        layoutId="spotlight"
-        className="absolute rounded-xl transition-all duration-300 ease-out border-2 border-white/50 shadow-[0_0_20px_rgba(0,0,0,0.5)]"
-        style={{
-          top: targetRect.top - 4,
-          left: targetRect.left - 4,
-          width: targetRect.width + 8,
-          height: targetRect.height + 8,
-          boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.75)' // The dark overlay
-        }}
-        initial={false}
-        animate={{
-          top: targetRect.top - 4,
-          left: targetRect.left - 4,
-          width: targetRect.width + 8,
-          height: targetRect.height + 8
-        }}
-      />
+      {targetRect && (
+        <motion.div
+          layoutId="spotlight"
+          className="absolute rounded-xl transition-all duration-300 ease-out border-2 border-white/50 shadow-[0_0_20px_rgba(0,0,0,0.5)]"
+          style={{
+            top: targetRect.top - 4,
+            left: targetRect.left - 4,
+            width: targetRect.width + 8,
+            height: targetRect.height + 8,
+            boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.75)' // The dark overlay
+          }}
+          initial={false}
+          animate={{
+            top: targetRect.top - 4,
+            left: targetRect.left - 4,
+            width: targetRect.width + 8,
+            height: targetRect.height + 8
+          }}
+        />
+      )}
+      
+      {!targetRect && (
+        <div className="absolute inset-0 bg-black/75 backdrop-blur-sm" />
+      )}
 
       {/* Tooltip */}
       <motion.div 
