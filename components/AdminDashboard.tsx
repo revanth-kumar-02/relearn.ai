@@ -1,15 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
-import {
-    LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area,
-    BarChart, Bar
-} from 'recharts';
 import Icon from './common/Icon';
 import { adminService, GlobalStats, UserAdminData } from '../services/adminService';
 import { systemService, SystemStatus } from '../services/systemService';
 import { StudyRoom } from '../types';
 import { triggerHaptic } from '../utils/haptics';
+
+const AdminCharts = React.lazy(() => import('./admin/AdminCharts'));
 
 
 type AdminTab = 'overview' | 'users' | 'plans' | 'rooms' | 'feedback' | 'system';
@@ -45,7 +43,8 @@ const AdminDashboard: React.FC = () => {
     
     // Pagination State
     const [currentPage, setCurrentPage] = useState(1);
-    const USERS_PER_PAGE = 10;
+    const [totalItems, setTotalItems] = useState(0);
+    const ITEMS_PER_PAGE = 10;
 
     useEffect(() => {
         if (toast) {
@@ -74,31 +73,62 @@ const AdminDashboard: React.FC = () => {
         setIsLoading(true);
         const startPing = performance.now();
         try {
-            const [s, u, p, r, sys, growth, f, a] = await Promise.all([
+            const [s, sys, growth] = await Promise.all([
                 adminService.getGlobalStats(),
-                adminService.getAllUsers(),
-                adminService.getAllPlans(),
-                adminService.getAllRooms(),
                 systemService.getSystemStatus(),
                 adminService.getGrowthData(),
-                adminService.getFeedback(),
-                adminService.getAnnouncements()
             ]);
             setStats(s);
-            setUsers(u);
-            setPlans(p);
-            setRooms(r);
             setSystemStatus(sys);
             setGrowthData(growth);
-            setFeedback(f);
-            setAnnouncements(a);
             setLatency(Math.round(performance.now() - startPing));
+            
+            // Initial tab load
+            await loadTabData(activeTab, 1, verificationFilter);
         } catch (error) {
             console.error('Admin data load failed:', error);
         } finally {
             setIsLoading(false);
         }
     };
+
+    const loadTabData = async (tab: AdminTab, page: number, filter?: string) => {
+        try {
+            if (tab === 'users') {
+                const { data, count } = await adminService.getAllUsers(page, ITEMS_PER_PAGE, filter);
+                setUsers(data);
+                setTotalItems(count);
+            } else if (tab === 'plans') {
+                const { data, count } = await adminService.getAllPlans(page, ITEMS_PER_PAGE);
+                setPlans(data);
+                setTotalItems(count);
+            } else if (tab === 'rooms') {
+                const { data, count } = await adminService.getAllRooms(page, ITEMS_PER_PAGE);
+                setRooms(data);
+                setTotalItems(count);
+            } else if (tab === 'feedback') {
+                const { data, count } = await adminService.getFeedback(page, ITEMS_PER_PAGE);
+                setFeedback(data);
+                setTotalItems(count);
+            } else if (tab === 'system') {
+                const { data, count } = await adminService.getAnnouncements(page, ITEMS_PER_PAGE);
+                setAnnouncements(data);
+                setTotalItems(count);
+            }
+        } catch (err) {
+            console.error(`Failed to load ${tab} data:`, err);
+        }
+    };
+
+    useEffect(() => {
+        if (!isLoading) {
+            loadTabData(activeTab, currentPage, verificationFilter);
+        }
+    }, [activeTab, currentPage, verificationFilter]);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [activeTab, verificationFilter]);
 
     const handleSystemUpdate = async (updates: Partial<SystemStatus>) => {
         try {
@@ -126,7 +156,7 @@ const AdminDashboard: React.FC = () => {
             triggerHaptic('success');
         } catch (err) {
             console.error('Delete failed', err);
-            alert('Failed to delete user');
+            setToast({ message: 'Failed to delete user', type: 'error' });
         }
     };
 
@@ -134,10 +164,10 @@ const AdminDashboard: React.FC = () => {
         try {
             await adminService.resendConfirmationEmail(email);
             triggerHaptic('success');
-            alert(`Confirmation email resent to ${email}`);
+            setToast({ message: `Confirmation email resent to ${email}`, type: 'success' });
         } catch (error: any) {
             console.error('Failed to resend confirmation:', error);
-            alert(`Failed to resend confirmation: ${error.message}`);
+            setToast({ message: `Failed: ${error.message}`, type: 'error' });
         }
     };
 
@@ -148,7 +178,7 @@ const AdminDashboard: React.FC = () => {
             triggerHaptic('success');
         } catch (error: any) {
             console.error('Failed to force verify user:', error);
-            alert(`Failed to force verify: ${error.message}`);
+            setToast({ message: `Failed: ${error.message}`, type: 'error' });
         }
     };
 
@@ -157,7 +187,7 @@ const AdminDashboard: React.FC = () => {
         try {
             await adminService.createAnnouncement(newAnnouncement, announcementType);
             setNewAnnouncement('');
-            const a = await adminService.getAnnouncements();
+            const { data: a } = await adminService.getAnnouncements();
             setAnnouncements(a);
             triggerHaptic('success');
         } catch (error) {
@@ -191,32 +221,11 @@ const AdminDashboard: React.FC = () => {
             setUsers(users.map(u => u.id === userId ? { ...u, role: newRole } : u));
             triggerHaptic('success');
         } catch (error) {
-            alert('Failed to update role');
+            setToast({ message: 'Failed to update role', type: 'error' });
         }
     };
 
-    const filteredUsers = users.filter(u => {
-        if (verificationFilter === 'verified') return u.is_verified;
-        if (verificationFilter === 'unverified') return !u.is_verified;
-        if (verificationFilter === 'online') {
-            if (!u.last_seen) return false;
-            const fiveMinsAgo = new Date(Date.now() - 5 * 60 * 1000).getTime();
-            const lastSeenTime = new Date(u.last_seen).getTime();
-            return lastSeenTime >= fiveMinsAgo;
-        }
-        return true;
-    });
-
-    const paginatedUsers = filteredUsers.slice(
-        (currentPage - 1) * USERS_PER_PAGE,
-        currentPage * USERS_PER_PAGE
-    );
-    const totalPages = Math.ceil(filteredUsers.length / USERS_PER_PAGE);
-
-    // Reset page when filter changes
-    useEffect(() => {
-        setCurrentPage(1);
-    }, [verificationFilter]);
+    const totalPages = Math.ceil((totalItems || 0) / ITEMS_PER_PAGE);
 
     if (isLoading) {
         return (
@@ -314,54 +323,13 @@ const AdminDashboard: React.FC = () => {
                             )}
 
                             {/* Charts Row */}
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                <div className="bg-white dark:bg-surface-dark rounded-[2.5rem] p-8 border border-border-light dark:border-border-dark shadow-xl shadow-black/[0.02]">
-                                    <h3 className="text-sm font-black uppercase tracking-widest mb-8 flex items-center gap-2">
-                                        <Icon name="show_chart" className="text-indigo-600" />
-                                        Platform Growth
-                                    </h3>
-                                    <div className="h-64 w-full">
-                                        <ResponsiveContainer width="100%" height="100%">
-                                            <AreaChart data={growthData}>
-                                                <defs>
-                                                    <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
-                                                        <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.1} />
-                                                        <stop offset="95%" stopColor="#4f46e5" stopOpacity={0} />
-                                                    </linearGradient>
-                                                </defs>
-                                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                                                <XAxis dataKey="date" hide />
-                                                <YAxis hide />
-                                                <Tooltip
-                                                    contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}
-                                                />
-                                                <Area type="monotone" dataKey="users" stroke="#4f46e5" strokeWidth={3} fillOpacity={1} fill="url(#colorUsers)" />
-                                                <Area type="monotone" dataKey="plans" stroke="#9333ea" strokeWidth={3} fillOpacity={0} />
-                                            </AreaChart>
-                                        </ResponsiveContainer>
-                                    </div>
+                            <React.Suspense fallback={
+                                <div className="h-64 flex items-center justify-center bg-white dark:bg-surface-dark rounded-[2.5rem] border border-border-light dark:border-border-dark">
+                                    <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
                                 </div>
-
-                                <div className="bg-white dark:bg-surface-dark rounded-[2.5rem] p-8 border border-border-light dark:border-border-dark shadow-xl shadow-black/[0.02]">
-                                    <h3 className="text-sm font-black uppercase tracking-widest mb-8 flex items-center gap-2">
-                                        <Icon name="bar_chart" className="text-amber-600" />
-                                        Activity Distribution
-                                    </h3>
-                                    <div className="h-64 w-full">
-                                        <ResponsiveContainer width="100%" height="100%">
-                                            <BarChart data={growthData.slice(-5)}>
-                                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                                                <XAxis dataKey="date" hide />
-                                                <YAxis hide />
-                                                <Tooltip
-                                                    contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}
-                                                />
-                                                <Bar dataKey="plans" fill="#f59e0b" radius={[10, 10, 0, 0]} />
-                                            </BarChart>
-                                        </ResponsiveContainer>
-                                    </div>
-                                </div>
-                            </div>
+                            }>
+                                <AdminCharts growthData={growthData} />
+                            </React.Suspense>
                         </div>
                     )}
 
@@ -380,7 +348,7 @@ const AdminDashboard: React.FC = () => {
                                         <button onClick={() => setVerificationFilter('verified')} className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${verificationFilter === 'verified' ? 'bg-white shadow-sm text-green-600' : 'text-slate-500'}`}>Verified</button>
                                         <button onClick={() => setVerificationFilter('unverified')} className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${verificationFilter === 'unverified' ? 'bg-white shadow-sm text-orange-600' : 'text-slate-500'}`}>Unverified</button>
                                     </div>
-                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-text-secondary-light">Total: {filteredUsers.length}</span>
+                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-text-secondary-light">Total: {totalItems}</span>
                                 </div>
                             </div>
                             <div className="overflow-x-auto">
@@ -395,7 +363,7 @@ const AdminDashboard: React.FC = () => {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-border-light dark:divide-border-dark">
-                                        {paginatedUsers.map(u => (
+                                        {users.map((u, idx) => (
                                             <tr key={u.id} className="hover:bg-gray-50/30 dark:hover:bg-stone-900/30 transition-colors">
                                                 <td className="px-8 py-5">
                                                     <div className="flex items-center gap-3">
@@ -464,11 +432,12 @@ const AdminDashboard: React.FC = () => {
                                                             >
                                                                 <Icon name="more_vert" />
                                                             </button>
-
                                                             {activeActionMenu === u.id && (
                                                                 <>
                                                                     <div className="fixed inset-0 z-10" onClick={() => setActiveActionMenu(null)} />
-                                                                    <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-stone-900 rounded-2xl shadow-2xl border border-border-light dark:border-border-dark py-2 z-20 overflow-hidden animate-in fade-in zoom-in duration-200">
+                                                                    <div className={`absolute right-0 w-48 bg-white dark:bg-stone-900 rounded-2xl shadow-2xl border border-border-light dark:border-border-dark py-2 z-20 overflow-hidden animate-in fade-in zoom-in duration-200 ${
+                                                                        idx > users.length - 3 ? 'bottom-full mb-2' : 'top-full mt-2'
+                                                                    }`}>
                                                                         <button onClick={() => { handlePasswordReset(u.email); setActiveActionMenu(null); }} className="w-full px-4 py-2 text-left text-xs font-bold hover:bg-gray-50 dark:hover:bg-white/5 flex items-center gap-2">
                                                                             <Icon name="lock_reset" className="text-sm text-indigo-500" />
                                                                             Reset Password
@@ -502,6 +471,28 @@ const AdminDashboard: React.FC = () => {
                                     </tbody>
                                 </table>
                             </div>
+                            {/* Pagination */}
+                            {totalPages > 1 && (
+                                <div className="p-8 border-t border-border-light dark:border-border-dark flex items-center justify-between">
+                                    <button
+                                        disabled={currentPage === 1}
+                                        onClick={() => { setCurrentPage(p => p - 1); triggerHaptic('light'); }}
+                                        className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-stone-800 text-[10px] font-black uppercase tracking-widest disabled:opacity-30 hover:bg-indigo-600 hover:text-white transition-all"
+                                    >
+                                        Previous
+                                    </button>
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                        Page {currentPage} of {totalPages}
+                                    </span>
+                                    <button
+                                        disabled={currentPage === totalPages}
+                                        onClick={() => { setCurrentPage(p => p + 1); triggerHaptic('light'); }}
+                                        className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-stone-800 text-[10px] font-black uppercase tracking-widest disabled:opacity-30 hover:bg-indigo-600 hover:text-white transition-all"
+                                    >
+                                        Next
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     )}
 
@@ -512,7 +503,7 @@ const AdminDashboard: React.FC = () => {
                                     <Icon name="auto_awesome" className="text-purple-600" />
                                     AI Plans Overview
                                 </h3>
-                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-text-secondary-light">Total: {plans.length}</span>
+                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-text-secondary-light">Total: {totalItems}</span>
                             </div>
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left">
@@ -558,79 +549,162 @@ const AdminDashboard: React.FC = () => {
                                     </div>
                                 )}
                             </div>
-                        </div>
-                    )}
-
-                    {activeTab === 'rooms' && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {rooms.map(room => (
-                                <div key={room.id} className="bg-white dark:bg-surface-dark rounded-[2rem] border border-border-light dark:border-border-dark p-6 shadow-xl shadow-black/[0.02] flex flex-col">
-                                    <div className="flex items-center justify-between mb-6">
-                                        <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center">
-                                            <Icon name="hub" className="text-2xl" />
-                                        </div>
-                                        <div className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${room.is_active ? 'bg-green-500 text-white' : 'bg-slate-200 text-slate-600'
-                                            }`}>
-                                            {room.is_active ? 'Live' : 'Inactive'}
-                                        </div>
-                                    </div>
-                                    <h4 className="font-black tracking-tight text-lg mb-1">{room.name}</h4>
-                                    <p className="text-[10px] font-bold text-text-secondary-light uppercase tracking-widest mb-6">CODE: {room.room_code}</p>
-
-                                    <div className="mt-auto pt-6 border-t border-border-light dark:border-border-dark flex items-center justify-between gap-4">
-                                        <button
-                                            onClick={() => { adminService.deleteRoom(room.id); setRooms(r => r.filter(x => x.id !== room.id)); }}
-                                            className="text-[10px] font-black uppercase tracking-widest text-red-500 hover:text-red-600 transition-colors whitespace-nowrap"
-                                        >
-                                            Force Close
-                                        </button>
-                                        <div className="flex items-center gap-1 text-[10px] font-black text-slate-400 whitespace-nowrap">
-                                            <Icon name="person" className="text-xs" />
-                                            {room.max_members || room.settings?.timer || 0} Members
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                            {rooms.length === 0 && (
-                                <div className="col-span-full py-20 text-center">
-                                    <Icon name="leak_remove" className="text-4xl text-slate-200 mb-4 mx-auto" />
-                                    <p className="text-sm font-black text-slate-400 uppercase tracking-widest">No active study rooms found</p>
+                            {/* Pagination */}
+                            {totalPages > 1 && (
+                                <div className="p-8 border-t border-border-light dark:border-border-dark flex items-center justify-between">
+                                    <button
+                                        disabled={currentPage === 1}
+                                        onClick={() => { setCurrentPage(p => p - 1); triggerHaptic('light'); }}
+                                        className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-stone-800 text-[10px] font-black uppercase tracking-widest disabled:opacity-30 hover:bg-indigo-600 hover:text-white transition-all"
+                                    >
+                                        Previous
+                                    </button>
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                        Page {currentPage} of {totalPages}
+                                    </span>
+                                    <button
+                                        disabled={currentPage === totalPages}
+                                        onClick={() => { setCurrentPage(p => p + 1); triggerHaptic('light'); }}
+                                        className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-stone-800 text-[10px] font-black uppercase tracking-widest disabled:opacity-30 hover:bg-indigo-600 hover:text-white transition-all"
+                                    >
+                                        Next
+                                    </button>
                                 </div>
                             )}
                         </div>
+                    )}
+                    {activeTab === 'rooms' && (
+                        <>
+                            <div className="mb-6 flex items-center justify-between">
+                                <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
+                                    <Icon name="hub" className="text-amber-600" />
+                                    Active Study Rooms
+                                </h3>
+                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-text-secondary-light">Total: {totalItems}</span>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {rooms.map(room => (
+                                    <div key={room.id} className="bg-white dark:bg-surface-dark rounded-[2rem] border border-border-light dark:border-border-dark p-6 shadow-xl shadow-black/[0.02] flex flex-col">
+                                        <div className="flex items-center justify-between mb-6">
+                                            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center">
+                                                <Icon name="hub" className="text-2xl" />
+                                            </div>
+                                            <div className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${room.is_active ? 'bg-green-500 text-white' : 'bg-slate-200 text-slate-600'
+                                                }`}>
+                                                {room.is_active ? 'Live' : 'Inactive'}
+                                            </div>
+                                        </div>
+                                        <h4 className="font-black tracking-tight text-lg mb-1">{room.name}</h4>
+                                        <p className="text-[10px] font-bold text-text-secondary-light uppercase tracking-widest mb-6">CODE: {room.room_code}</p>
+
+                                        <div className="mt-auto pt-6 border-t border-border-light dark:border-border-dark flex items-center justify-between gap-4">
+                                            <button
+                                                onClick={() => { adminService.deleteRoom(room.id); setRooms(r => r.filter(x => x.id !== room.id)); }}
+                                                className="text-[10px] font-black uppercase tracking-widest text-red-500 hover:text-red-600 transition-colors whitespace-nowrap"
+                                            >
+                                                Force Close
+                                            </button>
+                                            <div className="flex items-center gap-1 text-[10px] font-black text-slate-400 whitespace-nowrap">
+                                                <Icon name="person" className="text-xs" />
+                                                {room.max_members || room.settings?.timer || 0} Members
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                                {rooms.length === 0 && (
+                                    <div className="col-span-full py-20 text-center">
+                                        <Icon name="leak_remove" className="text-4xl text-slate-200 mb-4 mx-auto" />
+                                        <p className="text-sm font-black text-slate-400 uppercase tracking-widest">No active study rooms found</p>
+                                    </div>
+                                )}
+                            </div>
+                            {/* Pagination */}
+                            {totalPages > 1 && (
+                                <div className="mt-8 flex items-center justify-between bg-white dark:bg-surface-dark p-6 rounded-[2rem] border border-border-light dark:border-border-dark shadow-xl shadow-black/[0.02]">
+                                    <button
+                                        disabled={currentPage === 1}
+                                        onClick={() => { setCurrentPage(p => p - 1); triggerHaptic('light'); }}
+                                        className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-stone-800 text-[10px] font-black uppercase tracking-widest disabled:opacity-30 hover:bg-indigo-600 hover:text-white transition-all"
+                                    >
+                                        Previous
+                                    </button>
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                        Page {currentPage} of {totalPages}
+                                    </span>
+                                    <button
+                                        disabled={currentPage === totalPages}
+                                        onClick={() => { setCurrentPage(p => p + 1); triggerHaptic('light'); }}
+                                        className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-stone-800 text-[10px] font-black uppercase tracking-widest disabled:opacity-30 hover:bg-indigo-600 hover:text-white transition-all"
+                                    >
+                                        Next
+                                    </button>
+                                </div>
+                            )}
+                        </>
                     )}
 
                     {activeTab === 'feedback' && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {feedback.map(item => (
-                                <div key={item.id} className="bg-white dark:bg-surface-dark rounded-[2rem] border border-border-light dark:border-border-dark p-6 shadow-xl shadow-black/[0.02] flex flex-col">
-                                    <div className="flex items-center justify-between mb-4">
-                                        <span className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest ${item.type === 'bug' ? 'bg-red-500 text-white' : 'bg-indigo-500 text-white'
-                                            }`}>
-                                            {item.type || 'feedback'}
-                                        </span>
-                                        <span className="text-[9px] font-bold text-slate-400">
-                                            {new Date(item.created_at).toLocaleDateString()}
-                                        </span>
-                                    </div>
-                                    <p className="text-sm font-bold text-slate-800 dark:text-slate-200 leading-relaxed mb-4">
-                                        "{item.content}"
-                                    </p>
-                                    <div className="mt-auto pt-4 border-t border-border-light dark:border-border-dark flex items-center gap-2">
-                                        <div className="w-6 h-6 rounded-lg bg-slate-100 flex items-center justify-center text-[10px] font-black">
-                                            U
+                        <>
+                            <div className="mb-6 flex items-center justify-between">
+                                <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
+                                    <Icon name="chat" className="text-indigo-600" />
+                                    User Feedback
+                                </h3>
+                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-text-secondary-light">Total: {totalItems}</span>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {feedback.map(item => (
+                                    <div key={item.id} className="bg-white dark:bg-surface-dark rounded-[2rem] border border-border-light dark:border-border-dark p-6 shadow-xl shadow-black/[0.02] flex flex-col">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <span className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest ${item.type === 'bug' ? 'bg-red-500 text-white' : 'bg-indigo-500 text-white'
+                                                }`}>
+                                                {item.type || 'feedback'}
+                                            </span>
+                                            <span className="text-[9px] font-bold text-slate-400">
+                                                {new Date(item.created_at).toLocaleDateString()}
+                                            </span>
                                         </div>
-                                        <span className="text-[10px] font-bold text-text-secondary-light">Anonymous User</span>
+                                        <p className="text-sm font-bold text-slate-800 dark:text-slate-200 leading-relaxed mb-4">
+                                            "{item.content}"
+                                        </p>
+                                        <div className="mt-auto pt-4 border-t border-border-light dark:border-border-dark flex items-center gap-2">
+                                            <div className="w-6 h-6 rounded-lg bg-slate-100 flex items-center justify-center text-[10px] font-black">
+                                                U
+                                            </div>
+                                            <span className="text-[10px] font-bold text-text-secondary-light">Anonymous User</span>
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
-                            {feedback.length === 0 && (
-                                <div className="col-span-full py-20 text-center">
-                                    <Icon name="inbox" className="text-4xl text-slate-200 mb-4 mx-auto" />
-                                    <p className="text-sm font-black text-slate-400 uppercase tracking-widest">No feedback received yet</p>
+                                ))}
+                                {feedback.length === 0 && (
+                                    <div className="col-span-full py-20 text-center">
+                                        <Icon name="inbox" className="text-4xl text-slate-200 mb-4 mx-auto" />
+                                        <p className="text-sm font-black text-slate-400 uppercase tracking-widest">No feedback received yet</p>
+                                    </div>
+                                )}
+                            </div>
+                            {/* Pagination */}
+                            {totalPages > 1 && (
+                                <div className="mt-8 flex items-center justify-between bg-white dark:bg-surface-dark p-6 rounded-[2rem] border border-border-light dark:border-border-dark shadow-xl shadow-black/[0.02]">
+                                    <button
+                                        disabled={currentPage === 1}
+                                        onClick={() => { setCurrentPage(p => p - 1); triggerHaptic('light'); }}
+                                        className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-stone-800 text-[10px] font-black uppercase tracking-widest disabled:opacity-30 hover:bg-indigo-600 hover:text-white transition-all"
+                                    >
+                                        Previous
+                                    </button>
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                        Page {currentPage} of {totalPages}
+                                    </span>
+                                    <button
+                                        disabled={currentPage === totalPages}
+                                        onClick={() => { setCurrentPage(p => p + 1); triggerHaptic('light'); }}
+                                        className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-stone-800 text-[10px] font-black uppercase tracking-widest disabled:opacity-30 hover:bg-indigo-600 hover:text-white transition-all"
+                                    >
+                                        Next
+                                    </button>
                                 </div>
                             )}
-                        </div>
+                        </>
                     )}
 
                     {activeTab === 'system' && (

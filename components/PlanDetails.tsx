@@ -23,7 +23,8 @@ const PlanDetails: React.FC = () => {
   const [animatedProgress, setAnimatedProgress] = useState(0);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   
-  const planId = location.state?.planId;
+  const queryParams = new URLSearchParams(location.search);
+  const planId = location.state?.planId || queryParams.get('id');
   const currentPlan = useMemo(() => plans.find(p => p.id === planId), [plans, planId]);
   
   // Edit State

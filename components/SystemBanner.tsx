@@ -9,8 +9,8 @@ export const SystemBanner: React.FC = () => {
 
   useEffect(() => {
     const fetchAnnouncements = async () => {
-      const activeAnnouncements = await adminService.getAnnouncements();
-      setAnnouncements(activeAnnouncements.filter(a => a.active));
+      const response = await adminService.getAnnouncements();
+      setAnnouncements(response.data.filter(a => a.active));
     };
 
     fetchAnnouncements();

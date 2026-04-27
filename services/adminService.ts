@@ -88,30 +88,46 @@ export const adminService = {
     }
   },
 
-  // Get all users for the table
-  getAllUsers: async (): Promise<UserAdminData[]> => {
+  // Get all users for the table with pagination
+  getAllUsers: async (page = 1, limit = 10, filter?: string): Promise<{ data: UserAdminData[], count: number }> => {
     try {
-      // Query the specialized view which includes verification status
-      const { data, error } = await supabase
+      const from = (page - 1) * limit;
+      const to = from + limit - 1;
+
+      let query = supabase
         .from('admin_users_view')
-        .select('*')
-        .order('createdAt', { ascending: false });
+        .select('*', { count: 'exact' });
+
+      if (filter === 'verified') query = query.eq('is_verified', true);
+      if (filter === 'unverified') query = query.eq('is_verified', false);
+      if (filter === 'online') {
+          const fiveMinsAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+          query = query.gte('last_seen', fiveMinsAgo);
+      }
+
+      const { data, error, count } = await query
+        .order('createdAt', { ascending: false })
+        .range(from, to);
 
       if (error) {
-        // Fallback to normal users table if view doesn't exist yet
         if (error.code === 'PGRST205' || error.message.includes('relation')) {
-          const { data: fallbackData, error: fallbackError } = await supabase
+          let fallbackQuery = supabase
             .from('users')
-            .select('id, name, email, role, stats, createdAt')
-            .order('createdAt', { ascending: false });
+            .select('id, name, email, role, stats, createdAt', { count: 'exact' });
+          
+          const { data: fallbackData, error: fallbackError, count: fallbackCount } = await fallbackQuery
+            .order('createdAt', { ascending: false })
+            .range(from, to);
+            
           if (fallbackError) throw fallbackError;
-          return fallbackData as UserAdminData[];
+          return { data: (fallbackData || []) as UserAdminData[], count: fallbackCount || 0 };
         }
         throw error;
       }
-      return data as UserAdminData[];
+      return { data: (data || []) as UserAdminData[], count: count || 0 };
     } catch (err) {
-      return [];
+      console.error('[AdminService] Error fetching users:', err);
+      return { data: [], count: 0 };
     }
   },
 
@@ -122,17 +138,22 @@ export const adminService = {
   },
 
   // Get all active rooms
-  getAllRooms: async (): Promise<StudyRoom[]> => {
+  // Get active rooms with pagination
+  getAllRooms: async (page = 1, limit = 10): Promise<{ data: StudyRoom[], count: number }> => {
     try {
-      const { data, error } = await supabase
+      const from = (page - 1) * limit;
+      const to = from + limit - 1;
+
+      const { data, error, count } = await supabase
         .from('study_rooms')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('*', { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .range(from, to);
 
       if (error) throw error;
-      return data as StudyRoom[];
+      return { data: (data || []) as StudyRoom[], count: count || 0 };
     } catch (err) {
-      return [];
+      return { data: [], count: 0 };
     }
   },
 
@@ -157,10 +178,13 @@ export const adminService = {
     if (error) throw error;
   },
 
-  // Get all plans for admin dashboard
-  getAllPlans: async (): Promise<any[]> => {
+  // Get all plans for admin dashboard with pagination
+  getAllPlans: async (page = 1, limit = 10): Promise<{ data: any[], count: number }> => {
     try {
-      const { data, error } = await supabase
+      const from = (page - 1) * limit;
+      const to = from + limit - 1;
+
+      const { data, error, count } = await supabase
         .from('plans')
         .select(`
           id,
@@ -171,14 +195,15 @@ export const adminService = {
             name,
             email
           )
-        `)
-        .order('createdAt', { ascending: false });
+        `, { count: 'exact' })
+        .order('createdAt', { ascending: false })
+        .range(from, to);
 
       if (error) throw error;
-      return data || [];
+      return { data: data || [], count: count || 0 };
     } catch (err) {
       console.error('[AdminService] Error fetching plans:', err);
-      return [];
+      return { data: [], count: 0 };
     }
   },
 
@@ -222,17 +247,23 @@ export const adminService = {
   },
 
   // Get User Feedback
-  getFeedback: async () => {
-    const { data, error } = await supabase
-      .from('feedback')
-      .select('*')
-      .order('created_at', { ascending: false });
+  // Get User Feedback with pagination
+  getFeedback: async (page = 1, limit = 10): Promise<{ data: any[], count: number }> => {
+    try {
+      const from = (page - 1) * limit;
+      const to = from + limit - 1;
 
-    if (error) {
-        // Return empty if table doesn't exist
-        return [];
+      const { data, error, count } = await supabase
+        .from('feedback')
+        .select('*', { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .range(from, to);
+
+      if (error) throw error;
+      return { data: data || [], count: count || 0 };
+    } catch (err) {
+      return { data: [], count: 0 };
     }
-    return data;
   },
 
   // Increment Gemini API Usage tokens
@@ -246,13 +277,27 @@ export const adminService = {
         .single();
         
       if (!fetchErr && data) {
-        await supabase
-          .from('api_usage')
-          .update({ 
-            used_tokens: Number(data.used_tokens) + tokens,
-            last_updated: new Date().toISOString()
-          })
-          .eq('id', 'gemini_tokens');
+        let retries = 3;
+        while (retries > 0) {
+          const { error: updateErr } = await supabase
+            .from('api_usage')
+            .update({ 
+              used_tokens: Number(data.used_tokens) + tokens,
+              last_updated: new Date().toISOString()
+            })
+            .eq('id', 'gemini_tokens');
+          
+          if (!updateErr) break;
+          
+          retries--;
+          if (retries === 0) {
+            console.error(`[AdminService] recordTokenUsage update failed after retries:`, updateErr);
+          } else {
+            await new Promise(r => setTimeout(r, 500)); // Brief delay before retry
+          }
+        }
+      } else if (fetchErr) {
+        console.error('[AdminService] recordTokenUsage fetch failed:', fetchErr);
       }
     } catch (err) {
       console.error('[AdminService] Failed to increment API usage:', err);
@@ -283,16 +328,21 @@ export const adminService = {
   // Phase 2: God-Mode Features
   // -----------------------------------------------------
 
-  getAnnouncements: async (): Promise<Announcement[]> => {
+  // Get announcements with pagination
+  getAnnouncements: async (page = 1, limit = 10): Promise<{ data: Announcement[], count: number }> => {
     try {
-      const { data, error } = await supabase
+      const from = (page - 1) * limit;
+      const to = from + limit - 1;
+
+      const { data, error, count } = await supabase
         .from('announcements')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('*', { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .range(from, to);
       if (error) throw error;
-      return data || [];
+      return { data: data || [], count: count || 0 };
     } catch {
-      return [];
+      return { data: [], count: 0 };
     }
   },
 

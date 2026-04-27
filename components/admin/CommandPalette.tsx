@@ -40,21 +40,21 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
       // In production, this would call specialized Supabase RPC functions for full-text search
       try {
         const lowerQuery = query.toLowerCase();
-        const users = await adminService.getAllUsers();
-        const rooms = await adminService.getAllRooms();
-        const plans = await adminService.getAllPlans();
+        const { data: usersData } = await adminService.getAllUsers(1, 50);
+        const { data: roomsData } = await adminService.getAllRooms(1, 50);
+        const { data: plansData } = await adminService.getAllPlans(1, 50);
         
-        const matchedUsers = users
+        const matchedUsers = usersData
           .filter(u => u.email.toLowerCase().includes(lowerQuery) || u.name.toLowerCase().includes(lowerQuery))
           .slice(0, 3)
           .map(u => ({ id: u.id, type: 'user', title: u.name, subtitle: u.email, icon: 'person', action: () => { onNavigate('users'); onClose(); } }));
 
-        const matchedRooms = rooms
+        const matchedRooms = roomsData
           .filter(r => r.name.toLowerCase().includes(lowerQuery) || r.room_code.toLowerCase().includes(lowerQuery))
           .slice(0, 3)
           .map(r => ({ id: r.id, type: 'room', title: r.name, subtitle: `Code: ${r.room_code}`, icon: 'hub', action: () => { onNavigate('rooms'); onClose(); } }));
 
-        const matchedPlans = plans
+        const matchedPlans = plansData
           .filter(p => p.title.toLowerCase().includes(lowerQuery) || (p.subject && p.subject.toLowerCase().includes(lowerQuery)))
           .slice(0, 3)
           .map(p => ({ id: p.id, type: 'plan', title: p.title, subtitle: p.subject, icon: 'auto_awesome', action: () => { onNavigate('plans'); onClose(); } }));

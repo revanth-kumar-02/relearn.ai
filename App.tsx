@@ -20,6 +20,7 @@ import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { usePresence } from './hooks/usePresence';
 import { SystemBanner } from './components/SystemBanner';
 import { CommandPalette } from './components/admin/CommandPalette';
+import { GlobalCommandPalette } from './components/common/GlobalCommandPalette';
 
 const KeyboardShortcutsModal = lazy(() => import('./components/common/KeyboardShortcutsModal'));
 
@@ -72,15 +73,19 @@ const AppContent: React.FC = () => {
   });
   const { showHelp: showShortcuts, setShowHelp: setShowShortcuts } = useKeyboardShortcuts();
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [isGlobalSearchOpen, setIsGlobalSearchOpen] = useState(false);
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
 
   useEffect(() => {
-    if (!isAdmin) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
-        setIsCommandPaletteOpen(true);
+        if (isAdmin) {
+          setIsCommandPaletteOpen(true);
+        } else {
+          setIsGlobalSearchOpen(true);
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -157,6 +162,12 @@ const AppContent: React.FC = () => {
         />
       )}
 
+      <GlobalCommandPalette 
+        isOpen={isGlobalSearchOpen}
+        onClose={() => setIsGlobalSearchOpen(false)}
+        onNavigate={(path) => navigate(path.startsWith('/') ? path : `/${path}`)}
+      />
+
       {/* Desktop Sidebar */}
       {showSidebar && (
         <aside 
@@ -173,6 +184,20 @@ const AppContent: React.FC = () => {
             )}
           </div>
 
+          <div className="p-4">
+            <button 
+              onClick={() => { triggerHaptic('light'); setIsGlobalSearchOpen(true); }}
+              className={`flex items-center gap-3 w-full p-3 rounded-xl bg-slate-50 dark:bg-stone-900 border border-border-light dark:border-border-dark text-slate-400 hover:text-primary hover:border-primary transition-all group ${!isSidebarExpanded && 'justify-center'}`}
+            >
+              <Icon name="search" className="group-hover:scale-110 transition-transform" />
+              {isSidebarExpanded && (
+                <div className="flex-1 flex justify-between items-center">
+                  <span className="text-xs font-bold uppercase tracking-widest">Search</span>
+                  <span className="text-[10px] bg-white dark:bg-stone-800 px-1.5 py-0.5 rounded border border-border-light dark:border-border-dark">⌘K</span>
+                </div>
+              )}
+            </button>
+          </div>
 
           <nav className="flex-1 p-4 space-y-2 overflow-y-auto no-scrollbar">
             <SidebarItem
@@ -251,6 +276,9 @@ const AppContent: React.FC = () => {
                 {isSidebarExpanded && <span>New Plan</span>}
               </button>
             </div>
+            
+            
+            <div className="p-4 border-t border-border-light dark:border-border-dark" />
         </aside>
       )}
 
@@ -364,6 +392,7 @@ const AppContent: React.FC = () => {
               onClick={() => navigate('/settings')}
               ariaLabel="Settings"
             />
+            <div className="flex-1 flex justify-center max-w-[40px]" />
           </nav>
         )}
       </main>

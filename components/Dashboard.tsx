@@ -186,7 +186,7 @@ const Dashboard: React.FC = () => {
                             <p className="text-xs text-text-secondary-light font-medium">Ready to learn something new today?</p>
                         </div>
                     </button>
-                        <SyncIndicator />
+                    <div className="flex items-center gap-3">
                         <button 
                             onClick={() => { /* triggerHaptic('light'); */ navigate('/rooms'); }} 
                             className="w-10 h-10 flex items-center justify-center rounded-full bg-white dark:bg-surface-dark text-indigo-500 shadow-sm border border-border-light dark:border-border-dark hover:scale-110 active:scale-95 transition-all"
@@ -204,6 +204,7 @@ const Dashboard: React.FC = () => {
                                 <span className="absolute top-2 right-2.5 w-2 h-2 bg-red-500 rounded-full border border-white dark:border-surface-dark"></span>
                             )}
                         </button>
+                    </div>
                 </div>
             </div>
 
@@ -574,34 +575,4 @@ const ActivitySection = React.memo(({ recentActivity, clearAllActivity }: any) =
         </div>
     </section>
 ));
-
-const SyncIndicator = () => {
-    const { status, unsyncedCount } = useConnection();
-    
-    if (status === 'offline') {
-        return (
-            <div className="flex flex-col items-center justify-center mr-2 opacity-50" title="Working Offline">
-                <span className="material-symbols-outlined text-xl text-text-secondary-light">cloud_off</span>
-                <span className="text-[8px] font-black uppercase tracking-tighter">Offline</span>
-            </div>
-        );
-    }
-
-    if (unsyncedCount > 0 || status === 'syncing') {
-        return (
-            <div className="flex flex-col items-center justify-center mr-2" title={`${unsyncedCount} changes pending sync`}>
-                <span className="material-symbols-outlined text-xl text-primary animate-pulse">cloud_sync</span>
-                <span className="text-[8px] font-black text-primary uppercase tracking-tighter">Syncing</span>
-            </div>
-        );
-    }
-
-    return (
-        <div className="flex flex-col items-center justify-center mr-2 opacity-40 group" title="All changes saved to cloud">
-            <span className="material-symbols-outlined text-xl text-green-500 group-hover:opacity-100 transition-opacity">cloud_done</span>
-            <span className="text-[8px] font-black text-green-500 uppercase tracking-tighter group-hover:opacity-100 transition-opacity">Saved</span>
-        </div>
-    );
-};
-
 export default Dashboard;
