@@ -17,9 +17,7 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
     );
   }
 
-  const isAdmin = user?.role === 'admin' || 
-                  user?.email === 'admin@relearn.ai' || 
-                  user?.email === 'imposterz.rev02@gmail.com';
+  const isAdmin = user?.role === 'admin';
 
   if (!user || !isAdmin) {
     return <Navigate to="/dashboard" replace />;

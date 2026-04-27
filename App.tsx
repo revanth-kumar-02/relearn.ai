@@ -73,7 +73,7 @@ const AppContent: React.FC = () => {
   const { showHelp: showShortcuts, setShowHelp: setShowShortcuts } = useKeyboardShortcuts();
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const { user } = useAuth();
-  const isAdmin = user?.role === 'admin' || user?.email === 'admin@relearn.ai' || user?.email === 'imposterz.rev02@gmail.com';
+  const isAdmin = user?.role === 'admin';
 
   useEffect(() => {
     if (!isAdmin) return;

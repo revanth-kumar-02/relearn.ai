@@ -174,12 +174,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
     }
 
-    // S2: Critical Auth Bypass Fix
-    // We do NOT allow new logins while offline if we can't verify credentials.
-    // Instead, we only allow existing sessions to persist (handled by the useEffect hydrate).
+    // We do NOT allow new logins while offline.
+    // Existing sessions are handled by the useEffect session hydration.
     return { 
       success: false, 
-      message: 'You need to be online to log in for the first time on this device.' 
+      message: 'Network required for authentication.' 
     };
   };
 
@@ -279,8 +278,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (error) return { success: false, message: error.message };
     }
 
-    // S1 Fix: Passwords are no longer stored in profile metadata
-    //Supabase handles credentials. Local storage only stores public profile.
+    // Supabase handles credentials securely via JWT. 
+    // Local storage only stores public profile metadata.
     return { success: true };
   };
 
