@@ -205,7 +205,7 @@ const helpSections: HelpSection[] = [
           ))}
         </div>
         <div className="p-4 rounded-2xl bg-slate-50 dark:bg-stone-800/50 border border-slate-100 dark:border-stone-700">
-          <p className="text-xs leading-relaxed">The workspace integrates <strong>YouTube Data API</strong> to bring you the best video resources and <strong>Gemini 3.1 Pro</strong> for deep contextual explanations of every topic.</p>
+          <p className="text-xs leading-relaxed">The workspace integrates <strong>YouTube Data API</strong> to bring you the best video resources and <strong>Gemini 1.5 Pro</strong> for deep contextual explanations of every topic.</p>
         </div>
       </div>
     )
@@ -459,7 +459,7 @@ const HelpCenter: React.FC = () => {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-16">
           {[
             { label: 'Status', val: 'Online', icon: 'check_circle', color: 'text-green-500' },
-            { label: 'AI', val: 'Gemini 3.1 Pro', icon: 'bolt', color: 'text-amber-500' },
+            { label: 'AI', val: 'Gemini 1.5', icon: 'bolt', color: 'text-amber-500' },
             { label: 'Privacy', val: 'Protected', icon: 'lock', color: 'text-blue-500' },
             { label: 'Version', val: 'v6.0', icon: 'cloud_sync', color: 'text-primary' }
           ].map(s => (

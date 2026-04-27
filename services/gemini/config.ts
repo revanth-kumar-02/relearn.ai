@@ -13,10 +13,10 @@ export const AI_MODELS = {
   PRIMARY: import.meta.env.VITE_LLM_MODEL_PRIMARY || 'gemini-2.0-flash',
 
   /** Ultra-high efficiency model for lightweight tasks */
-  FAST_LITE: 'gemini-2.0-flash',
+  FAST_LITE: 'gemini-1.5-flash',
 
   /** Flagship reasoning model for chat and complex tutoring */
-  CHAT: import.meta.env.VITE_LLM_MODEL_CHAT || 'gemini-2.0-pro-exp-02-05',
+  CHAT: import.meta.env.VITE_LLM_MODEL_CHAT || 'gemini-1.5-pro',
 
   /** Premium image generation model */
   IMAGE: 'imagen-3.0-generate-001',
@@ -24,10 +24,8 @@ export const AI_MODELS = {
   /** Ordered fallback chain for peak demand */
   FALLBACK_CHAIN: [
     'gemini-2.0-flash',
-    'gemini-3.1-flash-lite-preview',
-    'gemini-3.1-pro-preview',
-    'gemini-2.0-pro-exp-02-05',
-    'gemini-2.0-flash-lite-preview-02-05',
+    'gemini-1.5-pro',
+    'gemini-1.5-flash',
   ],
 } as const;
 
