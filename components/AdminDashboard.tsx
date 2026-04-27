@@ -9,6 +9,7 @@ import { adminService, GlobalStats, UserAdminData } from '../services/adminServi
 import { systemService, SystemStatus } from '../services/systemService';
 import { StudyRoom } from '../types';
 import { triggerHaptic } from '../utils/haptics';
+import { CommandPalette } from './admin/CommandPalette';
 
 type AdminTab = 'overview' | 'users' | 'plans' | 'rooms' | 'feedback' | 'system';
 
@@ -30,6 +31,12 @@ const AdminDashboard: React.FC = () => {
     const [deleteModalUser, setDeleteModalUser] = useState<UserAdminData | null>(null);
     const [deleteReason, setDeleteReason] = useState('');
 
+    const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+    const [latency, setLatency] = useState(0);
+    const [newAnnouncement, setNewAnnouncement] = useState('');
+    const [announcementType, setAnnouncementType] = useState<'info' | 'warning' | 'emergency'>('info');
+    const [announcements, setAnnouncements] = useState<any[]>([]);
+
     useEffect(() => {
         loadAllData();
 
@@ -37,20 +44,34 @@ const AdminDashboard: React.FC = () => {
             alert(`🚨 URGENT: ${e.detail?.message || 'Gemini API limit reached or quota exhausted!'}\nPlease check API usage and consider upgrading or changing the key.`);
         };
         window.addEventListener('gemini-api-limit', handleApiLimit);
-        return () => window.removeEventListener('gemini-api-limit', handleApiLimit);
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+                e.preventDefault();
+                setIsCommandPaletteOpen(true);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+
+        return () => {
+            window.removeEventListener('gemini-api-limit', handleApiLimit);
+            window.removeEventListener('keydown', handleKeyDown);
+        };
     }, []);
 
     const loadAllData = async () => {
         setIsLoading(true);
+        const startPing = performance.now();
         try {
-            const [s, u, p, r, sys, growth, f] = await Promise.all([
+            const [s, u, p, r, sys, growth, f, a] = await Promise.all([
                 adminService.getGlobalStats(),
                 adminService.getAllUsers(),
                 adminService.getAllPlans(),
                 adminService.getAllRooms(),
                 systemService.getSystemStatus(),
                 adminService.getGrowthData(),
-                adminService.getFeedback()
+                adminService.getFeedback(),
+                adminService.getAnnouncements()
             ]);
             setStats(s);
             setUsers(u);
@@ -59,6 +80,8 @@ const AdminDashboard: React.FC = () => {
             setSystemStatus(sys);
             setGrowthData(growth);
             setFeedback(f);
+            setAnnouncements(a);
+            setLatency(Math.round(performance.now() - startPing));
         } catch (error) {
             console.error('Admin data load failed:', error);
         } finally {
@@ -107,13 +130,48 @@ const AdminDashboard: React.FC = () => {
         }
     };
 
+    const handleForceVerify = async (userId: string) => {
+        try {
+            await adminService.forceVerifyUser(userId);
+            setUsers(users.map(u => u.id === userId ? { ...u, is_verified: true } : u));
+            triggerHaptic('success');
+        } catch (error: any) {
+            console.error('Failed to force verify user:', error);
+            alert(`Failed to force verify: ${error.message}`);
+        }
+    };
+
+    const handleCreateAnnouncement = async () => {
+        if (!newAnnouncement.trim()) return;
+        try {
+            await adminService.createAnnouncement(newAnnouncement, announcementType);
+            setNewAnnouncement('');
+            const a = await adminService.getAnnouncements();
+            setAnnouncements(a);
+            triggerHaptic('success');
+        } catch (error) {
+            console.error('Failed to create announcement', error);
+        }
+    };
+
+    const handleDeleteAnnouncement = async (id: string) => {
+        try {
+            await adminService.deleteAnnouncement(id);
+            setAnnouncements(announcements.filter(a => a.id !== id));
+            triggerHaptic('success');
+        } catch (error) {
+            console.error('Failed to delete announcement', error);
+        }
+    };
+
     const filteredUsers = users.filter(u => {
         if (verificationFilter === 'verified') return u.is_verified;
         if (verificationFilter === 'unverified') return !u.is_verified;
         if (verificationFilter === 'online') {
-            // Mocking online filter: assume recently created users are online for this demo, 
-            // or simply just return a subset. In real-world, we'd check last_login or presence.
-            return Math.random() > 0.7; // Temporary mock filter
+            if (!u.last_seen) return false;
+            const fiveMinsAgo = new Date(Date.now() - 5 * 60 * 1000).getTime();
+            const lastSeenTime = new Date(u.last_seen).getTime();
+            return lastSeenTime >= fiveMinsAgo;
         }
         return true;
     });
@@ -144,6 +202,12 @@ const AdminDashboard: React.FC = () => {
                             <p className="text-xs font-black uppercase tracking-widest text-text-secondary-light">Real-time Node Active</p>
                         </div>
                     </div>
+                </div>
+
+                <div className="flex items-center gap-4 hidden lg:flex">
+                    <kbd className="px-3 py-1.5 bg-white dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-xl text-xs font-black text-slate-400 shadow-sm">
+                        ⌘K to search
+                    </kbd>
                 </div>
 
                 {/* Tab Navigation */}
@@ -337,13 +401,22 @@ const AdminDashboard: React.FC = () => {
                                                 <td className="px-8 py-5">
                                                     <div className="flex items-center gap-2">
                                                         {!u.is_verified && (
-                                                            <button 
-                                                                onClick={() => handleResendConfirmation(u.email)}
-                                                                className="p-2 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg text-orange-400 hover:text-orange-600 transition-colors"
-                                                                title="Resend Confirmation Email"
-                                                            >
-                                                                <Icon name="mark_email_read" />
-                                                            </button>
+                                                            <>
+                                                                <button 
+                                                                    onClick={() => handleForceVerify(u.id)}
+                                                                    className="p-2 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg text-green-500 hover:text-green-600 transition-colors"
+                                                                    title="Force Verify User"
+                                                                >
+                                                                    <Icon name="verified_user" />
+                                                                </button>
+                                                                <button 
+                                                                    onClick={() => handleResendConfirmation(u.email)}
+                                                                    className="p-2 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg text-orange-400 hover:text-orange-600 transition-colors"
+                                                                    title="Resend Confirmation Email"
+                                                                >
+                                                                    <Icon name="mark_email_read" />
+                                                                </button>
+                                                            </>
                                                         )}
                                                         <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-slate-400 hover:text-indigo-600 transition-colors">
                                                             <Icon name="more_vert" />
@@ -549,15 +622,83 @@ const AdminDashboard: React.FC = () => {
 
                             {/* Node Info */}
                             <div className="bg-white dark:bg-surface-dark rounded-[2.5rem] border border-border-light dark:border-border-dark p-8 shadow-xl shadow-black/[0.02]">
-                                <h3 className="text-sm font-black uppercase tracking-widest mb-8 flex items-center gap-2">
-                                    <Icon name="dns" className="text-emerald-600" />
-                                    Server Health
-                                </h3>
+                                <div className="flex items-center justify-between mb-8">
+                                    <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
+                                        <Icon name="dns" className="text-emerald-600" />
+                                        Server Health
+                                    </h3>
+                                    <span className="text-xs font-black text-slate-400 flex items-center gap-1">
+                                        <Icon name="speed" className="text-sm" />
+                                        {latency}ms
+                                    </span>
+                                </div>
                                 <div className="space-y-6">
                                     <HealthRow label="Vite Dev Server" status="optimal" />
-                                    <HealthRow label="Supabase Postgres" status="optimal" />
+                                    <HealthRow label="Supabase Postgres" status={latency < 200 ? 'optimal' : latency < 800 ? 'stable' : 'degraded'} />
                                     <HealthRow label="Edge Functions" status="stable" />
                                     <HealthRow label="Vector DB Index" status="optimal" />
+                                </div>
+                            </div>
+                            
+                            {/* Announcements Control */}
+                            <div className="bg-white dark:bg-surface-dark rounded-[2.5rem] border border-border-light dark:border-border-dark p-8 shadow-xl shadow-black/[0.02] md:col-span-2">
+                                <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-2 mb-6">
+                                    <Icon name="campaign" className="text-indigo-600" />
+                                    Global Announcements
+                                </h3>
+                                
+                                <div className="flex gap-4 mb-8">
+                                    <div className="flex-1">
+                                        <input 
+                                            type="text" 
+                                            value={newAnnouncement}
+                                            onChange={e => setNewAnnouncement(e.target.value)}
+                                            placeholder="Write announcement..."
+                                            className="w-full bg-slate-50 dark:bg-stone-900 rounded-xl px-4 py-3 text-sm font-bold border border-border-light dark:border-border-dark outline-none focus:ring-2 ring-indigo-500/20"
+                                        />
+                                    </div>
+                                    <select 
+                                        value={announcementType}
+                                        onChange={e => setAnnouncementType(e.target.value as any)}
+                                        className="bg-slate-50 dark:bg-stone-900 rounded-xl px-4 py-3 text-sm font-bold border border-border-light dark:border-border-dark outline-none cursor-pointer"
+                                    >
+                                        <option value="info">Info</option>
+                                        <option value="warning">Warning</option>
+                                        <option value="emergency">Emergency</option>
+                                    </select>
+                                    <button 
+                                        onClick={handleCreateAnnouncement}
+                                        disabled={!newAnnouncement.trim()}
+                                        className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold text-sm disabled:opacity-50 transition-transform active:scale-95"
+                                    >
+                                        Broadcast
+                                    </button>
+                                </div>
+
+                                <div className="space-y-3">
+                                    {announcements.map(a => (
+                                        <div key={a.id} className="flex items-center justify-between p-4 rounded-xl border border-border-light dark:border-border-dark bg-slate-50/50 dark:bg-stone-900/50">
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-white ${
+                                                    a.type === 'emergency' ? 'bg-red-500' : a.type === 'warning' ? 'bg-amber-500' : 'bg-indigo-500'
+                                                }`}>
+                                                    <Icon name={a.type === 'emergency' ? 'warning' : a.type === 'warning' ? 'error_outline' : 'info'} className="text-sm" />
+                                                </div>
+                                                <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{a.content}</span>
+                                            </div>
+                                            <button 
+                                                onClick={() => handleDeleteAnnouncement(a.id)}
+                                                className="text-slate-400 hover:text-red-500 p-2"
+                                            >
+                                                <Icon name="delete" />
+                                            </button>
+                                        </div>
+                                    ))}
+                                    {announcements.length === 0 && (
+                                        <div className="text-center py-6 text-xs font-bold uppercase tracking-widest text-slate-400">
+                                            No active announcements
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -613,6 +754,14 @@ const AdminDashboard: React.FC = () => {
                     </motion.div>
                 )}
             </AnimatePresence>
+            
+            <CommandPalette 
+                isOpen={isCommandPaletteOpen} 
+                onClose={() => setIsCommandPaletteOpen(false)} 
+                onNavigate={(tab) => {
+                    setActiveTab(tab as AdminTab);
+                }} 
+            />
         </div>
     );
 };

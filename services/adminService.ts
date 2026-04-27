@@ -1,6 +1,14 @@
 import { supabase } from './supabase';
 import { User, StudyRoom, Plan } from '../types';
 
+export interface Announcement {
+  id: string;
+  content: string;
+  type: 'info' | 'warning' | 'emergency';
+  active: boolean;
+  created_at: string;
+}
+
 export interface GlobalStats {
   totalUsers: number;
   activeUsers24h: number;
@@ -40,9 +48,15 @@ export const adminService = {
         supabase.from('api_usage').select('used_tokens, limit_tokens').eq('id', 'gemini_tokens').single()
       ]);
 
+      const fiveMinsAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+      const { count: onlineCount } = await supabase
+        .from('users')
+        .select('*', { count: 'exact', head: true })
+        .gte('last_seen', fiveMinsAgo);
+
       const totalUsers = users || 0;
       const activeUsers24h = Math.floor(totalUsers * 0.4); // Mock ratio
-      const onlineUsers = Math.floor(activeUsers24h * 0.15); // Mock online users based on active
+      const onlineUsers = onlineCount || 0;
 
       return {
         totalUsers,
@@ -225,5 +239,53 @@ export const adminService = {
       email: email
     });
     if (error) throw error;
+  },
+
+  // -----------------------------------------------------
+  // Phase 2: God-Mode Features
+  // -----------------------------------------------------
+
+  getAnnouncements: async (): Promise<Announcement[]> => {
+    try {
+      const { data, error } = await supabase
+        .from('announcements')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    } catch {
+      return [];
+    }
+  },
+
+  createAnnouncement: async (content: string, type: 'info' | 'warning' | 'emergency') => {
+    const { error } = await supabase
+      .from('announcements')
+      .insert({ content, type, active: true });
+    if (error) throw error;
+  },
+
+  deleteAnnouncement: async (id: string) => {
+    const { error } = await supabase
+      .from('announcements')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+  },
+
+  forceVerifyUser: async (userId: string) => {
+    const { error } = await supabase.rpc('verify_user_by_admin', { target_user_id: userId });
+    if (error) throw error;
+  },
+
+  updatePresence: async (userId: string) => {
+    try {
+      await supabase
+        .from('users')
+        .update({ last_seen: new Date().toISOString() })
+        .eq('id', userId);
+    } catch {
+      // Silently fail
+    }
   }
 };

@@ -17,6 +17,8 @@ import Skeleton from './components/common/Skeleton';
 import EmailVerificationModal from './components/EmailVerificationModal';
 import MaintenanceOverlay from './components/MaintenanceOverlay';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+import { usePresence } from './hooks/usePresence';
+import { SystemBanner } from './components/SystemBanner';
 
 const KeyboardShortcutsModal = lazy(() => import('./components/common/KeyboardShortcutsModal'));
 
@@ -79,6 +81,8 @@ const AppContent: React.FC = () => {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin' || user?.email === 'admin@relearn.ai' || user?.email === 'imposterz.rev02@gmail.com';
 
+  usePresence(user?.id);
+
   const authPaths = ['/', '/signup'];
   const isAuthPage = authPaths.includes(location.pathname);
 
@@ -124,6 +128,7 @@ const AppContent: React.FC = () => {
         Skip to main content
       </a>
 
+      <SystemBanner />
       <TutorialGuide />
       <OfflineIndicator showMobileNav={showMobileNav} />
       <Suspense fallback={null}>
