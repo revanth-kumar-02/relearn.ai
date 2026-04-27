@@ -184,22 +184,7 @@ const AppContent: React.FC = () => {
             )}
           </div>
 
-          <div className="p-4">
-            <button 
-              onClick={() => { triggerHaptic('light'); setIsGlobalSearchOpen(true); }}
-              className={`flex items-center gap-3 w-full p-3 rounded-xl bg-slate-50 dark:bg-stone-900 border border-border-light dark:border-border-dark text-slate-400 hover:text-primary hover:border-primary transition-all group ${!isSidebarExpanded && 'justify-center'}`}
-            >
-              <Icon name="search" className="group-hover:scale-110 transition-transform" />
-              {isSidebarExpanded && (
-                <div className="flex-1 flex justify-between items-center">
-                  <span className="text-xs font-bold uppercase tracking-widest">Search</span>
-                  <span className="text-[10px] bg-white dark:bg-stone-800 px-1.5 py-0.5 rounded border border-border-light dark:border-border-dark">⌘K</span>
-                </div>
-              )}
-            </button>
-          </div>
-
-          <nav className="flex-1 p-4 space-y-2 overflow-y-auto no-scrollbar">
+          <nav className="flex-1 p-4 pt-6 space-y-2 overflow-y-auto no-scrollbar">
             <SidebarItem
               icon="home"
               label="Dashboard"

@@ -71,39 +71,83 @@ const helpSections: HelpSection[] = [
     )
   },
   {
-    id: 'search',
+    id: 'shortcuts',
     category: 'Getting Started',
-    title: 'Global Search (⌘K)',
-    icon: 'search',
+    title: 'Platform Shortcuts (Windows)',
+    icon: 'keyboard',
     color: 'text-primary',
     content: (
       <div className="space-y-6">
-        <p>Navigate the entire platform at the speed of thought using our universal command palette.</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="bg-slate-900 text-slate-300 p-6 rounded-2xl font-mono text-xs border border-white/10 shadow-2xl">
-            <div className="flex items-center gap-2 mb-4 text-primary font-bold">
-              <Icon name="keyboard" className="text-sm" />
-              <span className="uppercase tracking-widest text-[10px]">macOS Shortcut</span>
-            </div>
-            <div className="space-y-2 opacity-80">
-              <p className="flex justify-between"><span>Open Search</span> <span className="text-white bg-white/10 px-2 py-0.5 rounded">⌘K</span></p>
-              <p className="flex justify-between"><span>Navigate</span> <span className="text-white bg-white/10 px-2 py-0.5 rounded">↑ ↓</span></p>
-              <p className="flex justify-between"><span>Select</span> <span className="text-white bg-white/10 px-2 py-0.5 rounded">Enter</span></p>
-            </div>
+        <p>Master ReLearn.ai with these essential productivity shortcuts designed for Windows users.</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="p-5 rounded-2xl bg-slate-900 border border-white/10 shadow-xl flex flex-col">
+             <div className="flex items-center gap-2 mb-4 text-sky-400">
+                <Icon name="explore" className="text-sm" />
+                <span className="text-[10px] font-black uppercase tracking-widest">Navigation</span>
+             </div>
+             <div className="space-y-3 flex-1">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-400">Global Search</span>
+                  <kbd className="px-2 py-1 bg-white/10 rounded text-white font-mono font-bold border border-white/5 shadow-sm">Ctrl+K</kbd>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-400">Dashboard</span>
+                  <kbd className="px-2 py-1 bg-white/10 rounded text-white font-mono font-bold border border-white/5 shadow-sm">D</kbd>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-400">Progress</span>
+                  <kbd className="px-2 py-1 bg-white/10 rounded text-white font-mono font-bold border border-white/5 shadow-sm">P</kbd>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-400">Learning Diary</span>
+                  <kbd className="px-2 py-1 bg-white/10 rounded text-white font-mono font-bold border border-white/5 shadow-sm">L</kbd>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-400">Settings</span>
+                  <kbd className="px-2 py-1 bg-white/10 rounded text-white font-mono font-bold border border-white/5 shadow-sm">S</kbd>
+                </div>
+             </div>
           </div>
-          <div className="bg-slate-900 text-slate-300 p-6 rounded-2xl font-mono text-xs border border-white/10 shadow-2xl">
-            <div className="flex items-center gap-2 mb-4 text-sky-400 font-bold">
-              <Icon name="laptop_windows" className="text-sm" />
-              <span className="uppercase tracking-widest text-[10px]">Windows Shortcut</span>
+          <div className="space-y-4 flex flex-col">
+            <div className="p-5 rounded-2xl bg-slate-900 border border-white/10 shadow-xl">
+               <div className="flex items-center gap-2 mb-4 text-amber-400">
+                  <Icon name="bolt" className="text-sm" />
+                  <span className="text-[10px] font-black uppercase tracking-widest">Quick Actions</span>
+               </div>
+               <div className="space-y-3">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-400">New Plan</span>
+                    <kbd className="px-2 py-1 bg-white/10 rounded text-white font-mono font-bold border border-white/5 shadow-sm">N</kbd>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-400">Show Shortcuts</span>
+                    <kbd className="px-2 py-1 bg-white/10 rounded text-white font-mono font-bold border border-white/5 shadow-sm">?</kbd>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-400">Close / Back</span>
+                    <kbd className="px-2 py-1 bg-white/10 rounded text-white font-mono font-bold border border-white/5 shadow-sm">Esc</kbd>
+                  </div>
+               </div>
             </div>
-            <div className="space-y-2 opacity-80">
-              <p className="flex justify-between"><span>Open Search</span> <span className="text-white bg-white/10 px-2 py-0.5 rounded">Ctrl+K</span></p>
-              <p className="flex justify-between"><span>Navigate</span> <span className="text-white bg-white/10 px-2 py-0.5 rounded">↑ ↓</span></p>
-              <p className="flex justify-between"><span>Select</span> <span className="text-white bg-white/10 px-2 py-0.5 rounded">Enter</span></p>
+            <div className="p-5 rounded-2xl bg-slate-900 border border-white/10 shadow-xl">
+               <div className="flex items-center gap-2 mb-4 text-purple-400">
+                  <Icon name="search" className="text-sm" />
+                  <span className="text-[10px] font-black uppercase tracking-widest">Search Palette</span>
+               </div>
+               <div className="space-y-3">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-400">Navigate Results</span>
+                    <kbd className="px-2 py-1 bg-white/10 rounded text-white font-mono font-bold border border-white/5 shadow-sm">↑ ↓</kbd>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-400">Select Result</span>
+                    <kbd className="px-2 py-1 bg-white/10 rounded text-white font-mono font-bold border border-white/5 shadow-sm">Enter</kbd>
+                  </div>
+               </div>
             </div>
           </div>
         </div>
-        <p className="text-xs leading-relaxed opacity-70">Search currently supports navigation to all major pages and instant lookup of your personal Learning Plans.</p>
+        <p className="text-[10px] italic opacity-50 text-center">Note: These shortcuts are active globally throughout the application.</p>
       </div>
     )
   },
