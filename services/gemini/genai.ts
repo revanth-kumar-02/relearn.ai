@@ -27,14 +27,19 @@ export const getProxyConfiguredGenAI = (useCase?: 'plan' | 'chat' | 'image' | 'l
   
   // Intercept generateContentStream calls to record token usage
   const originalGenerateContentStream = ai.models.generateContentStream.bind(ai.models);
-  ai.models.generateContentStream = async function* (options: any) {
+  ai.models.generateContentStream = async (options: any) => {
     const stream = await originalGenerateContentStream(options);
-    for await (const chunk of stream) {
-      if (chunk.usageMetadata) {
-        recordTokenUsage(chunk);
+    
+    async function* wrappedStream() {
+      for await (const chunk of stream) {
+        if (chunk.usageMetadata) {
+          recordTokenUsage(chunk);
+        }
+        yield chunk;
       }
-      yield chunk;
     }
+    
+    return wrappedStream() as any;
   };
 
   return ai;
