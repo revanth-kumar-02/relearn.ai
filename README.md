@@ -1,28 +1,32 @@
-# ReLearn.ai — AI-Powered Learning Platform
+# ReLearn.ai — AI-Powered Learning Platform (v6.0)
 
-ReLearn.ai is an intelligent, AI-powered learning platform that helps you organize your learning journey with personalized study plans, progress tracking, and an AI tutor.
+ReLearn.ai is a premium, AI-native learning platform designed to help users organize their learning journey with personalized study plans, deep analytics, a collaborative study hub, and an intelligent AI tutor.
 
-## Features
+## What's New in v6.0
+* **Upgraded AI Engine**: Powered by the latest **Gemini 3.1 Pro** for advanced reasoning, faster plan generation, and deep contextual tutoring.
+* **God-Mode Admin Dashboard**: A comprehensive administrative suite featuring real-time system metrics, detailed user & plan analytics, cross-platform broadcasting, and a secure Supabase Role-Based Access Control (RBAC) architecture.
+* **Global Command Palette**: Lightning-fast navigation via keyboard shortcuts (macOS: `⌘K` / Windows: `Ctrl+K`), allowing users to jump anywhere in the app instantly.
+* **Self-Healing Sync Engine**: Invisible background data synchronization with offline resilience and multi-layered local persistence (IndexedDB + localStorage).
+* **Premium UX/UI**: Upgraded design system featuring smooth framer-motion animations, responsive glassmorphism interfaces, and dynamic haptic feedback.
 
-- **AI-Powered Plan Generation** — Generate personalized study plans based on your goals, difficulty level, and timeframe using Gemini AI.
-- **Collaborative Study Hub** — Real-time social learning with live chat, member presence, and shared focus sessions.
-- **Momentum-First Dashboard** — Intelligent UI that prioritizes "Active Learning" nudges (Streaks, Daily Goals) while auto-routing passive reminders to the Notification Center.
-- **Deep Gamification System** — Earn XP, level up, and unlock 30+ unique badges across 4 rarity tiers with native haptic feedback.
+## Core Features
+
+- **AI-Powered Plan Generation** — Generate highly personalized study plans based on goals, difficulty levels, and timeframes using Gemini 3.1 Pro.
+- **Collaborative Study Hub** — Real-time social learning with live chat, member presence, and shared focus sessions via Supabase Realtime.
+- **Deep Gamification System** — Earn XP, level up, and unlock 30+ unique badges across 4 rarity tiers.
 - **AI-Guided Learning Workspace** — Contextual deep-dives, practice activities, and curated educational resources for every topic.
-- **Self-Healing Sync Engine** — Advanced background synchronization with "invisible" state recovery and multi-layered local persistence (IndexedDB + localStorage).
-- **Interactive Onboarding** — Smart tutorial guide that masters the platform in minutes.
+- **Interactive Onboarding** — Smart tutorial guide that helps users master the platform in minutes.
+- **Comprehensive Help Center** — Full shortcut reference, system status tracking, and setup guides.
 
 ## Tech Stack
 
 - **Frontend**: React 19, TypeScript, Tailwind CSS
-- **AI Services**: Google Gemini API (Plan Generation, Chat, Image Generation, Learning Workspace)
-- **Authentication**: Supabase Auth (Email/Password + Google Sign-In)
-- **Database**: Supabase Database (PostgreSQL)
+- **AI Services**: Google Gemini API (Gemini 3.1 Pro & Flash)
+- **Backend & Auth**: Supabase (Auth, PostgreSQL DB, Realtime, RLS Policies)
 - **Video API**: YouTube Data API v3
 - **Build Tool**: Vite
-- **Icons**: Material Symbols, Lucide React
-- **Charts**: Recharts
 - **Animations**: Motion (Framer Motion)
+- **Charts**: Recharts
 
 ## Getting Started
 
@@ -31,7 +35,7 @@ ReLearn.ai is an intelligent, AI-powered learning platform that helps you organi
    ```bash
    npm install
    ```
-3. Copy `.env.example` to `.env` and fill in your API keys:
+3. Copy `.env.example` to `.env` and fill in your API keys (Supabase, Gemini, YouTube).
    ```bash
    cp .env.example .env
    ```
@@ -45,43 +49,28 @@ ReLearn.ai is an intelligent, AI-powered learning platform that helps you organi
 
 ```
 Relearn.ai/
-├── components/          # React UI components (35+ components)
+├── components/          # React UI components (40+ components)
+│   ├── admin/           # Admin God-Mode features & analytics
+│   ├── common/          # Reusable UI (Command Palette, Icons, etc.)
 │   ├── StudyRooms.tsx   # Real-time social learning hub
-│   ├── RoomView.tsx     # Collaborative study room with chat
 │   ├── Dashboard.tsx    # Main dashboard with task management
-│   ├── CreatePlan.tsx   # AI plan generation form
 │   ├── LearningWorkspace.tsx  # AI-guided study session
-│   ├── Progress.tsx     # Analytics & Badge gallery
-│   ├── TutorialGuide.tsx# Guided walkthrough system
-│   ├── OfflineIndicator.tsx # Sync status & retry manager
-│   ├── StorageWarningToast.tsx # Storage failure handling
+│   ├── HelpCenter.tsx   # Knowledge base & system status
 │   └── ...
 ├── contexts/            # React context providers
 │   ├── AuthContext.tsx   # Supabase Auth state management
 │   ├── DataContext.tsx   # Core data & gamification logic
-│   ├── ConnectionContext.tsx # Sync & network stability
-│   └── TutorialContext.tsx  # Onboarding state
+│   └── ConnectionContext.tsx # Sync & network stability
 ├── services/            # API and external services
 │   ├── supabase.ts      # Supabase configuration
-│   ├── gemini/          # Gemini AI services
+│   ├── adminService.ts  # Admin dashboard logic & RPC calls
+│   ├── gemini/          # Gemini AI configuration and prompt logic
 │   ├── dataService.ts   # "Self-healing" storage layer
-│   ├── gamificationService.ts # Badge & XP logic
-│   ├── roomService.ts   # Real-time room management
-│   ├── shareService.ts  # Plan sharing & slugs
-│   ├── youtubeService.ts
 │   └── ...
 ├── types.ts             # TypeScript type definitions
-├── App.tsx              # Main app with routing
+├── App.tsx              # Main app routing & layout
 └── ...
 ```
-
-## Environment Variables
-
-See [`.env.example`](.env.example) for all required API keys:
-
-- **Supabase** — Authentication, Database, and Real-time subscriptions
-- **Gemini AI** — Intelligence layer for all AI features
-- **YouTube** — Educational video search
 
 ## Deployment
 
@@ -90,4 +79,4 @@ Build for production:
 npm run build
 ```
 
-The output is in the `dist/` directory, ready for deployment to Vercel, Netlify, or any static hosting provider.
+The output is generated in the `dist/` directory, ready for deployment to Vercel, Netlify, or any static hosting provider.
