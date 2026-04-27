@@ -42,6 +42,10 @@ const AdminDashboard: React.FC = () => {
 
     const [activeActionMenu, setActiveActionMenu] = useState<string | null>(null);
     const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null);
+    
+    // Pagination State
+    const [currentPage, setCurrentPage] = useState(1);
+    const USERS_PER_PAGE = 10;
 
     useEffect(() => {
         if (toast) {
@@ -54,7 +58,10 @@ const AdminDashboard: React.FC = () => {
         loadAllData();
 
         const handleApiLimit = (e: any) => {
-            alert(`🚨 URGENT: ${e.detail?.message || 'Gemini API limit reached or quota exhausted!'}\nPlease check API usage and consider upgrading or changing the key.`);
+            setToast({
+                message: `🚨 API Limit: ${e.detail?.message || 'Quota exhausted!'} Check dashboard.`,
+                type: 'error'
+            });
         };
         window.addEventListener('gemini-api-limit', handleApiLimit);
 
@@ -199,6 +206,17 @@ const AdminDashboard: React.FC = () => {
         }
         return true;
     });
+
+    const paginatedUsers = filteredUsers.slice(
+        (currentPage - 1) * USERS_PER_PAGE,
+        currentPage * USERS_PER_PAGE
+    );
+    const totalPages = Math.ceil(filteredUsers.length / USERS_PER_PAGE);
+
+    // Reset page when filter changes
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [verificationFilter]);
 
     if (isLoading) {
         return (
@@ -377,7 +395,7 @@ const AdminDashboard: React.FC = () => {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-border-light dark:divide-border-dark">
-                                        {filteredUsers.map(u => (
+                                        {paginatedUsers.map(u => (
                                             <tr key={u.id} className="hover:bg-gray-50/30 dark:hover:bg-stone-900/30 transition-colors">
                                                 <td className="px-8 py-5">
                                                     <div className="flex items-center gap-3">
