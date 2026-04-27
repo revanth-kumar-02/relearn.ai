@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import { recordTokenUsage } from "./config";
 
 /**
  * Gets a configured instance of GoogleGenAI that uses the local proxy. 
@@ -7,7 +8,7 @@ import { GoogleGenAI } from "@google/genai";
 export const getProxyConfiguredGenAI = (useCase?: 'plan' | 'chat' | 'image' | 'learning' | 'default'): GoogleGenAI => {
   // Use a placeholder key to pass client validation, the real key is 
   // injected by the Netlify function (gemini-proxy.mts).
-  return new GoogleGenAI({
+  const ai = new GoogleGenAI({
     apiKey: 'PROXY_KEY_MANAGED_BY_SERVER',
     httpOptions: {
       baseUrl: window.location.origin + '/api/gemini',
@@ -15,4 +16,26 @@ export const getProxyConfiguredGenAI = (useCase?: 'plan' | 'chat' | 'image' | 'l
       headers: useCase ? { 'x-gemini-use-case': useCase } : {}
     }
   });
+
+  // Intercept generateContent calls to record token usage
+  const originalGenerateContent = ai.models.generateContent.bind(ai.models);
+  ai.models.generateContent = async (options: any) => {
+    const response = await originalGenerateContent(options);
+    recordTokenUsage(response);
+    return response;
+  };
+  
+  // Intercept generateContentStream calls to record token usage
+  const originalGenerateContentStream = ai.models.generateContentStream.bind(ai.models);
+  ai.models.generateContentStream = async function* (options: any) {
+    const stream = await originalGenerateContentStream(options);
+    for await (const chunk of stream) {
+      if (chunk.usageMetadata) {
+        recordTokenUsage(chunk);
+      }
+      yield chunk;
+    }
+  };
+
+  return ai;
 };

@@ -24,7 +24,7 @@ const AdminDashboard: React.FC = () => {
     const [isLoading, setIsLoading] = useState(true);
     
     // User Filter State
-    const [verificationFilter, setVerificationFilter] = useState<'all' | 'verified' | 'unverified'>('all');
+    const [verificationFilter, setVerificationFilter] = useState<'all' | 'verified' | 'unverified' | 'online'>('all');
     
     // Delete Modal State
     const [deleteModalUser, setDeleteModalUser] = useState<UserAdminData | null>(null);
@@ -32,6 +32,12 @@ const AdminDashboard: React.FC = () => {
 
     useEffect(() => {
         loadAllData();
+
+        const handleApiLimit = (e: any) => {
+            alert(`🚨 URGENT: ${e.detail?.message || 'Gemini API limit reached or quota exhausted!'}\nPlease check API usage and consider upgrading or changing the key.`);
+        };
+        window.addEventListener('gemini-api-limit', handleApiLimit);
+        return () => window.removeEventListener('gemini-api-limit', handleApiLimit);
     }, []);
 
     const loadAllData = async () => {
@@ -90,9 +96,25 @@ const AdminDashboard: React.FC = () => {
         }
     };
 
+    const handleResendConfirmation = async (email: string) => {
+        try {
+            await adminService.resendConfirmationEmail(email);
+            triggerHaptic('success');
+            alert(`Confirmation email resent to ${email}`);
+        } catch (error: any) {
+            console.error('Failed to resend confirmation:', error);
+            alert(`Failed to resend confirmation: ${error.message}`);
+        }
+    };
+
     const filteredUsers = users.filter(u => {
         if (verificationFilter === 'verified') return u.is_verified;
         if (verificationFilter === 'unverified') return !u.is_verified;
+        if (verificationFilter === 'online') {
+            // Mocking online filter: assume recently created users are online for this demo, 
+            // or simply just return a subset. In real-world, we'd check last_login or presence.
+            return Math.random() > 0.7; // Temporary mock filter
+        }
         return true;
     });
 
@@ -153,12 +175,39 @@ const AdminDashboard: React.FC = () => {
                     {activeTab === 'overview' && (
                         <div className="space-y-8">
                             {/* KPI Cards */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
                                 <KPICard label="Total Users" value={stats?.totalUsers || 0} icon="group" color="indigo" onClick={() => setActiveTab('users')} />
+                                <KPICard label="Online Users" value={stats?.onlineUsers || 0} icon="person_pin_circle" color="emerald" onClick={() => { setActiveTab('users'); setVerificationFilter('online'); }} />
                                 <KPICard label="AI Plans" value={stats?.totalPlans || 0} icon="auto_awesome" color="purple" onClick={() => setActiveTab('plans')} />
                                 <KPICard label="Study Rooms" value={stats?.totalRooms || 0} icon="hub" color="amber" onClick={() => setActiveTab('rooms')} />
                                 <KPICard label="Messages" value={stats?.totalMessages || 0} icon="chat" color="emerald" />
                             </div>
+
+                            {/* Gemini API Usage Card */}
+                            {stats?.apiUsage && (
+                                <div className="bg-white dark:bg-surface-dark rounded-[2.5rem] p-8 border border-border-light dark:border-border-dark shadow-xl shadow-black/[0.02]">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
+                                            <Icon name="memory" className="text-indigo-600" />
+                                            Gemini API Token Usage
+                                        </h3>
+                                        <span className="text-xs font-black uppercase tracking-widest text-slate-500">
+                                            {stats.apiUsage.used.toLocaleString()} / {stats.apiUsage.limit.toLocaleString()}
+                                        </span>
+                                    </div>
+                                    <div className="h-4 w-full bg-slate-100 dark:bg-stone-800 rounded-full overflow-hidden">
+                                        <motion.div 
+                                            initial={{ width: 0 }}
+                                            animate={{ width: `${Math.min(100, (stats.apiUsage.used / stats.apiUsage.limit) * 100)}%` }}
+                                            className={`h-full ${stats.apiUsage.used / stats.apiUsage.limit > 0.9 ? 'bg-red-500' : 'bg-indigo-600'}`}
+                                            transition={{ duration: 1, delay: 0.2 }}
+                                        />
+                                    </div>
+                                    <p className="text-[10px] font-bold text-slate-400 mt-2 text-right">
+                                        {((stats.apiUsage.used / stats.apiUsage.limit) * 100).toFixed(2)}% used
+                                    </p>
+                                </div>
+                            )}
 
                             {/* Charts Row */}
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -223,6 +272,7 @@ const AdminDashboard: React.FC = () => {
                                 <div className="flex items-center gap-4">
                                     <div className="flex bg-gray-100 dark:bg-stone-800 rounded-xl p-1">
                                         <button onClick={() => setVerificationFilter('all')} className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${verificationFilter === 'all' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500'}`}>All</button>
+                                        <button onClick={() => setVerificationFilter('online')} className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${verificationFilter === 'online' ? 'bg-white shadow-sm text-emerald-600' : 'text-slate-500'}`}>Online</button>
                                         <button onClick={() => setVerificationFilter('verified')} className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${verificationFilter === 'verified' ? 'bg-white shadow-sm text-green-600' : 'text-slate-500'}`}>Verified</button>
                                         <button onClick={() => setVerificationFilter('unverified')} className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${verificationFilter === 'unverified' ? 'bg-white shadow-sm text-orange-600' : 'text-slate-500'}`}>Unverified</button>
                                     </div>
@@ -286,6 +336,15 @@ const AdminDashboard: React.FC = () => {
                                                 </td>
                                                 <td className="px-8 py-5">
                                                     <div className="flex items-center gap-2">
+                                                        {!u.is_verified && (
+                                                            <button 
+                                                                onClick={() => handleResendConfirmation(u.email)}
+                                                                className="p-2 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg text-orange-400 hover:text-orange-600 transition-colors"
+                                                                title="Resend Confirmation Email"
+                                                            >
+                                                                <Icon name="mark_email_read" />
+                                                            </button>
+                                                        )}
                                                         <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-slate-400 hover:text-indigo-600 transition-colors">
                                                             <Icon name="more_vert" />
                                                         </button>

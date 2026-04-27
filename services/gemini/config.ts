@@ -48,13 +48,35 @@ export const isRetryableError = (error: any): boolean => {
   const status = error?.status || error?.code;
 
   // 404 means the specific model is missing, so we should retry the next model in the fallback chain.
-  return status === 503 || status === 429 || status === 404 ||
-    message.includes('UNAVAILABLE') ||
+  const isRateLimited = status === 429 || 
     message.includes('429') ||
     message.includes('RESOURCE_EXHAUSTED') ||
     message.includes('OVERLOADED') ||
-    message.includes('NOT_FOUND') ||
     message.includes('HIGH DEMAND');
+
+  if (isRateLimited) {
+    window.dispatchEvent(new CustomEvent('gemini-api-limit', { detail: { message: 'Gemini API limit reached' } }));
+  }
+
+  return status === 503 || status === 404 || isRateLimited ||
+    message.includes('UNAVAILABLE') ||
+    message.includes('NOT_FOUND');
+};
+
+/**
+ * Extracts and records token usage from a Gemini API response.
+ */
+export const recordTokenUsage = (response: any) => {
+  try {
+    const tokens = response?.usageMetadata?.totalTokenCount;
+    if (tokens && tokens > 0) {
+      import('../adminService').then(({ adminService }) => {
+        adminService.incrementApiUsage(tokens);
+      });
+    }
+  } catch (err) {
+    // Silently ignore tracking errors to not disrupt user flow
+  }
 };
 
 /** Maximum retries before a sync item is marked as permanently failed */

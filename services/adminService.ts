@@ -4,10 +4,15 @@ import { User, StudyRoom, Plan } from '../types';
 export interface GlobalStats {
   totalUsers: number;
   activeUsers24h: number;
+  onlineUsers: number;
   totalPlans: number;
   totalRooms: number;
   totalMessages: number;
   averageStudyTime: number;
+  apiUsage?: {
+    used: number;
+    limit: number;
+  };
 }
 
 export interface UserAdminData extends User {
@@ -25,21 +30,29 @@ export const adminService = {
         { count: users },
         { count: plans },
         { count: rooms },
-        { data: messages }
+        { data: messages },
+        { data: apiData }
       ] = await Promise.all([
         supabase.from('users').select('*', { count: 'exact', head: true }),
         supabase.from('plans').select('*', { count: 'exact', head: true }),
         supabase.from('study_rooms').select('*', { count: 'exact', head: true }),
-        supabase.from('room_messages').select('id')
+        supabase.from('room_messages').select('id'),
+        supabase.from('api_usage').select('used_tokens, limit_tokens').eq('id', 'gemini_tokens').single()
       ]);
 
+      const totalUsers = users || 0;
+      const activeUsers24h = Math.floor(totalUsers * 0.4); // Mock ratio
+      const onlineUsers = Math.floor(activeUsers24h * 0.15); // Mock online users based on active
+
       return {
-        totalUsers: users || 0,
-        activeUsers24h: Math.floor((users || 0) * 0.4), // Mock ratio for now
+        totalUsers,
+        activeUsers24h,
+        onlineUsers,
         totalPlans: plans || 0,
         totalRooms: rooms || 0,
         totalMessages: messages?.length || 0,
-        averageStudyTime: 42 // Mock avg in minutes
+        averageStudyTime: 42, // Mock avg in minutes
+        apiUsage: apiData ? { used: apiData.used_tokens, limit: apiData.limit_tokens } : { used: 0, limit: 10000000 }
       };
     } catch (err: any) {
       if (err?.message?.includes('relation') && err?.message?.includes('does not exist')) {
@@ -50,10 +63,12 @@ export const adminService = {
       return {
         totalUsers: 0,
         activeUsers24h: 0,
+        onlineUsers: 0,
         totalPlans: 0,
         totalRooms: 0,
         totalMessages: 0,
-        averageStudyTime: 0
+        averageStudyTime: 0,
+        apiUsage: { used: 0, limit: 10000000 }
       };
     }
   },
@@ -177,5 +192,38 @@ export const adminService = {
         return [];
     }
     return data;
+  },
+
+  // Increment Gemini API Usage tokens
+  incrementApiUsage: async (tokens: number) => {
+    if (!tokens || tokens <= 0) return;
+    try {
+      const { data, error: fetchErr } = await supabase
+        .from('api_usage')
+        .select('used_tokens')
+        .eq('id', 'gemini_tokens')
+        .single();
+        
+      if (!fetchErr && data) {
+        await supabase
+          .from('api_usage')
+          .update({ 
+            used_tokens: Number(data.used_tokens) + tokens,
+            last_updated: new Date().toISOString()
+          })
+          .eq('id', 'gemini_tokens');
+      }
+    } catch (err) {
+      console.error('[AdminService] Failed to increment API usage:', err);
+    }
+  },
+
+  // Resend confirmation email to a user
+  resendConfirmationEmail: async (email: string) => {
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: email
+    });
+    if (error) throw error;
   }
 };
