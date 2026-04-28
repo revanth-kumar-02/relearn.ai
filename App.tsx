@@ -335,49 +335,50 @@ const AppContent: React.FC = () => {
 
         {/* Mobile Bottom Navigation */}
         {showMobileNav && (
-          <nav className="md:hidden h-20 w-full bg-white dark:bg-surface-dark border-t border-border-light dark:border-border-dark flex justify-around items-center px-4 z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] fixed bottom-0 left-0 safe-area-bottom" aria-label="Mobile Navigation">
-            <NavItem
-              icon="home"
-              label="Home"
-              active={location.pathname === '/dashboard'}
-              onClick={() => navigate('/dashboard')}
-              ariaLabel="Home"
-            />
-            <NavItem
-              id="tutorial-progress"
-              icon="bar_chart"
-              label="Progress"
-              active={location.pathname === '/progress'}
-              onClick={() => navigate('/progress')}
-              ariaLabel="Progress"
-            />
+          <nav className="md:hidden h-20 w-full bg-white dark:bg-surface-dark border-t border-border-light dark:border-border-dark z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] fixed bottom-0 left-0 safe-area-bottom" aria-label="Mobile Navigation">
+            <div className="flex justify-between items-center w-full max-w-md mx-auto px-6 h-full">
+              <NavItem
+                icon="home"
+                label="Home"
+                active={location.pathname === '/dashboard'}
+                onClick={() => navigate('/dashboard')}
+                ariaLabel="Home"
+              />
+              <NavItem
+                id="tutorial-progress"
+                icon="bar_chart"
+                label="Progress"
+                active={location.pathname === '/progress'}
+                onClick={() => navigate('/progress')}
+                ariaLabel="Progress"
+              />
 
-            <div className="relative w-16 flex justify-center pointer-events-none">
-              <button
-                id="tutorial-new-plan"
-                onClick={() => { triggerHaptic('medium'); navigate('/create-plan'); }}
-                className="bg-primary hover:bg-primary/90 text-white rounded-full w-14 h-14 flex items-center justify-center shadow-xl shadow-primary/30 transition-transform hover:scale-110 active:scale-95 relative -top-6 pointer-events-auto shrink-0"
-                aria-label="Create New Plan"
-              >
-                <Icon name="add" className="text-3xl" />
-              </button>
+              <div className="relative w-16 flex justify-center pointer-events-none">
+                <button
+                  id="tutorial-new-plan"
+                  onClick={() => { triggerHaptic('medium'); navigate('/create-plan'); }}
+                  className="bg-primary hover:bg-primary/90 text-white rounded-full w-14 h-14 flex items-center justify-center shadow-xl shadow-primary/30 transition-transform hover:scale-110 active:scale-95 relative -top-6 pointer-events-auto shrink-0"
+                  aria-label="Create New Plan"
+                >
+                  <Icon name="add" className="text-3xl" />
+                </button>
+              </div>
+
+              <NavItem
+                icon="menu_book"
+                label="Diary"
+                active={location.pathname === '/diary'}
+                onClick={() => navigate('/diary')}
+                ariaLabel="Learning Diary"
+              />
+              <NavItem
+                icon="settings"
+                label="Settings"
+                active={location.pathname === '/settings'}
+                onClick={() => navigate('/settings')}
+                ariaLabel="Settings"
+              />
             </div>
-
-            <NavItem
-              icon="menu_book"
-              label="Diary"
-              active={location.pathname === '/diary'}
-              onClick={() => navigate('/diary')}
-              ariaLabel="Learning Diary"
-            />
-            <NavItem
-              icon="settings"
-              label="Settings"
-              active={location.pathname === '/settings'}
-              onClick={() => navigate('/settings')}
-              ariaLabel="Settings"
-            />
-            <div className="flex-1 flex justify-center max-w-[40px]" />
           </nav>
         )}
       </main>
