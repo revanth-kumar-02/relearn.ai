@@ -5,14 +5,19 @@ import { PLAN_TEMPLATES } from '../data/templates';
 import { PlanTemplate } from '../types';
 import Icon from './common/Icon';
 import { useData } from '../contexts/DataContext';
+import { useToast } from '../contexts/ToastContext';
+import ConfirmationModal from './common/ConfirmationModal';
+import { generateLearningPlan } from '../services/gemini/planGeneratorService';
 
 const TemplateGallery: React.FC = () => {
   const navigate = useNavigate();
   const { addPlanWithTasks } = useData();
   const [filter, setFilter] = useState<string>('all');
   const [search, setSearch] = useState<string>('');
+  const { showToast } = useToast();
   const [selectedTemplate, setSelectedTemplate] = useState<PlanTemplate | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generationStep, setGenerationStep] = useState<'confirm' | 'refining'>('confirm');
 
   const filteredTemplates = useMemo(() => {
     return PLAN_TEMPLATES.filter(template => {
@@ -27,11 +32,25 @@ const TemplateGallery: React.FC = () => {
     if (!selectedTemplate) return;
     
     setIsGenerating(true);
+    setGenerationStep('refining');
     try {
+      // Use AI to generate a full detailed plan based on the template milestones
+      const milestonesText = selectedTemplate.days.map(d => `Day ${d.day}: ${d.topic} (${d.guidance})`).join('\n');
+      const aiResponse = await generateLearningPlan(
+        selectedTemplate.title,
+        selectedTemplate.totalDays,
+        selectedTemplate.difficulty,
+        undefined, // Default model
+        'English',
+        `Focus on ${selectedTemplate.subject}. Use these key milestones as anchors: ${milestonesText}. Ensure there is a task for EVERY day of the ${selectedTemplate.totalDays}-day period.`
+      );
+
+      const generatedData = JSON.parse(aiResponse);
+
       const newPlan = {
         id: crypto.randomUUID(),
-        title: selectedTemplate.title,
-        description: selectedTemplate.description,
+        title: generatedData.title || selectedTemplate.title,
+        description: generatedData.description || selectedTemplate.description,
         subject: selectedTemplate.subject,
         totalDays: selectedTemplate.totalDays,
         completedDays: 0,
@@ -42,7 +61,7 @@ const TemplateGallery: React.FC = () => {
         createdAt: new Date().toISOString()
       };
 
-      const newTasks = selectedTemplate.days.map(day => ({
+      const newTasks = generatedData.days.map((day: any) => ({
         id: crypto.randomUUID(),
         planId: newPlan.id,
         title: day.topic,
@@ -51,7 +70,8 @@ const TemplateGallery: React.FC = () => {
         status: 'Not Started' as const,
         dueDate: new Date(Date.now() + (day.day - 1) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         tags: [selectedTemplate.subject, selectedTemplate.category],
-        type: 'reading' as const,
+        type: (day.topic.toLowerCase().includes('quiz') || day.topic.toLowerCase().includes('test')) ? 'quiz' : 
+              (day.topic.toLowerCase().includes('code') || day.topic.toLowerCase().includes('build')) ? 'coding' : 'reading',
         createdAt: new Date().toISOString()
       }));
 
@@ -59,8 +79,45 @@ const TemplateGallery: React.FC = () => {
       navigate('/dashboard');
     } catch (error) {
       console.error("Error creating plan from template:", error);
+      
+      // Intelligent Fallback: Use the original template milestones if AI expansion fails
+      try {
+        const fallbackPlan = {
+          id: crypto.randomUUID(),
+          title: selectedTemplate.title,
+          description: selectedTemplate.description,
+          subject: selectedTemplate.subject,
+          totalDays: selectedTemplate.totalDays,
+          completedDays: 0,
+          progress: 0,
+          dailyGoalMins: selectedTemplate.dailyGoalMins,
+          difficulty: selectedTemplate.difficulty,
+          status: 'Active' as const,
+          createdAt: new Date().toISOString()
+        };
+
+        const fallbackTasks = selectedTemplate.days.map(day => ({
+          id: crypto.randomUUID(),
+          planId: fallbackPlan.id,
+          title: day.topic,
+          description: day.guidance,
+          durationMinutes: selectedTemplate.dailyGoalMins,
+          status: 'Not Started' as const,
+          dueDate: new Date(Date.now() + (day.day - 1) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          tags: [selectedTemplate.subject, selectedTemplate.category],
+          type: 'reading' as const,
+          createdAt: new Date().toISOString()
+        }));
+
+        await addPlanWithTasks(fallbackPlan, fallbackTasks);
+        navigate('/dashboard');
+      } catch (fallbackError) {
+        console.error("Critical failure during template fallback:", fallbackError);
+        showToast("We're having trouble reaching the AI brain. Falling back to the standard plan structure.", "warning");
+      }
     } finally {
       setIsGenerating(false);
+      setGenerationStep('confirm');
       setSelectedTemplate(null);
     }
   };
@@ -201,27 +258,50 @@ const TemplateGallery: React.FC = () => {
               <div className="p-6 text-center space-y-4">
                 <div className="space-y-1">
                   <h3 className="text-xl font-bold text-text-primary-light dark:text-text-primary-dark">
-                    Start Learning Journey?
+                    {isGenerating ? 'Refining Roadmap...' : 'Start Learning Journey?'}
                   </h3>
                   <p className="text-sm text-text-secondary-light">
-                    This will add <span className="font-bold text-primary">"{selectedTemplate.title}"</span> to your active learning plans.
+                    {isGenerating 
+                      ? `Our AI is expanding "${selectedTemplate.title}" into a full ${selectedTemplate.totalDays}-day schedule just for you...`
+                      : `This will add "${selectedTemplate.title}" to your active learning plans with a custom AI-refined schedule.`}
                   </p>
                 </div>
 
+                {isGenerating && (
+                  <div className="py-4 space-y-3">
+                    <div className="h-2 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                      <motion.div 
+                        initial={{ width: "0%" }}
+                        animate={{ width: "100%" }}
+                        transition={{ duration: 10, ease: "linear" }}
+                        className="h-full bg-primary"
+                      />
+                    </div>
+                    <p className="text-[10px] text-text-secondary-light animate-pulse">
+                      Generating {selectedTemplate.totalDays} daily tasks based on key milestones...
+                    </p>
+                  </div>
+                )}
+
                 <div className="flex gap-3">
-                  <button
-                    onClick={() => setSelectedTemplate(null)}
-                    className="flex-1 py-3 bg-gray-100 dark:bg-gray-800 text-text-primary-light dark:text-text-primary-dark font-bold rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-                  >
-                    Cancel
-                  </button>
+                  {!isGenerating && (
+                    <button
+                      onClick={() => setSelectedTemplate(null)}
+                      className="flex-1 py-3 bg-gray-100 dark:bg-gray-800 text-text-primary-light dark:text-text-primary-dark font-bold rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  )}
                   <button
                     disabled={isGenerating}
                     onClick={handleConfirmTemplate}
-                    className="flex-1 py-3 bg-primary text-white font-bold rounded-xl shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                    className={`${isGenerating ? 'w-full' : 'flex-1'} py-3 bg-primary text-white font-bold rounded-xl shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-90`}
                   >
                     {isGenerating ? (
-                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <>
+                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        <span>Applying Smart Path...</span>
+                      </>
                     ) : (
                       <>
                         <span className="material-symbols-outlined text-sm">check</span>

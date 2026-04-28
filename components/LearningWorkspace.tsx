@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 import { generateLessonContent } from '../services/gemini/learningWorkspaceService';
 import { extractTextFromPDF, validatePDFFile } from '../services/documentService';
 import { motion, AnimatePresence } from 'motion/react';
@@ -39,6 +40,7 @@ const LearningWorkspace: React.FC = () => {
     processGamificationReward, addNotification, 
     startAnalyticsSession, endAnalyticsSession, trackAnalyticsEvent 
   } = useData();
+  const { showToast } = useToast();
 
   const taskId = location.state?.taskId;
   const task = tasks.find(t => t.id === taskId);
@@ -182,7 +184,7 @@ const LearningWorkspace: React.FC = () => {
       });
     } catch (error: any) {
       console.error("Failed to fetch session data:", error);
-      alert('We’re having trouble preparing your workspace right now. Let’s try again in a moment.');
+      showToast('We’re having trouble preparing your workspace right now. Let’s try again in a moment.', 'error');
       setShowPdfPanel(true); // Let them try again
     } finally {
       setIsLoading(false);
@@ -214,7 +216,7 @@ const LearningWorkspace: React.FC = () => {
       })
       .catch(err => {
         console.error("Failed to fetch session data:", err);
-        alert('We’re having trouble preparing your workspace right now. Let’s try again in a moment.');
+        showToast('We’re having trouble preparing your workspace right now. Let’s try again in a moment.', 'error');
         setShowPdfPanel(true);
         setTimeLeft(10); // Reset timer on error
       })

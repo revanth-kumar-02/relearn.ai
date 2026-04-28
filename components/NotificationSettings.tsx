@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 import { UserPreferences } from '../types';
 import { requestNotificationPermission, sendBrowserNotification } from '../services/notificationService';
 
 const NotificationSettings: React.FC = () => {
   const navigate = useNavigate();
   const { user, updateProfile } = useAuth();
+  const { showToast } = useToast();
   
   // Browser permission state
   const [permission, setPermission] = useState<NotificationPermission>(
@@ -37,7 +39,7 @@ const NotificationSettings: React.FC = () => {
           const result = await requestNotificationPermission();
           setPermission(result);
           if (result !== 'granted') {
-              alert("Please allow notifications in your browser settings first.");
+              showToast("Please allow notifications in your browser settings first.", "warning");
               return;
           }
       }

@@ -7,6 +7,7 @@ import { StudyRoom, RoomMember, RoomMessage } from '../types';
 import Icon from './common/Icon';
 import StudyTimer from './StudyTimer';
 import { AnimatePresence, motion } from 'framer-motion';
+import ConfirmationModal from './common/ConfirmationModal';
 
 const RoomView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -23,6 +24,7 @@ const RoomView: React.FC = () => {
   const [showTimer, setShowTimer] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'focus' | 'plan' | 'chat'>('focus');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   
   const chatEndRef = useRef<HTMLDivElement>(null);
   const subscriptionRef = useRef<any>(null);
@@ -147,15 +149,19 @@ const RoomView: React.FC = () => {
     }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!user || !id || !room) return;
-    if (window.confirm('Are you sure you want to delete this room? This will remove all messages and members.')) {
-        try {
-            await roomService.deleteRoom(id);
-            navigate('/rooms');
-        } catch (err) {
-            console.error('Error deleting room:', err);
-        }
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = async () => {
+    try {
+      await roomService.deleteRoom(id!);
+      navigate('/rooms');
+    } catch (err) {
+      console.error('Error deleting room:', err);
+    } finally {
+      setShowDeleteConfirm(false);
     }
   };
 
@@ -504,6 +510,16 @@ const RoomView: React.FC = () => {
         </aside>
 
       </div>
+      <ConfirmationModal
+        isOpen={showDeleteConfirm}
+        title="Dissolve Study Room?"
+        message="This will permanently delete this room and all its message history for everyone. This action cannot be undone."
+        actionLabel="Delete Room"
+        icon="delete_forever"
+        isDanger
+        onConfirm={confirmDelete}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
     </div>
   );
 };
