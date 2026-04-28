@@ -139,7 +139,7 @@ export interface PlanTemplate {
   dailyGoalMins: number;
   coverGradient: string;
   icon: string;
-  popularity: number;
+  rating: number;
   days: Array<{
     day: number;
     topic: string;

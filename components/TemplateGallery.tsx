@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { PLAN_TEMPLATES } from '../data/templates';
 import { PlanTemplate } from '../types';
 import Icon from './common/Icon';
@@ -11,6 +11,8 @@ const TemplateGallery: React.FC = () => {
   const { addPlanWithTasks } = useData();
   const [filter, setFilter] = useState<string>('all');
   const [search, setSearch] = useState<string>('');
+  const [selectedTemplate, setSelectedTemplate] = useState<PlanTemplate | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const filteredTemplates = useMemo(() => {
     return PLAN_TEMPLATES.filter(template => {
@@ -21,43 +23,50 @@ const TemplateGallery: React.FC = () => {
     });
   }, [filter, search]);
 
-  const handleUseTemplate = async (template: PlanTemplate) => {
-    const confirmUse = window.confirm(`Start your learning journey with "${template.title}"? This will create a new plan in your dashboard.`);
-    if (!confirmUse) return;
+  const handleConfirmTemplate = async () => {
+    if (!selectedTemplate) return;
+    
+    setIsGenerating(true);
+    try {
+      const newPlan = {
+        id: crypto.randomUUID(),
+        title: selectedTemplate.title,
+        description: selectedTemplate.description,
+        subject: selectedTemplate.subject,
+        totalDays: selectedTemplate.totalDays,
+        completedDays: 0,
+        progress: 0,
+        dailyGoalMins: selectedTemplate.dailyGoalMins,
+        difficulty: selectedTemplate.difficulty,
+        status: 'Active' as const,
+        createdAt: new Date().toISOString()
+      };
 
-    const newPlan = {
-      id: crypto.randomUUID(),
-      title: template.title,
-      description: template.description,
-      subject: template.subject,
-      totalDays: template.totalDays,
-      completedDays: 0,
-      progress: 0,
-      dailyGoalMins: template.dailyGoalMins,
-      difficulty: template.difficulty,
-      status: 'Active' as const,
-      createdAt: new Date().toISOString()
-    };
+      const newTasks = selectedTemplate.days.map(day => ({
+        id: crypto.randomUUID(),
+        planId: newPlan.id,
+        title: day.topic,
+        description: day.guidance,
+        durationMinutes: selectedTemplate.dailyGoalMins,
+        status: 'Not Started' as const,
+        dueDate: new Date(Date.now() + (day.day - 1) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        tags: [selectedTemplate.subject, selectedTemplate.category],
+        type: 'reading' as const,
+        createdAt: new Date().toISOString()
+      }));
 
-    const newTasks = template.days.map(day => ({
-      id: crypto.randomUUID(),
-      planId: newPlan.id,
-      title: day.topic,
-      description: day.guidance,
-      durationMinutes: template.dailyGoalMins,
-      status: 'Not Started' as const,
-      dueDate: new Date(Date.now() + (day.day - 1) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      tags: [template.subject, template.category],
-      type: 'reading' as const, // Default to reading for templates
-      createdAt: new Date().toISOString()
-    }));
-
-    await addPlanWithTasks(newPlan, newTasks);
-    navigate('/dashboard');
+      await addPlanWithTasks(newPlan, newTasks);
+      navigate('/dashboard');
+    } catch (error) {
+      console.error("Error creating plan from template:", error);
+    } finally {
+      setIsGenerating(false);
+      setSelectedTemplate(null);
+    }
   };
 
   return (
-    <div className="pb-24 animate-fade-in">
+    <div className="pb-24 animate-fade-in relative min-h-screen">
       <div className="sticky top-0 z-10 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-sm p-4 border-b border-border-light dark:border-border-dark flex justify-between items-center">
         <div className="flex items-center gap-3">
           <button onClick={() => navigate(-1)} className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
@@ -103,9 +112,9 @@ const TemplateGallery: React.FC = () => {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: idx * 0.1 }}
+              transition={{ delay: idx * 0.05 }}
               key={template.id}
-              className="group bg-surface-light dark:bg-surface-dark rounded-2xl border border-border-light dark:border-border-dark overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300"
+              className="group bg-surface-light dark:bg-surface-dark rounded-2xl border border-border-light dark:border-border-dark overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col"
             >
               <div className={`h-32 bg-gradient-to-br ${template.coverGradient} p-4 flex flex-col justify-between relative overflow-hidden`}>
                 <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:scale-110 transition-transform duration-500">
@@ -116,19 +125,19 @@ const TemplateGallery: React.FC = () => {
                     {template.difficulty}
                   </span>
                   <div className="flex items-center gap-1 text-white/90">
-                    <span className="material-symbols-outlined text-xs">local_fire_department</span>
-                    <span className="text-[10px] font-bold">{template.popularity}%</span>
+                    <span className="material-symbols-outlined text-xs">star</span>
+                    <span className="text-[10px] font-bold">{template.rating}</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="p-2 bg-white/20 backdrop-blur-md rounded-lg border border-white/30">
                     <span className="material-symbols-outlined text-white">{template.icon}</span>
                   </div>
-                  <h3 className="text-white font-bold drop-shadow-md">{template.title}</h3>
+                  <h3 className="text-white font-bold drop-shadow-md truncate">{template.title}</h3>
                 </div>
               </div>
 
-              <div className="p-4 space-y-4">
+              <div className="p-4 space-y-4 flex-1 flex flex-col">
                 <p className="text-sm text-text-secondary-light line-clamp-2 min-h-[40px]">
                   {template.description}
                 </p>
@@ -145,8 +154,8 @@ const TemplateGallery: React.FC = () => {
                 </div>
 
                 <button
-                  onClick={() => handleUseTemplate(template)}
-                  className="w-full py-3 bg-primary/10 hover:bg-primary text-primary hover:text-white rounded-xl font-bold transition-all duration-300 flex items-center justify-center gap-2"
+                  onClick={() => setSelectedTemplate(template)}
+                  className="w-full py-3 bg-primary/10 hover:bg-primary text-primary hover:text-white rounded-xl font-bold transition-all duration-300 flex items-center justify-center gap-2 mt-auto"
                 >
                   <span className="material-symbols-outlined text-sm">rocket_launch</span>
                   Start Learning
@@ -166,6 +175,66 @@ const TemplateGallery: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Custom Confirmation Modal */}
+      <AnimatePresence>
+        {selectedTemplate && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedTemplate(null)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative bg-surface-light dark:bg-surface-dark rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl border border-border-light dark:border-border-dark"
+            >
+              <div className={`h-24 bg-gradient-to-br ${selectedTemplate.coverGradient} flex items-center justify-center`}>
+                <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl border border-white/30 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-white text-4xl">{selectedTemplate.icon}</span>
+                </div>
+              </div>
+              <div className="p-6 text-center space-y-4">
+                <div className="space-y-1">
+                  <h3 className="text-xl font-bold text-text-primary-light dark:text-text-primary-dark">
+                    Start Learning Journey?
+                  </h3>
+                  <p className="text-sm text-text-secondary-light">
+                    This will add <span className="font-bold text-primary">"{selectedTemplate.title}"</span> to your active learning plans.
+                  </p>
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setSelectedTemplate(null)}
+                    className="flex-1 py-3 bg-gray-100 dark:bg-gray-800 text-text-primary-light dark:text-text-primary-dark font-bold rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    disabled={isGenerating}
+                    onClick={handleConfirmTemplate}
+                    className="flex-1 py-3 bg-primary text-white font-bold rounded-xl shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {isGenerating ? (
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        <span className="material-symbols-outlined text-sm">check</span>
+                        Confirm
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
