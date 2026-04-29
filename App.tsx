@@ -490,7 +490,6 @@ const App: React.FC = () => {
     <ConnectionProvider>
       <AuthProvider>
         <DataProvider>
-          <TutorialProvider>
             <ToastProvider>
               <ErrorBoundary>
                 <StorageWarningToast />
@@ -499,7 +498,6 @@ const App: React.FC = () => {
                 </HashRouter>
               </ErrorBoundary>
             </ToastProvider>
-          </TutorialProvider>
         </DataProvider>
       </AuthProvider>
     </ConnectionProvider>
