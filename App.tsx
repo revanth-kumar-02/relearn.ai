@@ -1,14 +1,13 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
+import { createPortal } from 'react-dom';
 import { HashRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { DataProvider } from './contexts/DataContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { ConnectionProvider } from './contexts/ConnectionContext';
-import { TutorialProvider } from './contexts/TutorialContext';
 import { ToastProvider } from './contexts/ToastContext';
 import { useAuth } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
-import TutorialGuide from './components/TutorialGuide';
 import OfflineIndicator from './components/OfflineIndicator';
 import ErrorBoundary from './components/ErrorBoundary';
 import StorageWarningToast from './components/StorageWarningToast';
@@ -436,10 +435,17 @@ const NavItem: React.FC<NavItemProps> = ({ icon, label, active, onClick, id, ari
 );
 
 const HelpPromptOverlay: React.FC = () => {
-  const [isVisible, setIsVisible] = useState(() => {
-    return !localStorage.getItem('relearn_help_prompt_dismissed');
-  });
+  const [isVisible, setIsVisible] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    // Show prompt after a small delay to not overwhelm on load
+    const isDismissed = localStorage.getItem('relearn_help_prompt_dismissed');
+    if (!isDismissed) {
+      const timer = setTimeout(() => setIsVisible(true), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, []);
 
   if (!isVisible) return null;
 

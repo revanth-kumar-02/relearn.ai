@@ -2,7 +2,6 @@ import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
-import { useAuth } from '../contexts/AuthContext';
 import Icon from './common/Icon';
 import Skeleton, { PlanCardSkeleton } from './common/Skeleton';
 import { generateStudyNudges, sendSmartReminder, type StudyNudge } from '../services/smartReminderService';

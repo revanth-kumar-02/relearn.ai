@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
-import { useData } from '../contexts/DataContext';
 import ConfirmationModal from './common/ConfirmationModal';
 import {
   VIDEO_LANGUAGE_OPTIONS,
