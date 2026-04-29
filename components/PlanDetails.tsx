@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useData } from '../contexts/DataContext';
-import { useTutorial } from '../contexts/TutorialContext';
 import { useToast } from '../contexts/ToastContext';
 import StudyTimer from './StudyTimer';
 import { generatePlanCoverImage } from '../services/gemini/imageService';
@@ -16,7 +15,6 @@ const PlanDetails: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { plans, tasks, updateTask, updateTasksBatch, updatePlan, deletePlan, addTask } = useData();
-  const { isActive, currentStep } = useTutorial();
   const { showToast } = useToast();
   const { user } = useAuth();
   
@@ -58,13 +56,6 @@ const PlanDetails: React.FC = () => {
 
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (isActive && currentStep === 5 && planTasks.length > 0) {
-        if (expandedTaskId !== planTasks[0].id) {
-            setExpandedTaskId(planTasks[0].id);
-        }
-    }
-  }, [isActive, currentStep, planTasks, expandedTaskId]);
 
   useEffect(() => {
     if (!currentPlan && !planId) {
@@ -268,7 +259,7 @@ const PlanDetails: React.FC = () => {
         </div>
 
         {/* 2. Overall Progress Card */}
-        <div className="bg-surface-light dark:bg-surface-dark p-6 rounded-2xl border border-border-light dark:border-border-dark shadow-sm" id="tutorial-plan-progress-card">
+        <div className="bg-surface-light dark:bg-surface-dark p-6 rounded-2xl border border-border-light dark:border-border-dark shadow-sm">
             <div className="flex flex-col md:flex-row md:items-center gap-6 md:gap-12">
                 <div className="flex-1 space-y-4">
                     <div className="flex justify-between items-end">
@@ -291,7 +282,7 @@ const PlanDetails: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="flex gap-3 w-full md:w-auto border-t md:border-t-0 md:border-l border-border-light dark:border-border-dark pt-6 md:pt-0 md:pl-6" id="tutorial-plan-actions">
+                <div className="flex gap-3 w-full md:w-auto border-t md:border-t-0 md:border-l border-border-light dark:border-border-dark pt-6 md:pt-0 md:pl-6">
                     <button onClick={() => { setEditTitle(currentPlan.title); setEditSubject(currentPlan.subject); setEditDailyGoal(currentPlan.dailyGoalMins); setIsEditing(true); }} className="flex-1 md:w-24 flex flex-col items-center justify-center gap-2 py-3 rounded-xl bg-background-light dark:bg-background-dark hover:bg-primary/5 text-text-primary-light dark:text-text-primary-dark font-bold text-[10px] uppercase transition-all hover:scale-105 active:scale-95 border border-transparent hover:border-primary/20 group" aria-label="Edit plan settings">
                         <Icon name="edit" className="text-2xl text-text-secondary-light group-hover:text-primary transition-colors" />
                         Edit
@@ -378,7 +369,6 @@ const PlanDetails: React.FC = () => {
                                     <div className="flex flex-col sm:flex-row gap-3">
                                         {task.status !== 'Completed' && (
                                             <button 
-                                                id={isActive && currentStep === 5 ? "tutorial-start-learning" : undefined}
                                                 onClick={() => navigate('/learning-workspace', { state: { taskId: task.id } })} 
                                                 className="flex-1 py-3 rounded-xl bg-primary text-white font-bold text-sm flex items-center justify-center gap-2 transition-all hover:bg-primary/90 shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95"
                                             >

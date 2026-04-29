@@ -36,13 +36,28 @@ const TemplateGallery: React.FC = () => {
     try {
       // Use AI to generate a full detailed plan based on the template milestones
       const milestonesText = selectedTemplate.days.map(d => `Day ${d.day}: ${d.topic} (${d.guidance})`).join('\n');
+      
+      const prompt = `You are a learning path architect.
+TASK: Expand the following template into a COMPLETE day-by-day learning plan.
+DURATION: Exactly ${selectedTemplate.totalDays} days.
+TOPIC: ${selectedTemplate.title} (${selectedTemplate.subject}).
+MILESTONES (These must be included on their specific days):
+${milestonesText}
+
+INSTRUCTIONS:
+1. Provide a specific task/topic for EVERY single day from Day 1 to Day ${selectedTemplate.totalDays}.
+2. Ensure logical progression between the provided milestones.
+3. For "gap" days, provide specific sub-topics, practice exercises, or deep-dives relevant to the current phase.
+4. DO NOT skip any days. Output must contain exactly ${selectedTemplate.totalDays} items in the "days" array.
+5. Difficulty: ${selectedTemplate.difficulty}.`;
+
       const aiResponse = await generateLearningPlan(
         selectedTemplate.title,
         selectedTemplate.totalDays,
         selectedTemplate.difficulty,
         undefined, // Default model
         'English',
-        `Focus on ${selectedTemplate.subject}. Use these key milestones as anchors: ${milestonesText}. Ensure there is a task for EVERY day of the ${selectedTemplate.totalDays}-day period.`
+        prompt
       );
 
       const generatedData = JSON.parse(aiResponse);
@@ -80,7 +95,7 @@ const TemplateGallery: React.FC = () => {
     } catch (error) {
       console.error("Error creating plan from template:", error);
       
-      // Intelligent Fallback: Use the original template milestones if AI expansion fails
+      // Intelligent Fallback: Use milestones AND generate filler tasks to ensure totalDays is met
       try {
         const fallbackPlan = {
           id: crypto.randomUUID(),
@@ -96,24 +111,49 @@ const TemplateGallery: React.FC = () => {
           createdAt: new Date().toISOString()
         };
 
-        const fallbackTasks = selectedTemplate.days.map(day => ({
-          id: crypto.randomUUID(),
-          planId: fallbackPlan.id,
-          title: day.topic,
-          description: day.guidance,
-          durationMinutes: selectedTemplate.dailyGoalMins,
-          status: 'Not Started' as const,
-          dueDate: new Date(Date.now() + (day.day - 1) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          tags: [selectedTemplate.subject, selectedTemplate.category],
-          type: 'reading' as const,
-          createdAt: new Date().toISOString()
-        }));
+        // Create a full array of days
+        const allTasks: any[] = [];
+        const milestoneMap = new Map(selectedTemplate.days.map(d => [d.day, d]));
+        
+        for (let i = 1; i <= selectedTemplate.totalDays; i++) {
+          const milestone = milestoneMap.get(i);
+          if (milestone) {
+            allTasks.push({
+              id: crypto.randomUUID(),
+              planId: fallbackPlan.id,
+              title: milestone.topic,
+              description: milestone.guidance,
+              durationMinutes: selectedTemplate.dailyGoalMins,
+              status: 'Not Started' as const,
+              dueDate: new Date(Date.now() + (i - 1) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+              tags: [selectedTemplate.subject, selectedTemplate.category],
+              type: 'reading' as const,
+              createdAt: new Date().toISOString()
+            });
+          } else {
+            // Smart filler: Find previous milestone to provide context
+            const prevMilestone = [...selectedTemplate.days].reverse().find(d => d.day < i);
+            allTasks.push({
+              id: crypto.randomUUID(),
+              planId: fallbackPlan.id,
+              title: `Practice: ${prevMilestone?.topic || selectedTemplate.title}`,
+              description: `Deepen your understanding and apply the concepts learned in the previous lessons.`,
+              durationMinutes: selectedTemplate.dailyGoalMins,
+              status: 'Not Started' as const,
+              dueDate: new Date(Date.now() + (i - 1) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+              tags: [selectedTemplate.subject, selectedTemplate.category, 'practice'],
+              type: 'coding' as const,
+              createdAt: new Date().toISOString()
+            });
+          }
+        }
 
-        await addPlanWithTasks(fallbackPlan, fallbackTasks);
+        await addPlanWithTasks(fallbackPlan, allTasks);
+        showToast("AI was busy, so we generated a balanced study-and-practice schedule for you!", "info");
         navigate('/dashboard');
       } catch (fallbackError) {
         console.error("Critical failure during template fallback:", fallbackError);
-        showToast("We're having trouble reaching the AI brain. Falling back to the standard plan structure.", "warning");
+        showToast("Unable to create plan. Please check your connection.", "error");
       }
     } finally {
       setIsGenerating(false);

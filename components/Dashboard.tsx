@@ -2,7 +2,7 @@ import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
-import { useTutorial } from '../contexts/TutorialContext';
+import { useAuth } from '../contexts/AuthContext';
 import Icon from './common/Icon';
 import Skeleton, { PlanCardSkeleton } from './common/Skeleton';
 import { generateStudyNudges, sendSmartReminder, type StudyNudge } from '../services/smartReminderService';
@@ -12,11 +12,6 @@ const Dashboard: React.FC = () => {
     const navigate = useNavigate();
     const { plans, tasks, recentActivity, notifications, addNotification, clearAllActivity, isLoading } = useData();
     const { user } = useAuth();
-    const { startTutorial } = useTutorial();
-
-    useEffect(() => {
-        startTutorial('dashboard');
-    }, [startTutorial]);
 
     const today = useMemo(() => new Date(), []);
     const [currentViewDate, setCurrentViewDate] = useState(new Date());
@@ -308,7 +303,6 @@ const Dashboard: React.FC = () => {
                                 You don't have any active learning plans. Create one now and let AI guide your success.
                             </p>
                             <div 
-                                id={isNewUser ? "tutorial-new-plan" : undefined}
                                 className="mt-8 px-10 py-3.5 bg-primary text-white rounded-xl font-bold text-sm shadow-xl shadow-primary/20 group-hover:shadow-primary/30 group-hover:-translate-y-1 transition-all"
                             >
                                 Generate New Plan

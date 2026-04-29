@@ -147,7 +147,7 @@ const AppContent: React.FC = () => {
       </a>
 
       <SystemBanner />
-      <TutorialGuide />
+      <HelpPromptOverlay />
       <OfflineIndicator showMobileNav={showMobileNav} />
       <Suspense fallback={null}>
         <KeyboardShortcutsModal isOpen={showShortcuts} onClose={() => setShowShortcuts(false)} />
@@ -434,6 +434,50 @@ const NavItem: React.FC<NavItemProps> = ({ icon, label, active, onClick, id, ari
     <span className="text-[10px] font-bold tracking-tight">{label}</span>
   </button>
 );
+
+const HelpPromptOverlay: React.FC = () => {
+  const [isVisible, setIsVisible] = useState(() => {
+    return !localStorage.getItem('relearn_help_prompt_dismissed');
+  });
+  const navigate = useNavigate();
+
+  if (!isVisible) return null;
+
+  return createPortal(
+    <div className="fixed bottom-24 right-6 md:bottom-24 md:right-8 z-[60] animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="bg-white dark:bg-stone-900 rounded-2xl p-5 shadow-2xl border border-primary/20 max-w-xs relative group">
+        <button 
+          onClick={() => {
+            setIsVisible(false);
+            localStorage.setItem('relearn_help_prompt_dismissed', 'true');
+          }}
+          className="absolute -top-2 -right-2 w-7 h-7 bg-white dark:bg-stone-800 rounded-full shadow-md flex items-center justify-center text-text-secondary-light hover:text-primary transition-colors border border-border-light dark:border-border-dark"
+        >
+          <Icon name="close" className="text-sm" />
+        </button>
+        
+        <div className="flex items-start gap-4">
+          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+            <Icon name="help_center" className="text-2xl" />
+          </div>
+          <div>
+            <h4 className="font-bold text-text-primary-light dark:text-text-primary-dark text-sm">Need a hand?</h4>
+            <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark mt-1 leading-relaxed">
+              If you have any questions about how to use ReLearn.ai, check out our help center.
+            </p>
+            <button 
+              onClick={() => navigate('/help-center')}
+              className="mt-3 text-xs font-bold text-primary hover:underline flex items-center gap-1"
+            >
+              Go to Help Center <Icon name="arrow_forward" className="text-[10px]" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+};
 
 const App: React.FC = () => {
   return (

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
-import { useTutorial } from '../contexts/TutorialContext';
+import { useData } from '../contexts/DataContext';
 import ConfirmationModal from './common/ConfirmationModal';
 import {
   VIDEO_LANGUAGE_OPTIONS,
@@ -17,14 +17,10 @@ const Settings: React.FC = () => {
   const navigate = useNavigate();
   const { user, deleteAccount, logout } = useAuth();
   const { refreshData, videoLanguage, updateVideoLanguage } = useData();
-  const { resetTutorial, startTutorial } = useTutorial();
   
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
 
-  React.useEffect(() => {
-    startTutorial('settings');
-  }, [startTutorial]);
 
   const handleRefresh = async () => {
       setIsRefreshing(true);
@@ -61,7 +57,6 @@ const Settings: React.FC = () => {
       <div className="p-4 space-y-6">
           {/* Profile Card */}
           <div 
-            id="tutorial-settings-profile"
             onClick={() => navigate('/profile')}
             className="bg-white dark:bg-surface-dark rounded-3xl p-6 border border-border-light dark:border-border-dark shadow-sm flex flex-col items-center cursor-pointer hover:shadow-md transition-all active:scale-[0.98]"
           >
@@ -97,7 +92,7 @@ const Settings: React.FC = () => {
           </div>
 
           {/* Preferences Section */}
-          <div id="tutorial-settings-prefs" className="space-y-3">
+          <div className="space-y-3">
               <h3 className="px-2 text-[11px] font-black text-text-secondary-light/60 dark:text-text-secondary-dark/60 uppercase tracking-[0.15em]">Preferences</h3>
               <div className="bg-white dark:bg-surface-dark rounded-2xl overflow-hidden border border-border-light dark:border-border-dark shadow-sm">
                   {/* Video Language Selector */}
@@ -153,10 +148,10 @@ const Settings: React.FC = () => {
                     onClick={() => navigate('/help-center')} 
                   />
                   <SettingItem 
-                    icon="school" 
-                    label="Show Tutorial" 
+                    icon="auto_awesome" 
+                    label="Re-enable Help Prompt" 
                     onClick={() => {
-                        resetTutorial();
+                        localStorage.removeItem('relearn_help_prompt_dismissed');
                         navigate('/dashboard');
                     }} 
                   />
