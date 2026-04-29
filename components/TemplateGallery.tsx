@@ -37,19 +37,20 @@ const TemplateGallery: React.FC = () => {
       // Use AI to generate a full detailed plan based on the template milestones
       const milestonesText = selectedTemplate.days.map(d => `Day ${d.day}: ${d.topic} (${d.guidance})`).join('\n');
       
-      const prompt = `You are a learning path architect.
-TASK: Expand the following template into a COMPLETE day-by-day learning plan.
-DURATION: Exactly ${selectedTemplate.totalDays} days.
+      const prompt = `You are a Senior Learning Path Architect.
+TASK: Expand the following milestones into a detailed ${selectedTemplate.totalDays}-day curriculum.
 TOPIC: ${selectedTemplate.title} (${selectedTemplate.subject}).
-MILESTONES (These must be included on their specific days):
+
+MILESTONES (CRITICAL: These must happen on these specific days):
 ${milestonesText}
 
-INSTRUCTIONS:
-1. Provide a specific task/topic for EVERY single day from Day 1 to Day ${selectedTemplate.totalDays}.
-2. Ensure logical progression between the provided milestones.
-3. For "gap" days, provide specific sub-topics, practice exercises, or deep-dives relevant to the current phase.
-4. DO NOT skip any days. Output must contain exactly ${selectedTemplate.totalDays} items in the "days" array.
-5. Difficulty: ${selectedTemplate.difficulty}.`;
+RULES FOR EXPANSION:
+1. Every day from 1 to ${selectedTemplate.totalDays} MUST have a UNIQUE topic.
+2. NEVER use repetitive titles like "Practice", "Review", or "Day X".
+3. Break milestones into granular steps. 
+   - Example: If Day 1 is "HTML" and Day 10 is "CSS", Days 2-9 should be: "HTML Semantic Elements", "Forms and Inputs", "Tables and Lists", "Links and Navigation", "HTML Media", "Global Attributes", "Accessibility Best Practices", "HTML Validation".
+4. Ensure a smooth, logical transition between milestones.
+5. All guidance MUST be actionable and ~20 words in English.`;
 
       const aiResponse = await generateLearningPlan(
         selectedTemplate.title,

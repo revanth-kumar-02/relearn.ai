@@ -1,5 +1,5 @@
 import { Type } from "@google/genai";
-import { AI_MODELS } from "./config";
+import { AI_MODELS, IS_GROQ_MODEL } from "./config";
 import { getProxyConfiguredGenAI } from "./genai";
 import { sanitizeInput } from "../utils/sanitize";
 
@@ -40,11 +40,12 @@ CRITICAL FORMATTING RULES FOR 'aiExplanation':
 6. VISUAL SCANNING: The content must be easy to scan. No "walls of text".
 7. LANGUAGE: All explanations, activities, and guidance must be written in **${language}**.
 8. TECHNICAL TERMS: Keep technical terms (e.g., "Variables", "DOM", "State") in English to ensure professional terminology is retained.
+9. VARIETY: Ensure the content is unique and specifically tailored to the topic: "${sanitizeInput(topic)}". Avoid generic introductions.
 
 Include:
 1. learningObjective: A clear, concise goal for the session (written in ${language}).
 2. aiExplanation: The formatted Markdown content (written in ${language}) following the rules above.
-3. practiceActivities: An array of 3-4 step-by-step learning tasks (written in ${language}).
+3. practiceActivities: An array of 3-4 step-by-step learning tasks (written in ${language}). IMPORTANT: Each item must be a simple STRING, not an object.
 4. resources: An array of 2-3 relevant resource objects. If possible, prioritize those with content in ${language}.
 5. practiceQuestion: A high-quality reflection question (written in ${language}). or small challenge.
 
@@ -79,31 +80,68 @@ Do not include markdown code fences (like \`\`\`json) outside the JSON structure
     for (const currentModel of modelsToTry) {
       try {
         console.log(`[LearningWorkspace] Attempting session generation with model: ${currentModel}`);
-        const response = await ai.models.generateContent({
-          model: currentModel,
-          contents: [{
-            role: 'user',
-            parts: [{ text: `Generate a guided learning session for the topic: "${sanitizeInput(topic)}" as part of the plan "${sanitizeInput(planTitle)}".${pdfSection}` }]
-          }],
-          config: {
-            systemInstruction,
-            responseMimeType: "application/json",
-            responseSchema
-          }
-        });
+        
+        if (IS_GROQ_MODEL(currentModel)) {
+          const response = await fetch('/api/groq/chat/completions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              model: currentModel,
+              messages: [
+                { role: 'system', content: systemInstruction },
+                { role: 'user', content: `Generate a guided learning session for the topic: "${sanitizeInput(topic)}" as part of the plan "${sanitizeInput(planTitle)}".${pdfSection}` }
+              ],
+              response_format: { type: 'json_object' },
+              temperature: 0.7,
+            })
+          });
 
-        const text = response.text;
-        if (text) {
-          console.log(`[LearningWorkspace] Session generated successfully with model: ${currentModel}`);
-          return text;
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error?.message || `Groq API error: ${response.status}`);
+          }
+
+          const data = await response.json();
+          const content = data.choices[0]?.message?.content;
+          if (content) {
+            console.log(`[LearningWorkspace] Session generated successfully with Groq model: ${currentModel}`);
+            return content;
+          }
+        } else {
+          const response = await ai.models.generateContent({
+            model: currentModel,
+            contents: [{
+              role: 'user',
+              parts: [{ text: `Generate a guided learning session for the topic: "${sanitizeInput(topic)}" as part of the plan "${sanitizeInput(planTitle)}".${pdfSection}` }]
+            }],
+            config: {
+              systemInstruction,
+              responseMimeType: "application/json",
+              responseSchema
+            }
+          });
+
+          const text = response.text;
+          if (text) {
+            console.log(`[LearningWorkspace] Session generated successfully with model: ${currentModel}`);
+            return text;
+          }
         }
       } catch (error: any) {
         lastError = error;
         const errorMsg = error?.message || error?.toString() || 'Unknown error';
         console.warn(`[LearningWorkspace] Model ${currentModel} failed:`, errorMsg);
 
-        // Very basic retryable check since importing isRetryableError might cause circular imports depending on how config.ts is structured
-        if (errorMsg.includes('429') || errorMsg.includes('503') || errorMsg.includes('UNAVAILABLE') || errorMsg.includes('network') || errorMsg.includes('fetch')) {
+        // Very basic retryable check
+        const isRetryable = errorMsg.includes('429') || 
+                           errorMsg.includes('503') || 
+                           errorMsg.includes('UNAVAILABLE') || 
+                           errorMsg.includes('network') || 
+                           errorMsg.includes('fetch') ||
+                           errorMsg.includes('decommissioned') ||
+                           errorMsg.includes('not found');
+
+        if (isRetryable) {
           console.log(`[LearningWorkspace] Error is retryable, trying next fallback model...`);
           continue;
         }

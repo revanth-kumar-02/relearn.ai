@@ -26,7 +26,7 @@ export const generateYouTubeSearchQuery = async (
       ? `\n- The user wants videos in ${sanitizeInput(videoLanguage)}. Append "in ${sanitizeInput(videoLanguage)}" to the query.`
       : '';
     const response = await ai.models.generateContent({
-      model: AI_MODELS.PRIMARY,
+      model: AI_MODELS.FAST_LITE, // Force Gemini for this specific service
       contents: `Topic: "${sanitizeInput(cleanTopic)}"\nSubject / Language: "${sanitizeInput(subject) || "general programming"}"\nPreferred Video Language: "${sanitizeInput(videoLanguage)}"`,
       config: {
         systemInstruction: `You are a YouTube search query optimizer for educational programming content.

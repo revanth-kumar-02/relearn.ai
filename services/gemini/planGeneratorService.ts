@@ -1,5 +1,5 @@
 import { Type } from "@google/genai";
-import { AI_MODELS, isNetworkError, isRetryableError } from "./config";
+import { AI_MODELS, isNetworkError, isRetryableError, IS_GROQ_MODEL } from "./config";
 import { getProxyConfiguredGenAI } from "./genai";
 import { sanitizeInput } from "../utils/sanitize";
 
@@ -109,19 +109,55 @@ export const generateLearningPlan = async (
     try {
       console.log(`Attempting plan generation with model: ${currentModel}`);
 
-      const responsePromise = ai.models.generateContent({
-        model: currentModel,
-        ...request
-      });
+      let text = "";
 
-      const response = await (signal ? Promise.race([
-        responsePromise,
-        new Promise((_, reject) => {
-          signal.addEventListener('abort', () => reject(new Error("AbortError")), { once: true });
-        })
-      ]) : responsePromise) as any;
+      if (IS_GROQ_MODEL(currentModel)) {
+        // Groq Integration (OpenAI-compatible)
+        const response = await fetch('/api/groq/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: signal,
+          body: JSON.stringify({
+            model: currentModel,
+            messages: [
+              { role: 'system', content: `You are an expert learning path architect. 
+CRITICAL RULE: Every single day MUST have a unique, highly specific educational topic. 
+NEVER use placeholder topics like "Practice", "Review", or "Deep Dive" for more than one day in the entire plan. 
+Break down large subjects into granular sub-topics (e.g., instead of 5 days of "CSS", do "Selectors", "Flexbox", "Grid", "Animations", "Responsive Design").
+Response MUST be valid JSON: { "title": "string", "description": "string", "days": [{ "day": number, "topic": "string", "guidance": "string" }] }. 
+Guidance: ~20 words in ${language}.` },
+              { role: 'user', content: `Generate a ${days}-day learning plan for: ${sanitizeInput(goal)}. Difficulty: ${difficulty}. ${userContext ? `Context: ${sanitizeInput(userContext)}` : ''}` }
+            ],
+            response_format: { type: "json_object" },
+            temperature: 0.9,
+            frequency_penalty: 1.0,
+            presence_penalty: 0.5
+          })
+        });
 
-      const text = response.text;
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error?.message || `Groq error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        text = data.choices?.[0]?.message?.content || "";
+      } else {
+        // Existing Gemini Integration
+        const responsePromise = ai.models.generateContent({
+          model: currentModel,
+          ...request
+        });
+
+        const response = await (signal ? Promise.race([
+          responsePromise,
+          new Promise((_, reject) => {
+            signal.addEventListener('abort', () => reject(new Error("AbortError")), { once: true });
+          })
+        ]) : responsePromise) as any;
+        text = response.text;
+      }
+
       if (text) {
         // Runtime Structure Validation
         try {

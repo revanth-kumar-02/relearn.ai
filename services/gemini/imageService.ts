@@ -22,6 +22,7 @@ Composition: Centered hero-asset, minimalist pop-art layout.
 Lighting: Studio lighting with rim-light, realistic subsurface scattering, ray-traced reflections. 
 Materials: Matte-finish polymer bodies with high-gloss liquid-chrome accents. Vibrant neon gradients on dark obsidian.
 Background: Uniform studio dark gradient.
+Focus: Ensure the visual representation of "${topic}" is extremely clear and accurate.
 Strict Restrictions: NO text, NO labels, NO humans, NO photography, NO noise.
 Quality: 8k resolution, award-winning 3D design.`;
 };
@@ -110,9 +111,18 @@ const generateWithOpenAI = async (topic: string, signal?: AbortSignal): Promise<
 };
 
 const generateWithDynamicFallback = (topic: string): string => {
-  console.log(`[CoverGen] [Tier 3] Providing Dynamic Fallback URL for: ${topic}...`);
+  console.log(`[CoverGen] [Tier 3] Providing Dynamic Fallback (FLUX) for: ${topic}...`);
   const seed = Math.floor(Math.random() * 1000000);
-  return `https://pollinations.ai/p/${encodeURIComponent(topic + " 3d high-gloss chunky isometric digital art, soft rounded corners, premium textures, studio lighting, abstract concept, vibrant colors, obsidian background")}?width=1280&height=720&seed=${seed}&model=flux&nologo=true`;
+  
+  // Refined prompt to match Nano Banana style on Flux
+  const prompt = `A premium 3D isometric hero-asset representing "${topic}". 
+Style: Nano-Banana design system, chunky 3D silhouette, hyper-realistic glossy plastic, 
+extreme soft rounded corners, studio lighting, rim lighting, vibrant neon gradients on obsidian background.
+Composition: Centered on dark gradient.
+Quality: high-definition, 8k, clean render, minimalist.
+NO text, NO people.`;
+
+  return `https://pollinations.ai/p/${encodeURIComponent(prompt)}?width=1280&height=720&seed=${seed}&model=flux&nologo=true`;
 };
 
 export const generatePlanCoverImage = async (topic: string, signal?: AbortSignal): Promise<string> => {
@@ -128,18 +138,18 @@ export const generatePlanCoverImage = async (topic: string, signal?: AbortSignal
   let result: string | null = null;
 
   try {
-    // Tier 1: Nano Banana
-    result = await generateWithNanoBanana(sanitizedTopic, signal);
+    // Tier 1: Dynamic Fallback (FLUX) - Primary now because it's high quality and free
+    result = generateWithDynamicFallback(sanitizedTopic);
+    
+    // We don't actually need to "await" the above as it's just a URL, 
+    // but if we wanted to verify it, we could. For now, it's our primary.
 
+    /* 
+    // Optional: Keep Nano Banana as a secondary/premium option if needed
     if (!result) {
-      // Tier 2: OpenAI
-      result = await generateWithOpenAI(sanitizedTopic, signal);
+      result = await generateWithNanoBanana(sanitizedTopic, signal);
     }
-
-    if (!result) {
-      // Tier 3: Dynamic Fallback
-      result = generateWithDynamicFallback(sanitizedTopic);
-    }
+    */
   } catch (e: any) {
     if (e.message === "AbortError" || e.name === "AbortError") {
       console.log("[CoverGen] Request aborted.");

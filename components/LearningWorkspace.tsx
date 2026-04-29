@@ -654,7 +654,18 @@ const LearningWorkspace: React.FC = () => {
                           <div className="h-6 w-6 rounded-full bg-primary text-white flex items-center justify-center text-xs font-bold shrink-0">
                             {index + 1}
                           </div>
-                          <p className="text-sm font-medium">{activity}</p>
+                          <div className="text-sm font-medium">
+                            {typeof activity === 'string' ? (
+                              activity
+                            ) : typeof activity === 'object' && activity !== null ? (
+                              <>
+                                <p className="font-bold">{(activity as any).step || (activity as any).title}</p>
+                                <p className="text-stone-500 text-xs">{(activity as any).description}</p>
+                              </>
+                            ) : (
+                              'Practice Task'
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -767,7 +778,18 @@ const LearningWorkspace: React.FC = () => {
               {task.practiceActivities?.map((activity, index) => (
                 <div key={index} className="flex gap-4 p-4 bg-stone-50 rounded-xl border border-stone-200">
                   <div className="font-bold text-sky-600">{index + 1}.</div>
-                  <p className="font-medium">{activity}</p>
+                  <div className="font-medium">
+                    {typeof activity === 'string' ? (
+                      activity
+                    ) : typeof activity === 'object' && activity !== null ? (
+                      <>
+                        <div className="font-bold">{(activity as any).step || (activity as any).title}</div>
+                        <div className="text-stone-500 text-xs">{(activity as any).description}</div>
+                      </>
+                    ) : (
+                      'Practice Task'
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

@@ -10,6 +10,11 @@
   status = 200
 
 [[redirects]]
+  from = "/api/groq/*"
+  to = "/.netlify/functions/groq-proxy"
+  status = 200
+
+[[redirects]]
   from = "/api/openai/*"
   to = "/.netlify/functions/openai-proxy"
   status = 200

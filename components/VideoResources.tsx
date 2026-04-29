@@ -17,13 +17,13 @@ const VideoResources: React.FC<VideoResourcesProps> = ({ topic, subject }) => {
   // Read current video language from global context so we re-fetch when user changes it in Settings
   const { videoLanguage } = useData();
 
-  const loadVideos = useCallback(async () => {
+  const loadVideos = useCallback(async (isRefresh = false) => {
     if (!topic) return;
     setLoading(true);
     setError(null);
     setLoaded(false);
     try {
-      const results = await fetchEducationalVideos(topic, subject);
+      const results = await fetchEducationalVideos(topic, subject, isRefresh);
       setVideos(results);
     } catch (err) {
       console.error('Failed to load videos', err);
@@ -78,7 +78,7 @@ const VideoResources: React.FC<VideoResourcesProps> = ({ topic, subject }) => {
           <span className="font-medium">{error}</span>
         </div>
         <button
-          onClick={loadVideos}
+          onClick={() => loadVideos()}
           className="p-2 rounded-xl hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
           aria-label="Retry loading videos"
         >
@@ -97,7 +97,7 @@ const VideoResources: React.FC<VideoResourcesProps> = ({ topic, subject }) => {
         </span>
         <p className="text-stone-500 text-sm font-medium">No video resources found for this topic.</p>
         <button
-          onClick={loadVideos}
+          onClick={() => loadVideos()}
           className="mt-4 text-xs text-primary hover:text-primary/80 flex items-center gap-1.5 mx-auto transition-colors font-bold"
         >
           <span className="material-symbols-outlined text-sm">refresh</span>
@@ -205,7 +205,7 @@ const VideoResources: React.FC<VideoResourcesProps> = ({ topic, subject }) => {
         <button
           onClick={() => {
             clearVideosCache(topic, subject);
-            loadVideos();
+            loadVideos(true);
           }}
           className="text-xs text-stone-400 hover:text-primary flex items-center gap-1.5 transition-colors py-2.5 px-5 rounded-xl hover:bg-primary/5 font-bold"
         >

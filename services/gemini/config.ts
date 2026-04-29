@@ -9,8 +9,8 @@
  */
 
 export const AI_MODELS = {
-  /** Primary stable model for high-speed plan generation */
-  PRIMARY: import.meta.env.VITE_LLM_MODEL_PRIMARY || 'gemini-2.0-flash',
+  /** Primary stable model for high-speed plan generation - now supports Groq */
+  PRIMARY: import.meta.env.VITE_LLM_MODEL_PRIMARY || 'llama-3.1-70b-versatile',
 
   /** Ultra-high efficiency model for lightweight tasks */
   FAST_LITE: 'gemini-1.5-flash',
@@ -23,11 +23,16 @@ export const AI_MODELS = {
 
   /** Ordered fallback chain for peak demand */
   FALLBACK_CHAIN: [
+    'llama-3.3-70b-specdec',
+    'llama-3.3-70b-versatile',
+    'llama3-70b-8192',
     'gemini-2.0-flash',
     'gemini-1.5-pro',
     'gemini-1.5-flash',
   ],
 } as const;
+
+export const IS_GROQ_MODEL = (model: string) => model.startsWith('llama') || model.startsWith('mixtral') || model.includes('groq');
 
 export const isNetworkError = (error: any): boolean => {
   const message = (error?.message || error?.toString() || '').toLowerCase();

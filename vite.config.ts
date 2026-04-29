@@ -22,6 +22,15 @@ export default defineConfig(({ mode }) => {
             'x-goog-api-key': env.GEMINI_API_KEY || env.VITE_GEMINI_API_KEY || '',
           },
         },
+        // Proxy Groq API calls to avoid CORS issues in browser
+        '/api/groq': {
+          target: 'https://api.groq.com/openai/v1',
+          changeOrigin: true,
+          rewrite: (path: string) => path.replace(/^\/api\/groq/, ''),
+          headers: {
+            'Authorization': `Bearer ${env.VITE_GROQ_API_KEY || ''}`,
+          },
+        },
         // Proxy OpenAI API calls to avoid CORS issues in browser
         '/api/openai': {
           target: 'https://api.openai.com',

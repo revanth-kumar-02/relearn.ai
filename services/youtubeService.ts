@@ -485,7 +485,8 @@ const filterAndRank = (
  */
 export const fetchEducationalVideos = async (
   topic: string,       // Day title (e.g., "Variables", "Loops")
-  subject: string = '' // Plan subject (e.g., "Python", "JavaScript")
+  subject: string = '', // Plan subject (e.g., "Python", "JavaScript")
+  randomize: boolean = false // Whether to add randomness to the query
 ): Promise<YouTubeVideo[]> => {
   const language = subject ? detectLanguage(subject) : '';
 
@@ -498,8 +499,10 @@ export const fetchEducationalVideos = async (
   try {
     // ── 2. Build primary search query (Gemini AI) ───────────
     const vidLangLabel = getVideoLanguageLabel(getVideoLanguagePreference());
-    const primaryQuery = await generateYouTubeSearchQuery(topic, subject, language, vidLangLabel);
-    console.log(`[YouTube] Primary query: "${primaryQuery}" (lang: ${vidLangLabel})`);
+    // Inject randomness into the prompt if requested to get different results on refresh
+    const extraContext = randomize ? "Find DIFFERENT, alternative high-quality videos than a standard search. Try to find unique but highly rated content." : "";
+    const primaryQuery = await generateYouTubeSearchQuery(topic, subject + (randomize ? " " + extraContext : ""), language, vidLangLabel);
+    console.log(`[YouTube] Primary query: "${primaryQuery}" (lang: ${vidLangLabel}, randomized: ${randomize})`);
 
     let rawItems = await fetchFromYouTube(primaryQuery);
     let results = filterAndRank(rawItems, language, topic);
