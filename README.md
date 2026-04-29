@@ -1,17 +1,18 @@
-# ReLearn.ai — AI-Powered Learning Platform (v6.0)
+# ReLearn.ai — AI-Powered Learning Platform (v7.0)
 
 ReLearn.ai is a premium, AI-native learning platform designed to help users organize their learning journey with personalized study plans, deep analytics, a collaborative study hub, and an intelligent AI tutor.
 
-## What's New in v6.0
-* **Upgraded AI Engine**: Powered by the latest **Gemini 3.1 Pro** for advanced reasoning, faster plan generation, and deep contextual tutoring.
-* **God-Mode Admin Dashboard**: A comprehensive administrative suite featuring real-time system metrics, detailed user & plan analytics, cross-platform broadcasting, and a secure Supabase Role-Based Access Control (RBAC) architecture.
-* **Global Command Palette**: Lightning-fast navigation via keyboard shortcuts (macOS: `⌘K` / Windows: `Ctrl+K`), allowing users to jump anywhere in the app instantly.
-* **Self-Healing Sync Engine**: Invisible background data synchronization with offline resilience and multi-layered local persistence (IndexedDB + localStorage).
-* **Premium UX/UI**: Upgraded design system featuring smooth framer-motion animations, responsive glassmorphism interfaces, and dynamic haptic feedback.
+## What's New in v7.0 (The Speed & Visual Update)
+* **Hybrid AI Engine (Groq + Gemini)**: High-speed plan generation powered by **Groq (Llama 3.3)** for near-instant roadmaps, while retaining **Gemini** for deep contextual tutoring and YouTube optimization.
+* **Premium Image Pipeline (FLUX)**: High-fidelity, consistent cover images generated via the **FLUX model** through Pollinations, following the "Nano Banana" 3D design system.
+* **Smart Resource Variety**: Optimized YouTube search logic that prevents repetitive results and ensures a fresh selection of tutorials on every refresh.
+* **Streaming AI Chat**: Real-time word-by-word streaming responses for the AI Tutor, providing a responsive, ChatGPT-like experience.
+* **God-Mode Admin Dashboard**: A comprehensive administrative suite featuring real-time system metrics, detailed user & plan analytics, and secure Supabase RBAC architecture.
 
 ## Core Features
 
-- **AI-Powered Plan Generation** — Generate highly personalized study plans based on goals, difficulty levels, and timeframes using Gemini 3.1 Pro.
+- **AI-Powered Plan Generation** — Near-instant roadmaps generated via Groq (Llama 3.3) with intelligent milestone expansion to avoid repetitive tasks.
+- **Premium Cover Art** — Beautiful, topic-relevant 3D isometric images for every plan using the FLUX engine.
 - **Collaborative Study Hub** — Real-time social learning with live chat, member presence, and shared focus sessions via Supabase Realtime.
 - **Deep Gamification System** — Earn XP, level up, and unlock 30+ unique badges across 4 rarity tiers.
 - **AI-Guided Learning Workspace** — Contextual deep-dives, practice activities, and curated educational resources for every topic.
@@ -21,7 +22,7 @@ ReLearn.ai is a premium, AI-native learning platform designed to help users orga
 ## Tech Stack
 
 - **Frontend**: React 19, TypeScript, Tailwind CSS
-- **AI Services**: Google Gemini API (Gemini 3.1 Pro & Flash)
+- **AI Services**: Groq (Llama 3.3), Google Gemini (Pro & Flash), Pollinations (FLUX)
 - **Backend & Auth**: Supabase (Auth, PostgreSQL DB, Realtime, RLS Policies)
 - **Video API**: YouTube Data API v3
 - **Build Tool**: Vite
