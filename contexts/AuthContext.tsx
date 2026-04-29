@@ -138,8 +138,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         users[profile.id] = updatedProfile;
         saveStoredUsers(users);
       }
-    } catch (err) {
-      console.warn('[AuthContext] Sync failed:', err);
+    } catch (err: any) {
+      // Don't log common refresh token errors as warnings to avoid console noise
+      if (!err?.message?.includes('Refresh Token Not Found')) {
+        console.warn('[AuthContext] Sync failed:', err);
+      }
     } finally {
       setLoading(false);
       syncLock.current = null;

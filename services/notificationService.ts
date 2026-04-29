@@ -34,6 +34,6 @@ export const sendBrowserNotification = async (title: string, body: string, icon:
       console.error("Error sending notification", e);
     }
   } else {
-      console.log("Notification permission not granted");
+      console.debug("Notification permission not granted");
   }
 };

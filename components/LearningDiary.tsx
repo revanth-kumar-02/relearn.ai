@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../contexts/DataContext';
-import { useTutorial } from '../contexts/TutorialContext';
 import { Plan } from '../types';
 
 const DiaryCard: React.FC<{ plan: Plan }> = ({ plan }) => {
@@ -121,12 +120,7 @@ const DiaryCard: React.FC<{ plan: Plan }> = ({ plan }) => {
 const LearningDiary: React.FC = () => {
     const navigate = useNavigate();
     const { plans } = useData();
-    const { startTutorial } = useTutorial();
     const [activeTab, setActiveTab] = useState<'current' | 'explored' | 'archived'>('current');
-
-    useEffect(() => {
-        startTutorial('diary');
-    }, [startTutorial]);
 
     const displayPlans = plans.filter(plan => {
         if (activeTab === 'current') return !plan.isArchived && plan.progress < 100;
