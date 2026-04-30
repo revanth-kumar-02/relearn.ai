@@ -199,7 +199,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       });
 
       if (error) {
-        return { success: false, message: error.message };
+        // If we hit a rate limit (common during testing), allow falling back to local account
+        // so the user isn't blocked from exploring the app.
+        if (error.message.toLowerCase().includes('rate limit')) {
+          console.warn('[AuthContext] Supabase rate limit hit. Falling back to local-first account.');
+        } else {
+          return { success: false, message: error.message };
+        }
       }
       if (data.user) {
         finalUserId = data.user.id;

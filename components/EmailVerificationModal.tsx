@@ -39,6 +39,32 @@ const EmailVerificationModal: React.FC = () => {
     }
   };
 
+  const handleOpenInbox = () => {
+    if (!user?.email) return;
+    triggerHaptic('light');
+    
+    const domain = user.email.split('@')[1]?.toLowerCase() || '';
+    let url = 'https://mail.google.com'; // Default
+    
+    if (domain.includes('gmail')) {
+      url = 'https://mail.google.com';
+    } else if (domain.includes('outlook') || domain.includes('hotmail') || domain.includes('live') || domain.includes('msn')) {
+      url = 'https://outlook.live.com';
+    } else if (domain.includes('yahoo')) {
+      url = 'https://mail.yahoo.com';
+    } else if (domain.includes('icloud')) {
+      url = 'https://www.icloud.com/mail';
+    } else if (domain.includes('proton')) {
+      url = 'https://mail.proton.me';
+    } else if (domain.includes('zohomail') || domain.includes('zoho')) {
+      url = 'https://mail.zoho.com';
+    } else {
+      url = `https://${domain}`;
+    }
+    
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
 
   return (
     <AnimatePresence>
@@ -80,10 +106,13 @@ const EmailVerificationModal: React.FC = () => {
               I have verified
             </button>
 
-            <div className="w-full bg-gray-50 dark:bg-white/5 text-text-secondary-light dark:text-text-secondary-dark font-medium py-4 rounded-2xl flex items-center justify-center gap-2.5 border border-gray-100 dark:border-white/5 shadow-inner">
+            <button
+              onClick={handleOpenInbox}
+              className="w-full bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 text-text-secondary-light dark:text-text-secondary-dark font-medium py-4 rounded-2xl flex items-center justify-center gap-2.5 border border-gray-100 dark:border-white/5 shadow-inner transition-colors active:scale-95"
+            >
               <Icon name="outgoing_mail" className="text-primary" />
               Check your email for the link
-            </div>
+            </button>
 
             <div className="flex gap-4 pt-2">
               <button

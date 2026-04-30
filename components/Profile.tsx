@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
@@ -31,6 +31,7 @@ const Profile: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [newPassword, setNewPassword] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [isFlipped, setIsFlipped] = useState(false);
 
@@ -115,6 +116,34 @@ const Profile: React.FC = () => {
       showToast(result.message || "We couldn't save your changes right now. Let's try that again.", "error");
     }
   };
+  
+  const handleProfilePictureClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isEditing) {
+      fileInputRef.current?.click();
+    }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      showToast("Image size must be less than 2MB", "error");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const base64String = reader.result as string;
+      setFormData(prev => ({ ...prev, profilePicture: base64String }));
+      
+      // Auto-save the profile picture even if not in edit mode (or just update the state)
+      // Actually, since we are in a "formData" pattern, we should probably wait for handleSave
+      // but let's make it feel responsive.
+    };
+    reader.readAsDataURL(file);
+  };
 
   return (
     <div className="min-h-screen bg-background-light dark:bg-background-dark pb-24 animate-fade-in">
@@ -151,19 +180,34 @@ const Profile: React.FC = () => {
                 <span className="material-symbols-outlined text-xl">flip_camera_android</span>
               </div>
 
-              {/* Premium Text Avatar */}
-              <div className="relative mb-4 group/avatar">
-                <div className="w-20 h-20 rounded-full p-[2px] bg-gradient-to-b from-[#D4AF37] to-[#8A6E2F] shadow-lg shadow-black/50">
-                  <div className="w-full h-full rounded-full bg-[#0f0f12] border-2 border-[#0f0f12] flex items-center justify-center">
-                    <span className="text-3xl font-bold text-[#D4AF37] tracking-widest select-none font-display">
-                      {(user.email ? user.email.charAt(0) : user.name.charAt(0)).toUpperCase()}
-                    </span>
+              {/* Premium Avatar */}
+              <div className="relative mb-4 group/avatar" onClick={handleProfilePictureClick}>
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  onChange={handleFileChange} 
+                  accept="image/*" 
+                  className="hidden" 
+                />
+                <div className={`w-20 h-20 rounded-full p-[2px] bg-gradient-to-b from-[#D4AF37] to-[#8A6E2F] shadow-lg shadow-black/50 ${isEditing ? 'cursor-pointer hover:scale-105 transition-transform' : ''}`}>
+                  <div className="w-full h-full rounded-full bg-[#0f0f12] border-2 border-[#0f0f12] flex items-center justify-center overflow-hidden">
+                    {formData.profilePicture ? (
+                      <img 
+                        src={formData.profilePicture} 
+                        alt={user.name} 
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-3xl font-bold text-[#D4AF37] tracking-widest select-none font-display">
+                        {(user.email ? user.email.charAt(0) : user.name.charAt(0)).toUpperCase()}
+                      </span>
+                    )}
                   </div>
                 </div>
                 {isEditing && (
-                  <button className="absolute -bottom-1 -right-1 w-7 h-7 bg-[#D4AF37] text-[#0f0f12] rounded-full flex items-center justify-center shadow-md hover:bg-[#E5C570] transition-colors">
-                    <span className="material-symbols-outlined text-sm">edit</span>
-                  </button>
+                  <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-[#D4AF37] text-[#0f0f12] rounded-full flex items-center justify-center shadow-md hover:bg-[#E5C570] transition-colors">
+                    <span className="material-symbols-outlined text-sm">photo_camera</span>
+                  </div>
                 )}
               </div>
 

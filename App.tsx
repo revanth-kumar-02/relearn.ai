@@ -5,6 +5,7 @@ import { DataProvider } from './contexts/DataContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { ConnectionProvider } from './contexts/ConnectionContext';
 import { ToastProvider } from './contexts/ToastContext';
+import { TutorialProvider } from './contexts/TutorialContext';
 import { useAuth } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
@@ -490,6 +491,7 @@ const App: React.FC = () => {
     <ConnectionProvider>
       <AuthProvider>
         <DataProvider>
+          <TutorialProvider>
             <ToastProvider>
               <ErrorBoundary>
                 <StorageWarningToast />
@@ -498,6 +500,7 @@ const App: React.FC = () => {
                 </HashRouter>
               </ErrorBoundary>
             </ToastProvider>
+          </TutorialProvider>
         </DataProvider>
       </AuthProvider>
     </ConnectionProvider>
