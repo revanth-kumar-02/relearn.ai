@@ -1,7 +1,7 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { HashRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
-import { DataProvider } from './contexts/DataContext';
+import { DataProvider, useData } from './contexts/DataContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { ConnectionProvider } from './contexts/ConnectionContext';
 import { ToastProvider } from './contexts/ToastContext';
@@ -438,15 +438,17 @@ const NavItem: React.FC<NavItemProps> = ({ icon, label, active, onClick, id, ari
 const HelpPromptOverlay: React.FC = () => {
   const [isVisible, setIsVisible] = useState(false);
   const navigate = useNavigate();
+  const { plans } = useData();
+  const isNewUser = plans.length === 0;
 
   useEffect(() => {
     // Show prompt after a small delay to not overwhelm on load
     const isDismissed = localStorage.getItem('relearn_help_prompt_dismissed');
-    if (!isDismissed) {
+    if (!isDismissed && isNewUser) {
       const timer = setTimeout(() => setIsVisible(true), 2000);
       return () => clearTimeout(timer);
     }
-  }, []);
+  }, [isNewUser]);
 
   if (!isVisible) return null;
 

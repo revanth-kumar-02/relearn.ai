@@ -793,7 +793,7 @@ export async function saveUserProfile(userId: string, userData: Record<string, u
 
   if (canUseSupabase()) {
     try {
-      const { updatedAt, ...payload } = { id: userId, ...dataWithMeta } as any;
+      const { updatedAt, isVerified, ...payload } = { id: userId, ...dataWithMeta } as any;
       const { error } = await supabase
         .from('users')
         .upsert(payload);

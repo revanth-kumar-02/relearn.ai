@@ -60,6 +60,9 @@ Your response MUST be a JSON object.
 Do not include any introductory text, closing text, or markdown code fences.
 The plan should cover exactly ${days} days.
 The difficulty level should be strictly "${difficulty}".
+    CRITICAL RULE: Every single day MUST have a unique, highly specific educational topic. 
+    NEVER use placeholder topics like "Practice", "Review", or "Deep Dive" for more than one day in the entire plan. 
+    Break down large subjects into granular sub-topics (e.g., instead of 5 days of "CSS", do "Selectors", "Flexbox", "Grid", "Animations", "Responsive Design").
     Guidance for each day should be concise, actionable, and approximately 15-20 words.
     Guidance MUST be written in ${language}.
     ${userContext ? `Tailor the plan to the user's academic level, goals, and preferred study time mentioned in the context.` : ''} Proprietary or technical terms like "JavaScript", "Function", "React", or "API" should remain in English for clarity.`,

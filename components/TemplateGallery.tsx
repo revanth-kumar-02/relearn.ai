@@ -37,20 +37,21 @@ const TemplateGallery: React.FC = () => {
       // Use AI to generate a full detailed plan based on the template milestones
       const milestonesText = selectedTemplate.days.map(d => `Day ${d.day}: ${d.topic} (${d.guidance})`).join('\n');
       
-      const prompt = `You are a Senior Learning Path Architect.
-TASK: Expand the following milestones into a detailed ${selectedTemplate.totalDays}-day curriculum.
+      const prompt = `You are a Senior Educational Scientist and Curriculum Architect.
+TASK: Expand the following high-level milestones into a comprehensive, granular ${selectedTemplate.totalDays}-day curriculum.
 TOPIC: ${selectedTemplate.title} (${selectedTemplate.subject}).
 
-MILESTONES (CRITICAL: These must happen on these specific days):
+MILESTONES (CRITICAL: These specific topics MUST occur on these exact days):
 ${milestonesText}
 
-RULES FOR EXPANSION:
-1. Every day from 1 to ${selectedTemplate.totalDays} MUST have a UNIQUE topic.
-2. NEVER use repetitive titles like "Practice", "Review", or "Day X".
-3. Break milestones into granular steps. 
-   - Example: If Day 1 is "HTML" and Day 10 is "CSS", Days 2-9 should be: "HTML Semantic Elements", "Forms and Inputs", "Tables and Lists", "Links and Navigation", "HTML Media", "Global Attributes", "Accessibility Best Practices", "HTML Validation".
-4. Ensure a smooth, logical transition between milestones.
-5. All guidance MUST be actionable and ~20 words in English.`;
+STRICT ARCHITECTURAL RULES:
+1. NO REPETITION: Every single day from 1 to ${selectedTemplate.totalDays} MUST have a unique, distinct technical or theoretical topic. 
+2. NO PLACEHOLDERS: Absolutely forbidden to use words like "Practice", "Review", "Revision", "Deep Dive", "Exercise", or "Catch-up" in the topic titles.
+3. GRANULAR BREAKDOWN: Divide large concepts into tiny, logical sub-components. 
+   - If Day 1 is "HTML Basics" and Day 10 is "CSS", the days in between MUST cover: "Semantic Elements", "Forms", "Input Validation", "Table Structures", "Media Tags (Video/Audio)", "Attributes & Global Props", "Head Metadata & SEO", "Accessibility (ARIA)".
+4. PROGRESSION: Ensure a smooth, logical difficulty curve between milestones.
+5. FORMAT: All guidance MUST be actionable, written in English, and exactly ~20 words.
+6. CONTINUITY: Fill the gaps between milestones with essential prerequisite knowledge required for the next milestone.`;
 
       const aiResponse = await generateLearningPlan(
         selectedTemplate.title,
