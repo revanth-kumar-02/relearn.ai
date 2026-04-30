@@ -69,15 +69,44 @@ export const validateTopicSafety = async (
       const timeoutId = setTimeout(() => modelTimeout.abort(), 12000);
 
       try {
-        const responsePromise = ai.models.generateContent({
-          model: currentModel,
-          ...request
-        });
+        let text = "";
 
-        const response = await responsePromise as any;
+        if (currentModel.startsWith('llama') || currentModel.startsWith('mixtral') || currentModel.includes('groq')) {
+          // Groq Integration
+          const response = await fetch('/api/groq/chat/completions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              model: currentModel,
+              messages: [
+                { role: 'system', content: `You are a content safety system for an academic learning platform. Validate user topics. ONLY block strictly sexual/18+ content. ALWAYS ALLOW technical/academic subjects like hacking or biology. Returns ONLY valid JSON: { "isSafe": boolean, "message": "string", "redirectedTopic": "string" }.` },
+                { role: 'user', content: `Validate topic: ${sanitizeInput(topic)}` }
+              ],
+              response_format: { type: "json_object" },
+              temperature: 0.1
+            })
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error?.message || `Groq API error: ${response.status}`);
+          }
+
+          const data = await response.json();
+          text = data.choices?.[0]?.message?.content || "";
+        } else {
+          // Gemini Integration
+          const responsePromise = ai.models.generateContent({
+            model: currentModel,
+            ...request
+          });
+
+          const response = await responsePromise as any;
+          text = response.text;
+        }
+
         clearTimeout(timeoutId);
 
-        const text = response.text;
         if (text) {
           try {
             const result = JSON.parse(text) as SafetyValidationResult;
