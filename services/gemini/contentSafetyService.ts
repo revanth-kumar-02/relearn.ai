@@ -96,12 +96,10 @@ export const validateTopicSafety = async (
           text = data.choices?.[0]?.message?.content || "";
         } else {
           // Gemini Integration
-          const responsePromise = ai.models.generateContent({
+          const response = await ai.models.generateContent({
             model: currentModel,
             ...request
           });
-
-          const response = await responsePromise as any;
           text = response.text;
         }
 
@@ -109,7 +107,9 @@ export const validateTopicSafety = async (
 
         if (text) {
           try {
-            const result = JSON.parse(text) as SafetyValidationResult;
+            const jsonMatch = text.match(/\{[\s\S]*\}/);
+            const jsonText = jsonMatch ? jsonMatch[0] : text;
+            const result = JSON.parse(jsonText) as SafetyValidationResult;
             console.log(`[SafetyService] Topic validation result:`, result);
             return result;
           } catch (validationError) {

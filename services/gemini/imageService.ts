@@ -38,7 +38,7 @@ const generateWithNanoBanana = async (topic: string, signal?: AbortSignal): Prom
       (async () => {
         const responsePromise = ai.models.generateContent({
           model: AI_MODELS.PRIMARY, // S5: Use centralized model ID
-          contents: prompt,
+          contents: [{ role: 'user', parts: [{ text: prompt }] }],
           config: {
             responseModalities: ['TEXT'],
           }

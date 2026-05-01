@@ -136,8 +136,8 @@ Do not include markdown code fences (like \`\`\`json) outside the JSON structure
               role: 'user',
               parts: [{ text: `Generate a guided learning session for the topic: "${sanitizeInput(topic)}" as part of the plan "${sanitizeInput(planTitle)}".${pdfSection}` }]
             }],
-            systemInstruction,
-            generationConfig: {
+            config: {
+              systemInstruction,
               responseMimeType: "application/json",
               responseSchema
             }
@@ -145,8 +145,9 @@ Do not include markdown code fences (like \`\`\`json) outside the JSON structure
 
           const text = response.text;
           if (text) {
+            const extracted = extractJson(text);
             console.log(`[LearningWorkspace] Session generated successfully with model: ${currentModel}`);
-            return text;
+            return extracted;
           }
         }
       } catch (error: any) {

@@ -132,7 +132,9 @@ const PlanDetails: React.FC = () => {
   };
 
   const handleRestartPlan = () => {
-      planTasks.forEach(t => updateTask(t.id, { status: 'Not Started' }));
+      if (!currentPlan) return;
+      const batchUpdates = planTasks.map(t => ({ id: t.id, updates: { status: 'Not Started' as const } }));
+      updateTasksBatch(currentPlan.id, batchUpdates);
       setShowRestartConfirm(false);
       setShowMenu(false);
       showToast("Progress gracefully reset.", "info");

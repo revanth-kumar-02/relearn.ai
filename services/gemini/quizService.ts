@@ -96,8 +96,8 @@ Requirements:
 - Keep technical terms (e.g. "React", "Closure", "Variable") in English.`
             }]
           }],
-          systemInstruction: `You are an expert educational assessment designer. Generate high-quality multiple-choice questions that test genuine understanding of concepts, not just rote memorization. Questions should be clear, unambiguous, and have plausible distractors.`,
-          generationConfig: {
+          config: {
+            systemInstruction: `You are an expert educational assessment designer. Generate high-quality multiple-choice questions that test genuine understanding of concepts, not just rote memorization. Questions should be clear, unambiguous, and have plausible distractors.`,
             responseMimeType: "application/json",
             responseSchema: {
               type: Type.OBJECT,
