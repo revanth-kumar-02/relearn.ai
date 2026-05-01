@@ -194,7 +194,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         password: pass,
         options: {
           data: { name },
-          emailRedirectTo: `${window.location.origin}/`,
+          emailRedirectTo: `${window.location.origin}/#/dashboard`,
         }
       });
 
@@ -338,6 +338,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const { error } = await supabase.auth.resend({
       type: 'signup',
       email: user.email,
+      options: {
+        emailRedirectTo: `${window.location.origin}/#/dashboard`,
+      }
     });
     
     if (error) return { success: false, message: error.message };
@@ -350,7 +353,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: `${window.location.origin}/#/reset-password`,
     });
 
     if (error) return { success: false, message: error.message };

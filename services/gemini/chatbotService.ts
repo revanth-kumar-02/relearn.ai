@@ -19,12 +19,10 @@ export const sendChatMessage = async (
     try {
       const chat = ai.chats.create({
         model: currentModel,
-        config: {
-          systemInstruction: `You are ReLearn.ai, a helpful AI study assistant. 
+        systemInstruction: `You are ReLearn.ai, a helpful AI study assistant. 
             ${userContext ? `User Profile Context: ${userContext}` : ''}
             Be concise, encouraging, and professional.
             IMPORTANT: ALWAYS RESPOND IN ${language}. However, technical terms should remain in English for educational clarity.`,
-        },
         history: history
       });
 
@@ -75,9 +73,7 @@ IMPORTANT: ALWAYS RESPOND IN ${language}. However, technical terms should remain
       const stream = await ai.models.generateContentStream({
         model: currentModel,
         contents,
-        config: {
-          systemInstruction,
-        },
+        systemInstruction,
       });
 
       let accumulated = '';

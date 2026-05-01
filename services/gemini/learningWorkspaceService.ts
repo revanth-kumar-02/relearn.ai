@@ -1,7 +1,28 @@
 import { Type } from "@google/genai";
-import { AI_MODELS, IS_GROQ_MODEL } from "./config";
+import { AI_MODELS, IS_GROQ_MODEL, isRetryableError } from "./config";
 import { getProxyConfiguredGenAI } from "./genai";
 import { sanitizeInput } from "../utils/sanitize";
+
+/**
+ * Extracts a JSON object from a string that might contain markdown fences or other text.
+ */
+const extractJson = (text: string): string => {
+  // Try to find content between ```json and ```
+  const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+  if (jsonMatch && jsonMatch[1]) {
+    return jsonMatch[1].trim();
+  }
+  
+  // If no fences, find the first '{' and last '}'
+  const start = text.indexOf('{');
+  const end = text.lastIndexOf('}');
+  
+  if (start !== -1 && end !== -1 && end > start) {
+    return text.substring(start, end + 1).trim();
+  }
+  
+  return text.trim();
+};
 
 /**
  * Generates a guided learning session.
@@ -46,8 +67,8 @@ Include:
 1. learningObjective: A clear, concise goal for the session (written in ${language}).
 2. aiExplanation: The formatted Markdown content (written in ${language}) following the rules above.
 3. practiceActivities: An array of 3-4 step-by-step learning tasks (written in ${language}). IMPORTANT: Each item must be a simple STRING, not an object.
-4. resources: An array of 2-3 relevant resource objects. If possible, prioritize those with content in ${language}.
-5. practiceQuestion: A high-quality reflection question (written in ${language}). or small challenge.
+4. resources: An array of 2-3 relevant resource objects. Each object MUST have: "title" (string), "url" (string), and "type" (string, one of: 'video', 'article', 'link').
+5. practiceQuestion: A high-quality reflection question (written in ${language}) or small challenge.
 
 Do not include markdown code fences (like \`\`\`json) outside the JSON structure. Returns ONLY valid JSON.`;
 
@@ -104,8 +125,9 @@ Do not include markdown code fences (like \`\`\`json) outside the JSON structure
           const data = await response.json();
           const content = data.choices[0]?.message?.content;
           if (content) {
+            const extracted = extractJson(content);
             console.log(`[LearningWorkspace] Session generated successfully with Groq model: ${currentModel}`);
-            return content;
+            return extracted;
           }
         } else {
           const response = await ai.models.generateContent({
@@ -114,8 +136,8 @@ Do not include markdown code fences (like \`\`\`json) outside the JSON structure
               role: 'user',
               parts: [{ text: `Generate a guided learning session for the topic: "${sanitizeInput(topic)}" as part of the plan "${sanitizeInput(planTitle)}".${pdfSection}` }]
             }],
-            config: {
-              systemInstruction,
+            systemInstruction,
+            generationConfig: {
               responseMimeType: "application/json",
               responseSchema
             }
@@ -132,20 +154,15 @@ Do not include markdown code fences (like \`\`\`json) outside the JSON structure
         const errorMsg = error?.message || error?.toString() || 'Unknown error';
         console.warn(`[LearningWorkspace] Model ${currentModel} failed:`, errorMsg);
 
-        // Very basic retryable check
-        const isRetryable = errorMsg.includes('429') || 
-                           errorMsg.includes('503') || 
-                           errorMsg.includes('UNAVAILABLE') || 
-                           errorMsg.includes('network') || 
-                           errorMsg.includes('fetch') ||
-                           errorMsg.includes('decommissioned') ||
-                           errorMsg.includes('not found');
-
-        if (isRetryable) {
-          console.log(`[LearningWorkspace] Error is retryable, trying next fallback model...`);
+        // For fallback chain, we want to try the next model for almost any error
+        // except when we've run out of models.
+        const isLastModel = modelsToTry.indexOf(currentModel) === modelsToTry.length - 1;
+        
+        if (!isLastModel) {
+          console.log(`[LearningWorkspace] Attempting fallback to next model...`);
           continue;
         }
-        break; // Non-retryable
+        break;
       }
     }
 

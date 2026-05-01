@@ -13,7 +13,11 @@ export function sanitizeInput(input: string): string {
   let clean = input.replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gim, "");
   
   // S6: Prevent prompt injection markers and excessive hidden commands
-  clean = clean.replace(/(\[[^\]]*\]|\{[^\}]*\}|\bignore\b|\bsystem\b|\bprompt\b)/gi, "");
+  // Softened: We don't want to strip citations [Source] or JSON/code snippets { ... }
+  // clean = clean.replace(/(\[[^\]]*\]|\{[^\}]*\}|\bignore\b|\bsystem\b|\bprompt\b)/gi, "");
+  
+  // Only strip dangerous keywords if they are standalone
+  clean = clean.replace(/\b(ignore instructions|system prompt|ignore previous)\b/gi, "");
   
   // Strip common HTML except basics if needed, but here we strip everything for text input
   clean = clean.replace(/<[^>]*>?/gm, "");

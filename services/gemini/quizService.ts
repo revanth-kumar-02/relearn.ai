@@ -3,6 +3,18 @@ import { AI_MODELS, isRetryableError } from "./config";
 import { getProxyConfiguredGenAI } from "./genai";
 import { sanitizeInput } from "../utils/sanitize";
 
+/**
+ * Extracts a JSON object from a string that might contain markdown fences or other text.
+ */
+const extractJson = (text: string): string => {
+  const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+  if (jsonMatch && jsonMatch[1]) return jsonMatch[1].trim();
+  const start = text.indexOf('{');
+  const end = text.lastIndexOf('}');
+  if (start !== -1 && end !== -1 && end > start) return text.substring(start, end + 1).trim();
+  return text.trim();
+};
+
 export interface QuizQuestion {
   question: string;
   options: string[];
@@ -84,8 +96,8 @@ Requirements:
 - Keep technical terms (e.g. "React", "Closure", "Variable") in English.`
             }]
           }],
-          config: {
-            systemInstruction: `You are an expert educational assessment designer. Generate high-quality multiple-choice questions that test genuine understanding of concepts, not just rote memorization. Questions should be clear, unambiguous, and have plausible distractors.`,
+          systemInstruction: `You are an expert educational assessment designer. Generate high-quality multiple-choice questions that test genuine understanding of concepts, not just rote memorization. Questions should be clear, unambiguous, and have plausible distractors.`,
+          generationConfig: {
             responseMimeType: "application/json",
             responseSchema: {
               type: Type.OBJECT,
@@ -116,7 +128,8 @@ Requirements:
 
       if (!text) throw new Error("Empty response from AI");
 
-      const parsed = JSON.parse(text);
+      const extracted = extractJson(text);
+      const parsed = JSON.parse(extracted);
       return {
         topic,
         difficulty,
@@ -125,7 +138,12 @@ Requirements:
     } catch (error: any) {
       lastError = error;
       console.warn(`[QuizGenerator] Model ${currentModel} failed:`, error?.message || error);
-      if (isRetryableError(error)) continue;
+      
+      const isLastModel = modelsToTry.indexOf(currentModel) === modelsToTry.length - 1;
+      if (!isLastModel) {
+        console.log(`[QuizGenerator] Attempting fallback to next model...`);
+        continue;
+      }
       break;
     }
   }

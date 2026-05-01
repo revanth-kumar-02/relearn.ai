@@ -19,7 +19,7 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           rewrite: (path: string) => path.replace(/^\/api\/gemini/, ''),
           headers: {
-            'x-goog-api-key': env.GEMINI_API_KEY || env.VITE_GEMINI_API_KEY || '',
+            'x-goog-api-key': env.VITE_GEMINI_LEARNING_API_KEY || env.GEMINI_API_KEY || env.VITE_GEMINI_API_KEY || '',
           },
         },
         // Proxy Groq API calls to avoid CORS issues in browser
