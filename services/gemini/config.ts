@@ -11,7 +11,7 @@
 export const AI_MODELS = {
   /** Primary stable model for high-speed plan generation - now supports Groq */
   /** Primary stable model for high-speed plan generation - now supports Groq */
-  PRIMARY: import.meta.env.VITE_LLM_MODEL_PRIMARY || 'llama3-70b-8192',
+  PRIMARY: import.meta.env.VITE_LLM_MODEL_PRIMARY || 'llama-3.3-70b',
 
   /** Ultra-high efficiency model for lightweight tasks */
   FAST_LITE: 'gemini-1.5-flash',
@@ -24,9 +24,8 @@ export const AI_MODELS = {
 
   /** Ordered fallback chain for peak demand */
   FALLBACK_CHAIN: [
-    'llama3-70b-8192',
-    'llama-3.3-70b-versatile',
-    'llama-3.1-70b-versatile',
+    'llama-3.3-70b',
+    'llama-3.1-70b',
     'gemini-2.0-flash',
     'gemini-1.5-pro',
     'gemini-1.5-flash',
