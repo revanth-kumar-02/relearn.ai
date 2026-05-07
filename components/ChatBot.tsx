@@ -3,7 +3,7 @@ import { sendChatMessageStreaming } from '../services/gemini/chatbotService';
 import { useAuth } from '../contexts/AuthContext';
 import ReactMarkdown from 'react-markdown';
 import { useData } from '../contexts/DataContext';
-import { getVideoLanguageLabel } from '../services/youtubeService';
+import { getContentLanguageLabel } from '../services/youtubeService';
 
 interface ChatBotProps {
   isOpen: boolean;
@@ -12,7 +12,7 @@ interface ChatBotProps {
 
 const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
   const { user } = useAuth();
-  const { videoLanguage } = useData();
+  const { contentLanguage } = useData();
   const [messages, setMessages] = useState<{ role: 'user' | 'bot'; text: string }[]>([
     { role: 'bot', text: `Hi ${user?.name.split(' ')[0] || ''}! I'm your ReLearn.ai study assistant. How can I help you with your learning journey today?` }
   ]);
@@ -73,7 +73,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
             return updated;
           });
         },
-        getVideoLanguageLabel(videoLanguage),
+        getContentLanguageLabel(contentLanguage),
         userContext
       );
     } catch (error) {

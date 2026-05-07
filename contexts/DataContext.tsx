@@ -12,7 +12,10 @@ import {
   startAnalyticsSession as dsStartAnalyticsSession, endAnalyticsSession as dsEndAnalyticsSession, trackAnalyticsEvent as dsTrackAnalyticsEvent
 } from '../services/dataService';
 import { supabase } from '../services/supabase';
-import { VideoLanguageCode, setVideoLanguagePreference, getVideoLanguagePreference } from '../services/youtubeService';
+import { 
+  VideoLanguageCode, setVideoLanguagePreference, getVideoLanguagePreference,
+  LanguageCode, setContentLanguagePreference, getContentLanguagePreference
+} from '../services/youtubeService';
 
 interface DataContextType {
   plans: Plan[];
@@ -21,6 +24,8 @@ interface DataContextType {
   notifications: AppNotification[];
   videoLanguage: VideoLanguageCode;
   updateVideoLanguage: (code: VideoLanguageCode) => Promise<void>;
+  contentLanguage: LanguageCode;
+  updateContentLanguage: (code: LanguageCode) => Promise<void>;
   addPlan: (plan: Plan) => Promise<void>;
   addPlanWithTasks: (plan: Plan, tasks: Task[]) => Promise<void>;
   updatePlan: (id: string, updates: Partial<Plan>) => Promise<void>;
@@ -64,15 +69,20 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [recentActivity, setRecentActivity] = useState<Activity[]>([]);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [videoLanguage, setVideoLanguageState] = useState<VideoLanguageCode>(getVideoLanguagePreference());
+  const [contentLanguage, setContentLanguageState] = useState<LanguageCode>(getContentLanguagePreference());
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // Synchronize initial video language from user profile if it changes
+  // Synchronize initial languages from user profile if they change
   useEffect(() => {
     if (user?.preferences?.videoLanguage) {
       setVideoLanguageState(user.preferences.videoLanguage as VideoLanguageCode);
       setVideoLanguagePreference(user.preferences.videoLanguage as VideoLanguageCode);
     }
-  }, [user?.preferences?.videoLanguage]);
+    if (user?.preferences?.contentLanguage) {
+      setContentLanguageState(user.preferences.contentLanguage as LanguageCode);
+      setContentLanguagePreference(user.preferences.contentLanguage as LanguageCode);
+    }
+  }, [user?.preferences?.videoLanguage, user?.preferences?.contentLanguage]);
 
   const updateVideoLanguage = async (code: VideoLanguageCode) => {
     setVideoLanguageState(code);
@@ -86,6 +96,23 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         preferences: {
           ...(user.preferences || defaultPreferences),
           videoLanguage: code
+        }
+      });
+    }
+  };
+
+  const updateContentLanguage = async (code: LanguageCode) => {
+    setContentLanguageState(code);
+    setContentLanguagePreference(code);
+    
+    // Notify components to re-fetch freshly
+    window.dispatchEvent(new Event('contentLanguageChanged'));
+
+    if (user) {
+      await updateProfile({
+        preferences: {
+          ...(user.preferences || defaultPreferences),
+          contentLanguage: code
         }
       });
     }
@@ -565,7 +592,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   return (
     <DataContext.Provider value={{
-      plans, tasks, recentActivity, notifications, videoLanguage, updateVideoLanguage,
+      plans, tasks, recentActivity, notifications, 
+      videoLanguage, updateVideoLanguage,
+      contentLanguage, updateContentLanguage,
       addPlan, addPlanWithTasks, updatePlan, deletePlan,
       addTask, updateTask, updateTasksBatch, deleteTask,
       addActivity, clearAllActivity, markAllNotificationsAsRead, clearAllNotifications, addNotification,

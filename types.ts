@@ -75,6 +75,7 @@ export interface DiaryEntry {
 export interface UserPreferences {
   theme?: 'light' | 'dark' | 'system';
   videoLanguage?: string; // e.g. "en", "es"
+  contentLanguage?: string; // e.g. "en", "es"
   notifications: {
     dailyReminder: boolean;
     dailyReminderTime: string; // "09:00"

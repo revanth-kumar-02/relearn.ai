@@ -23,6 +23,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const defaultPreferences: UserPreferences = {
   theme: 'system',
   videoLanguage: 'en',
+  contentLanguage: 'en',
   notifications: {
     dailyReminder: true,
     dailyReminderTime: "09:00",

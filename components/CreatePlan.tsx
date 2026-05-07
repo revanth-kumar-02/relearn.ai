@@ -9,12 +9,12 @@ import { useToast } from '../contexts/ToastContext';
 import { triggerHaptic } from '../utils/haptics';
 import { Plan, Task } from '../types';
 import Icon from './common/Icon';
-import { getVideoLanguageLabel } from '../services/youtubeService';
+import { getContentLanguageLabel } from '../services/youtubeService';
 
 const CreatePlan: React.FC = () => {
     const navigate = useNavigate();
     const { user } = useAuth();
-    const { addPlanWithTasks, updatePlan, videoLanguage } = useData();
+    const { addPlanWithTasks, updatePlan, contentLanguage } = useData();
     const { showToast } = useToast();
     
     const [prompt, setPrompt] = useState('');
@@ -68,7 +68,7 @@ const CreatePlan: React.FC = () => {
                 aiDuration, 
                 difficulty, 
                 undefined, 
-                getVideoLanguageLabel(videoLanguage),
+                getContentLanguageLabel(contentLanguage),
                 userContext, 
                 abortControllerRef.current.signal
             );

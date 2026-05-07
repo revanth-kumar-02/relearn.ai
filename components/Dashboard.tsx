@@ -340,16 +340,7 @@ const Dashboard: React.FC = () => {
                             <span className="material-symbols-outlined text-8xl">hub</span>
                         </div>
                         <div className="relative z-10">
-                            <div className="flex items-center gap-2 mb-2">
-                                <div className="flex -space-x-2">
-                                    {[1, 2, 3].map(i => (
-                                        <div key={i} className="w-6 h-6 rounded-full border-2 border-indigo-500 bg-white/20 backdrop-blur-sm flex items-center justify-center text-[10px] font-bold">
-                                            {String.fromCharCode(64 + i)}
-                                        </div>
-                                    ))}
-                                </div>
-                                <span className="text-xs font-medium bg-white/20 px-2 py-0.5 rounded-full backdrop-blur-sm">12+ Active Now</span>
-                            </div>
+
                             <h4 className="text-lg font-bold">Collaborative Study Rooms</h4>
                             <p className="text-sm text-white/80 max-w-xs mt-1">Join fellow learners in real-time rooms. Study together, share resources, and stay motivated.</p>
                             <div className="mt-4 flex items-center gap-2 text-xs font-bold uppercase tracking-widest">

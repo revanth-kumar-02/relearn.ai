@@ -103,12 +103,14 @@ export const VIDEO_LANGUAGE_OPTIONS = [
 ] as const;
 
 export type VideoLanguageCode = typeof VIDEO_LANGUAGE_OPTIONS[number]['value'];
+export type LanguageCode = VideoLanguageCode; // Alias for content language
 
 const VIDEO_LANG_LABEL_MAP: Record<string, string> = {
   en: 'English', hi: 'Hindi', ta: 'Tamil', te: 'Telugu', ml: 'Malayalam',
 };
 
 const LS_VIDEO_LANG_KEY = 'videoLanguagePreference';
+const LS_CONTENT_LANG_KEY = 'contentLanguagePreference';
 
 /** Get the user's preferred video language code (defaults to 'en') */
 export const getVideoLanguagePreference = (): VideoLanguageCode => {
@@ -124,8 +126,26 @@ export const setVideoLanguagePreference = (code: VideoLanguageCode): void => {
   try { localStorage.setItem(LS_VIDEO_LANG_KEY, code); } catch { /* noop */ }
 };
 
-/** Get the human-readable label for a language code */
+/** Get the human-readable label for a video language code */
 export const getVideoLanguageLabel = (code: string): string =>
+  VIDEO_LANG_LABEL_MAP[code] || 'English';
+
+/** Get the user's preferred content (text) language code (defaults to 'en') */
+export const getContentLanguagePreference = (): LanguageCode => {
+  try {
+    const val = localStorage.getItem(LS_CONTENT_LANG_KEY);
+    if (val && VIDEO_LANG_LABEL_MAP[val]) return val as LanguageCode;
+  } catch { /* noop */ }
+  return 'en';
+};
+
+/** Set the user's preferred content (text) language code */
+export const setContentLanguagePreference = (code: LanguageCode): void => {
+  try { localStorage.setItem(LS_CONTENT_LANG_KEY, code); } catch { /* noop */ }
+};
+
+/** Get the human-readable label for a content language code */
+export const getContentLanguageLabel = (code: string): string =>
   VIDEO_LANG_LABEL_MAP[code] || 'English';
 
 // Known high-quality educational channels for programming

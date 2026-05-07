@@ -13,7 +13,7 @@ import {
   Target
 } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
-import { getVideoLanguageLabel } from '../services/youtubeService';
+import { getContentLanguageLabel } from '../services/youtubeService';
 import { XP_REWARDS } from '../services/gamificationService';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -31,7 +31,7 @@ const QuizModule: React.FC<QuizModuleProps> = ({
   difficulty = 'Beginner'
 }) => {
   const { user } = useAuth();
-  const { videoLanguage, processGamificationReward, addNotification } = useData();
+  const { contentLanguage, processGamificationReward, addNotification } = useData();
   const [quizState, setQuizState] = useState<QuizState>('idle');
   const [quiz, setQuiz] = useState<QuizResult | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -43,7 +43,7 @@ const QuizModule: React.FC<QuizModuleProps> = ({
     setQuizState('loading');
     setError('');
     try {
-      const result = await generateQuiz(topic, lessonContent, difficulty, getVideoLanguageLabel(videoLanguage));
+      const result = await generateQuiz(topic, lessonContent, difficulty, getContentLanguageLabel(contentLanguage));
       setQuiz(result);
       setSelectedAnswers(new Array(result.questions.length).fill(null));
       setCurrentIndex(0);

@@ -27,16 +27,16 @@ export const generateYouTubeSearchQuery = async (
       : '';
     const response = await ai.models.generateContent({
       model: AI_MODELS.FAST_LITE, // Force Gemini for this specific service
-      contents: `Topic: "${sanitizeInput(cleanTopic)}"\nSubject / Language: "${sanitizeInput(subject) || "general programming"}"\nPreferred Video Language: "${sanitizeInput(videoLanguage)}"`,
+      contents: `Topic: "${sanitizeInput(cleanTopic)}"\nSubject / Theme: "${sanitizeInput(subject) || "general education"}"\nPreferred Video Language: "${sanitizeInput(videoLanguage)}"`,
       config: {
-        systemInstruction: `You are a YouTube search query optimizer for educational programming content.
-Given a lesson topic and its subject/language, return a single search query (4-8 words) that will find the best beginner-friendly tutorial video on YouTube.
+        systemInstruction: `You are a YouTube search query optimizer for educational content.
+Given a lesson topic and its broader subject, return a single search query (4-8 words) that will find the best beginner-friendly tutorial or explanation video on YouTube.
 
 Rules:
 - Return ONLY the query string, nothing else. Do not output anything like "Here is the query".
 - Never include words like "AI", "Generated", "Day X", or conversational text.
-- Include the programming language/subject if one is provided.
-- Favor terms like "tutorial", "explained", "for beginners", "step by step".
+- Include the subject if one is provided to give context.
+- Favor terms like "tutorial", "explained", "for beginners", "step by step", or "how to".
 - Be specific to the topic — don't be generic.${videoLangInstruction}`,
         temperature: 0.1,
         maxOutputTokens: 30,

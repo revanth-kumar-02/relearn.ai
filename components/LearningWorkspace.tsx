@@ -24,7 +24,7 @@ import {
   Sparkles,
   Loader2
 } from 'lucide-react';
-import { getVideoLanguageLabel } from '../services/youtubeService';
+import { getContentLanguageLabel } from '../services/youtubeService';
 import ReactMarkdown from 'react-markdown';
 import StudyTimer from './StudyTimer';
 import VideoResources from './VideoResources';
@@ -36,7 +36,7 @@ const LearningWorkspace: React.FC = () => {
   const location = useLocation();
   const { user } = useAuth();
   const { 
-    tasks, plans, updateTask, addActivity, videoLanguage, 
+    tasks, plans, updateTask, addActivity, contentLanguage, 
     processGamificationReward, addNotification, 
     startAnalyticsSession, endAnalyticsSession, trackAnalyticsEvent 
   } = useData();
@@ -168,7 +168,7 @@ const LearningWorkspace: React.FC = () => {
       const result = await generateLessonContent(
         task.title,
         plan?.title || 'General Study',
-        getVideoLanguageLabel(videoLanguage),
+        getContentLanguageLabel(contentLanguage),
         pdfContent || undefined
       );
       if (!result) throw new Error("No content generated");
@@ -201,7 +201,7 @@ const LearningWorkspace: React.FC = () => {
       trackAnalyticsEvent('manual_generation_skipped_pdf', { taskId: task?.id });
     }
 
-    generateLessonContent(task!.title, plan?.title || 'General Study', getVideoLanguageLabel(videoLanguage))
+    generateLessonContent(task!.title, plan?.title || 'General Study', getContentLanguageLabel(contentLanguage))
       .then(result => {
         if (!result) throw new Error("No content generated");
         const data = JSON.parse(result);
