@@ -2,12 +2,12 @@
 
 ReLearn.ai is a premium, AI-native learning platform designed to help users organize their learning journey with personalized study plans, deep analytics, a collaborative study hub, and an intelligent AI tutor.
 
-## What's New in v7.0 (The Speed & Visual Update)
+## What's New in v7.1 (The Global & Stable Update)
+* **Decoupled Language Preferences**: Independent language selection for AI-generated text (lessons, plans, chat) and video resources. Learn in English while watching tutorials in your native language.
+* **Production Stability Fixes**: Resolved Netlify function routing issues ensuring consistent AI service performance in production environments.
+* **Educational Relevance Engine**: Upgraded YouTube query logic to handle general education topics (Social Skills, Psychology, etc.) without tech-bias.
 * **Hybrid AI Engine (Groq + Gemini)**: High-speed plan generation powered by **Groq (Llama 3.3)** for near-instant roadmaps, while retaining **Gemini** for deep contextual tutoring and YouTube optimization.
-* **Premium Image Pipeline (FLUX)**: High-fidelity, consistent cover images generated via the **FLUX model** through Pollinations, following the "Nano Banana" 3D design system.
-* **Smart Resource Variety**: Optimized YouTube search logic that prevents repetitive results and ensures a fresh selection of tutorials on every refresh.
-* **Streaming AI Chat**: Real-time word-by-word streaming responses for the AI Tutor, providing a responsive, ChatGPT-like experience.
-* **God-Mode Admin Dashboard**: A comprehensive administrative suite featuring real-time system metrics, detailed user & plan analytics, and secure Supabase RBAC architecture.
+* **Premium Image Pipeline (FLUX)**: High-fidelity, consistent cover images generated via the **FLUX model** through Pollinations.
 
 ## Core Features
 
