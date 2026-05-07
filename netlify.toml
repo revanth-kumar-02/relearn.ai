@@ -6,17 +6,17 @@
 # API Redirects
 [[redirects]]
   from = "/api/gemini/*"
-  to = "/.netlify/functions/gemini-proxy"
+  to = "/.netlify/functions/gemini-proxy?path=:splat"
   status = 200
 
 [[redirects]]
   from = "/api/groq/*"
-  to = "/.netlify/functions/groq-proxy"
+  to = "/.netlify/functions/groq-proxy?path=:splat"
   status = 200
 
 [[redirects]]
   from = "/api/openai/*"
-  to = "/.netlify/functions/openai-proxy"
+  to = "/.netlify/functions/openai-proxy?path=:splat"
   status = 200
 
 [[redirects]]

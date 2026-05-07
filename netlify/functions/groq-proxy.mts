@@ -21,8 +21,8 @@ export default async (req: Request, context: Context) => {
   }
 
   const url = new URL(req.url);
-  // Remove /api/groq prefix
-  let cleanPath = url.pathname.replace(/^\/api\/groq/, '');
+  // Get path from query parameter (injected by netlify.toml splat) or fallback to pathname
+  let cleanPath = url.searchParams.get('path') || url.pathname.replace(/^\/api\/groq/, '');
   if (!cleanPath.startsWith('/')) cleanPath = '/' + cleanPath;
 
   const groqEndpoint = `https://api.groq.com/openai/v1${cleanPath}`;

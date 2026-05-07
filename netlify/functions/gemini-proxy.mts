@@ -50,7 +50,7 @@ export default async (req: Request, context: Context) => {
 
   const url = new URL(req.url);
   // Remove /api/gemini prefix and ensure the path starts with a single slash
-  let cleanPath = url.pathname.replace(/^\/api\/gemini/, '');
+  let cleanPath = url.searchParams.get('path') || url.pathname.replace(/^\/api\/gemini/, '');
   if (!cleanPath.startsWith('/')) cleanPath = '/' + cleanPath;
 
   // Track the last response to return if all keys fail
