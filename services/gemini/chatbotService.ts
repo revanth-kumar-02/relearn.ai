@@ -49,14 +49,16 @@ export const sendChatMessageStreaming = async (
   history: { role: 'user' | 'model', parts: { text: string }[] }[],
   onChunk: (accumulatedText: string) => void,
   language: string = 'English',
-  userContext?: string
+  userContext?: string,
+  personaSystemPrompt?: string
 ): Promise<string> => {
   const ai = getProxyConfiguredGenAI('chat');
   const modelsToTry = [AI_MODELS.CHAT, ...AI_MODELS.FALLBACK_CHAIN.filter(m => m !== AI_MODELS.CHAT)];
   let lastError: any = null;
 
-  // System instruction
-  const systemInstruction = `You are ReLearn.ai, a helpful AI study assistant. 
+  // System instruction — use persona prompt if provided, otherwise default
+  const systemInstruction = personaSystemPrompt 
+    || `You are ReLearn.ai, a helpful AI study assistant. 
 Your goal is to help students manage their time, understand complex topics, and stay motivated.
 ${userContext ? `User Profile Context: ${sanitizeInput(userContext)}` : ''}
 Be concise, encouraging, and professional. Use markdown formatting for lists, bold, and headers where appropriate.

@@ -21,7 +21,7 @@ import { SYNC_MAX_RETRIES } from './gemini/config';
 // ────────────────────────── localStorage helpers (Obfuscated) ──────────────────────────
 
 const LS_PREFIX = 'relearn_';
-const OBF_KEY = 'v1_rlrn_s3cr3t'; // Key for basic obfuscation
+const OBF_KEY = 'v2_relearn_prod_k3y_99x_z0'; // Rotated key for improved basic obfuscation
 
 /**
  * Simple XOR obfuscation to prevent plain-text reading of sensitive data in DevTools.
@@ -288,6 +288,27 @@ function canUseSupabase(): boolean {
 
 // ────────────────────────── PLANS ──────────────────────────
 
+export async function getActivePlan(userId: string): Promise<Plan | null> {
+  if (canUseSupabase()) {
+    try {
+      const { data, error } = await supabase
+        .from('plans')
+        .select('*')
+        .eq('userId', userId)
+        .eq('status', 'active')
+        .maybeSingle();
+      
+      if (error) throw error;
+      if (data) return data as Plan;
+    } catch (err) {
+      console.warn('[DataService] getActivePlan failed, checking cache:', err);
+    }
+  }
+
+  const cached = lsGet<Plan[]>(`plans_${userId}`, []);
+  return cached.find(p => p.status === 'active') || null;
+}
+
 export async function getPlans(userId: string): Promise<Plan[]> {
   if (canUseSupabase()) {
     try {
@@ -316,6 +337,7 @@ export async function createPlan(userId: string, plan: Plan): Promise<void> {
   const planWithMeta = {
     ...plan,
     userId,
+    status: plan.status || 'active',
     createdAt: plan.createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
@@ -1055,4 +1077,42 @@ export function startAnalyticsSession(taskId: string): number {
 export function endAnalyticsSession(taskId: string, startTime: number) {
   const sessionDuration = Math.round((Date.now() - startTime) / 1000);
   trackAnalyticsEvent('session_completed', { taskId, sessionDuration });
+}
+
+// ────────────────────────── SYNC HEALTH ──────────────────────────
+
+export interface SyncHealth {
+  pendingCount: number;
+  failedCount: number;
+  lastError?: string;
+}
+
+export function getSyncHealth(): SyncHealth {
+  const changes = getUnsyncedChanges();
+  const failed = changes.filter(c => c.permanentlyFailed);
+  return {
+    pendingCount: changes.length - failed.length,
+    failedCount: failed.length,
+    lastError: failed[failed.length - 1]?.lastError
+  };
+}
+
+export type { UnsyncedChange };
+export async function discoverMentors(userId: string, weakSubjects: string[]): Promise<User[]> {
+  if (!canUseSupabase() || !weakSubjects.length) return [];
+
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select('id, name, email, strongSubjects, stats, academicLevel')
+      .neq('id', userId)
+      .overlaps('strongSubjects', weakSubjects)
+      .limit(5);
+
+    if (error) throw error;
+    return data as User[];
+  } catch (err) {
+    console.warn('[DataService] discoverMentors failed:', err);
+    return [];
+  }
 }

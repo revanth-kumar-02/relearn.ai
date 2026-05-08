@@ -3,25 +3,34 @@
  */
 
 /**
- * Sanitizes and wraps user input to prevent prompt injection and character escapes.
- * Uses XML-style tagging as a boundary for the LLM.
+ * Sanitizes and prepares user input for LLM requests.
+ * 
+ * DESIGN PATTERN: XML Tagging
+ * When using this sanitized output in a prompt, ALWAYS wrap it in XML tags 
+ * (e.g., <user_input>{sanitized}</user_input>) and instruct the model to
+ * treat everything inside those tags as data, not instructions.
  */
 export function sanitizeInput(input: string): string {
   if (!input) return "";
 
-  // 1. Strip raw HTML tags to prevent UI-level breakage  // Remove scripts and dangerous attributes
-  let clean = input.replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gim, "");
-  
-  // S6: Prevent prompt injection markers and excessive hidden commands
-  // Softened: We don't want to strip citations [Source] or JSON/code snippets { ... }
-  // clean = clean.replace(/(\[[^\]]*\]|\{[^\}]*\}|\bignore\b|\bsystem\b|\bprompt\b)/gi, "");
-  
-  // Only strip dangerous keywords if they are standalone
-  clean = clean.replace(/\b(ignore instructions|system prompt|ignore previous)\b/gi, "");
-  
-  // Strip common HTML except basics if needed, but here we strip everything for text input
-  clean = clean.replace(/<[^>]*>?/gm, "");
-  
+  // 1. Strip raw HTML tags to prevent UI-level breakage
+  let clean = input.replace(/<[^>]*>?/gm, "");
+
+  // 2. Neutralize common prompt injection techniques
+  // We don't want to over-strip legitimate educational terms, but we block 
+  // explicit "system override" phrases that are common in injection attacks.
+  const injectionPatterns = [
+    /\b(ignore (all )?previous instructions)\b/gi,
+    /\b(system override)\b/gi,
+    /\b(you are now a)\b/gi,
+    /\b(forget what I said)\b/gi,
+    /\b(disregard (all )?safety)\b/gi
+  ];
+
+  injectionPatterns.forEach(pattern => {
+    clean = clean.replace(pattern, "[FILTERED]");
+  });
+
   return clean.trim();
 }
 

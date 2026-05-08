@@ -1,13 +1,50 @@
 import { Context } from "@netlify/functions";
+import { createClient } from "@supabase/supabase-js";
+
+const supabaseUrl = process.env.SUPABASE_URL || "";
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || "";
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+const ALLOWED_ORIGINS = [
+  "https://relearn-ai.netlify.app",
+  "https://relearn.ai",
+  "http://localhost:5173",
+  "http://localhost:8888"
+];
 
 export default async (req: Request, context: Context) => {
+  const origin = req.headers.get("origin") || "";
+  const isAllowedOrigin = ALLOWED_ORIGINS.includes(origin);
+  const corsHeaders = {
+    "Access-Control-Allow-Origin": isAllowedOrigin ? origin : ALLOWED_ORIGINS[0],
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Allow-Credentials": "true",
+  };
+
   if (req.method === "OPTIONS") {
     return new Response("OK", {
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization",
-      },
+      headers: corsHeaders,
+    });
+  }
+
+  // 🔐 Authentication Check
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader) {
+    return new Response(JSON.stringify({ error: "Unauthorized: Missing token" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const token = authHeader.replace("Bearer ", "");
+  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+  if (authError || !user) {
+    console.error("[groq-proxy] Auth Error:", authError?.message);
+    return new Response(JSON.stringify({ error: "Unauthorized: Invalid token" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
@@ -45,7 +82,8 @@ export default async (req: Request, context: Context) => {
           "Content-Type": "text/event-stream",
           "Cache-Control": "no-cache",
           "Connection": "keep-alive",
-          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Origin": corsHeaders["Access-Control-Allow-Origin"],
+          ...corsHeaders
         },
       });
     }
@@ -56,13 +94,14 @@ export default async (req: Request, context: Context) => {
       status: response.status,
       headers: {
         "Content-Type": response.headers.get("Content-Type") || "application/json",
-        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Origin": corsHeaders["Access-Control-Allow-Origin"],
+        ...corsHeaders
       },
     });
   } catch (error: any) {
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json', "Access-Control-Allow-Origin": "*" }
+      headers: { 'Content-Type': 'application/json', ...corsHeaders }
     });
   }
 };

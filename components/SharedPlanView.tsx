@@ -7,15 +7,18 @@ import Icon from './common/Icon';
 import { useData } from '../contexts/DataContext';
 import { useToast } from '../contexts/ToastContext';
 import Skeleton from './common/Skeleton';
+import ActivePlanModal from './common/ActivePlanModal';
 
 const SharedPlanView: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
-  const { addPlanWithTasks } = useData();
+  const { addPlanWithTasks, plans } = useData();
   const { showToast } = useToast();
   const [sharedPlan, setSharedPlan] = useState<SharedPlan | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isImporting, setIsImporting] = useState(false);
+  const [showActivePlanModal, setShowActivePlanModal] = useState(false);
+  const activePlan = plans.find(p => p.status === 'active');
 
   useEffect(() => {
     const fetchPlan = async () => {
@@ -29,6 +32,12 @@ const SharedPlanView: React.FC = () => {
 
   const handleImport = async () => {
     if (!sharedPlan) return;
+
+    if (activePlan) {
+      setShowActivePlanModal(true);
+      return;
+    }
+
     setIsImporting(true);
     try {
       const planId = crypto.randomUUID();
@@ -42,7 +51,7 @@ const SharedPlanView: React.FC = () => {
         progress: 0,
         dailyGoalMins: 45, // Default
         difficulty: 'Intermediate',
-        status: 'Active',
+        status: 'active',
         createdAt: new Date().toISOString()
       };
 
@@ -187,6 +196,12 @@ const SharedPlanView: React.FC = () => {
           </button>
         </div>
       </div>
+
+      <ActivePlanModal 
+        isOpen={showActivePlanModal}
+        onClose={() => setShowActivePlanModal(false)}
+        activePlan={activePlan!}
+      />
     </div>
   );
 };

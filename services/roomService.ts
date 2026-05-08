@@ -208,7 +208,8 @@ export const roomService = {
   subscribeToRoom: (
     roomId: string, 
     onMemberUpdate: (payload: any) => void, 
-    onMessage: (payload: any) => void
+    onMessage: (payload: any) => void,
+    onRoomUpdate?: (payload: any) => void
   ) => {
     const channel = supabase.channel(`room:${roomId}`)
       .on(
@@ -221,8 +222,23 @@ export const roomService = {
         { event: 'INSERT', schema: 'public', table: 'room_messages', filter: `room_id=eq.${roomId}` }, 
         onMessage
       )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'study_rooms', filter: `id=eq.${roomId}` },
+        onRoomUpdate || (() => {})
+      )
       .subscribe();
 
     return channel;
+  },
+
+  // Update room notes (debounced in UI)
+  updateRoomNotes: async (roomId: string, notes: string) => {
+    const { error } = await supabase
+      .from('study_rooms')
+      .update({ shared_notes: notes })
+      .eq('id', roomId);
+    
+    if (error) throw error;
   }
 };

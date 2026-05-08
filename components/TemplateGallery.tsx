@@ -8,16 +8,19 @@ import { useData } from '../contexts/DataContext';
 import { useToast } from '../contexts/ToastContext';
 import ConfirmationModal from './common/ConfirmationModal';
 import { generateLearningPlan } from '../services/gemini/planGeneratorService';
+import ActivePlanModal from './common/ActivePlanModal';
 
 const TemplateGallery: React.FC = () => {
   const navigate = useNavigate();
-  const { addPlanWithTasks } = useData();
+  const { addPlanWithTasks, plans } = useData();
   const [filter, setFilter] = useState<string>('all');
   const [search, setSearch] = useState<string>('');
   const { showToast } = useToast();
   const [selectedTemplate, setSelectedTemplate] = useState<PlanTemplate | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationStep, setGenerationStep] = useState<'confirm' | 'refining'>('confirm');
+  const [showActivePlanModal, setShowActivePlanModal] = useState(false);
+  const activePlan = useMemo(() => plans.find(p => p.status === 'active'), [plans]);
 
   const filteredTemplates = useMemo(() => {
     return PLAN_TEMPLATES.filter(template => {
@@ -30,6 +33,11 @@ const TemplateGallery: React.FC = () => {
 
   const handleConfirmTemplate = async () => {
     if (!selectedTemplate) return;
+
+    if (activePlan) {
+      setShowActivePlanModal(true);
+      return;
+    }
     
     setIsGenerating(true);
     setGenerationStep('refining');
@@ -74,7 +82,7 @@ STRICT ARCHITECTURAL RULES:
         progress: 0,
         dailyGoalMins: selectedTemplate.dailyGoalMins,
         difficulty: selectedTemplate.difficulty,
-        status: 'Active' as const,
+        status: 'active' as const,
         createdAt: new Date().toISOString()
       };
 
@@ -109,7 +117,7 @@ STRICT ARCHITECTURAL RULES:
           progress: 0,
           dailyGoalMins: selectedTemplate.dailyGoalMins,
           difficulty: selectedTemplate.difficulty,
-          status: 'Active' as const,
+          status: 'active' as const,
           createdAt: new Date().toISOString()
         };
 
@@ -357,6 +365,12 @@ STRICT ARCHITECTURAL RULES:
           </div>
         )}
       </AnimatePresence>
+
+      <ActivePlanModal 
+        isOpen={showActivePlanModal}
+        onClose={() => setShowActivePlanModal(false)}
+        activePlan={activePlan!}
+      />
     </div>
   );
 };

@@ -152,12 +152,13 @@ export const validateTopicSafety = async (
   const academicKeywords = [
     'math', 'science', 'history', 'physics', 'bio', 'chem', 'coding', 'programming', 
     'react', 'js', 'html', 'python', 'engine', 'tech', 'study', 'learn', 'lesson',
-    'exam', 'test', 'algebra', 'calculus', 'nature', 'space', 'art', 'music'
+    'exam', 'test', 'algebra', 'calculus', 'nature', 'space', 'art', 'music',
+    'sql', 'c++', 'c#', 'rust', 'java', 'philosophy', 'geography', 'literature'
   ];
   
   const lowerTopic = topic.toLowerCase();
   const isEvidentlySafe = academicKeywords.some(kw => lowerTopic.includes(kw)) || 
-                          (topic.length > 3 && topic.length < 50 && /^[a-zA-Z0-9\s?.,!]*$/.test(topic));
+                          (topic.length > 3 && topic.length < 50 && /^[\p{L}\p{N}\s?.,!+#&()_-]*$/u.test(topic));
 
   if (isEvidentlySafe) {
     console.log(`[SafetyService] ✅ Local validation PASSED for academic topic. Allowing bypass.`);

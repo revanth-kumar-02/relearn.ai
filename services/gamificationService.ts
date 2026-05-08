@@ -58,6 +58,10 @@ export const BADGES: Badge[] = [
   { id: 'deep_diver', name: 'Deep Diver', description: 'Study for 2+ hours in a single session', icon: '🌊', color: 'from-blue-600 to-indigo-900', rarity: 'epic' },
   { id: 'librarian', name: 'Library Keeper', description: 'Have 20 active plans', icon: '🏛️', color: 'from-amber-800 to-yellow-900', rarity: 'rare' },
   { id: 'quiz_novice', name: 'Quiz Novice', description: 'Complete your first quiz', icon: '📝', color: 'from-slate-300 to-gray-400', rarity: 'common' },
+  
+  // Comeback badges
+  { id: 'comeback_king', name: 'Comeback King', description: 'Return after 7+ days away', icon: '👑', color: 'from-amber-400 to-orange-600', rarity: 'rare' },
+  { id: 'comeback_queen', name: 'Comeback Queen', description: 'Return after 7+ days away', icon: '👸', color: 'from-pink-400 to-rose-600', rarity: 'rare' },
 ];
 
 // ─── Level Calculation ───────────────────────────────────────────────
@@ -129,6 +133,9 @@ export function updateStreak(stats: UserStats): UserStats {
     updated.studyStreak = 1;
   }
 
+  // Track comeback status for badge awarding
+  (updated as any)._daysAbsent = diffDays;
+
   updated.longestStreak = Math.max(updated.studyStreak, stats.longestStreak || 0);
   return updated;
 }
@@ -151,6 +158,7 @@ export function awardXP(stats: UserStats, amount: number, context?: {
   plansCompleted?: number;
   quizPerfectScores?: number;
   totalStudyHours?: number;
+  userName?: string;
 }): XPAwardResult {
   const oldLevel = calculateLevel(stats.totalXP || 0);
   
@@ -208,6 +216,18 @@ export function awardXP(stats: UserStats, amount: number, context?: {
   checkBadge('librarian', (stats.plansCreated || 0) - (stats.plansCompleted || 0) >= 20);
   checkBadge('quiz_novice', (stats.totalQuizzesCompleted || 0) >= 1);
 
+  // Comeback logic
+  const daysAbsent = (stats as any)._daysAbsent || 0;
+  if (daysAbsent >= 7) {
+    const firstName = context?.userName?.split(' ')[0].toLowerCase() || '';
+    const isQueen = firstName.endsWith('a') || firstName.endsWith('i') || firstName.endsWith('e');
+    if (isQueen) {
+      checkBadge('comeback_queen', true);
+    } else {
+      checkBadge('comeback_king', true);
+    }
+  }
+
   updatedStats.badges = Array.from(currentBadges);
 
   return {
@@ -251,5 +271,25 @@ export function ensureGamificationStats(stats?: UserStats): UserStats {
     totalMessagesSent: stats?.totalMessagesSent || 0,
     totalPDFExports: stats?.totalPDFExports || 0,
     totalAIPlansGenerated: stats?.totalAIPlansGenerated || 0,
+    quizPerfectScores: stats?.quizPerfectScores || 0,
+    subjectMastery: stats?.subjectMastery || {},
+  };
+}
+
+/**
+ * Updates subject mastery based on performance.
+ */
+export function updateSubjectMastery(
+  stats: UserStats, 
+  subject: string, 
+  increment: number
+): UserStats {
+  const mastery = { ...(stats.subjectMastery || {}) };
+  const current = mastery[subject] || 0;
+  mastery[subject] = Math.min(100, Math.max(0, current + increment));
+  
+  return {
+    ...stats,
+    subjectMastery: mastery
   };
 }

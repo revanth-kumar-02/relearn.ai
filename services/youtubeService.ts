@@ -1,5 +1,6 @@
 
 import { generateYouTubeSearchQuery } from './gemini/youtubeQueryService';
+import { getAuthHeaders } from './utils/auth';
 
 /**
  * In production, YouTube requests are proxied through /api/youtube (Netlify Function)
@@ -404,7 +405,10 @@ async function callYouTubeAPI(
   // Production → secure serverless proxy
   const res = await fetch('/api/youtube', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 
+      'Content-Type': 'application/json',
+      ...getAuthHeaders()
+    },
     body: JSON.stringify({ endpoint, params }),
   });
 

@@ -38,6 +38,7 @@ const PlanDetails: React.FC = () => {
   // Modal State
   const [showMenu, setShowMenu] = useState(false);
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showRestartConfirm, setShowRestartConfirm] = useState(false);
   const [isRegeneratingImage, setIsRegeneratingImage] = useState(false);
@@ -164,8 +165,16 @@ const PlanDetails: React.FC = () => {
 
   const handleArchive = () => {
       if(currentPlan) {
-          updatePlan(currentPlan.id, { isArchived: true });
+          updatePlan(currentPlan.id, { isArchived: true, status: 'archived' });
           showToast("Plan moved to archives", "info");
+          navigate('/dashboard');
+      }
+  };
+
+  const handleCancelPlan = () => {
+      if(currentPlan) {
+          updatePlan(currentPlan.id, { status: 'cancelled' });
+          showToast("Plan has been cancelled", "info");
           navigate('/dashboard');
       }
   };
@@ -228,6 +237,12 @@ const PlanDetails: React.FC = () => {
                             className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-gray-100 dark:hover:bg-gray-800 text-text-primary-light dark:text-text-primary-dark transition-colors"
                         >
                             <Icon name="restart_alt" /> Restart Plan
+                        </button>
+                        <button 
+                            onClick={() => { setShowCancelConfirm(true); setShowMenu(false); }}
+                            className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-gray-100 dark:hover:bg-gray-800 text-amber-600 dark:text-amber-400 transition-colors"
+                        >
+                            <Icon name="cancel" /> Cancel Plan
                         </button>
                         <button onClick={() => { setShowDeleteConfirm(true); setShowMenu(false); }} className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-gray-100 dark:hover:bg-gray-800 text-red-600 dark:text-red-400 transition-colors">
                             <Icon name="delete" /> Delete Plan
@@ -308,7 +323,74 @@ const PlanDetails: React.FC = () => {
                     </button>
                 </div>
             </div>
+            </div>
         </div>
+
+        {/* 3. Team Hub (Conditional) */}
+        {currentPlan.isTeamPlan && (
+            <div className="bg-gradient-to-br from-indigo-600/5 to-purple-600/5 rounded-3xl p-8 border border-indigo-500/10 shadow-sm space-y-6">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-600/20">
+                            <Icon name="groups" />
+                        </div>
+                        <div>
+                            <h3 className="font-black text-lg">Team Hub</h3>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Collective Mastery</p>
+                        </div>
+                    </div>
+                    <button className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-indigo-600/20">Invite Peer</button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {/* Member Progress */}
+                    <div className="space-y-4">
+                        <p className="text-xs font-black uppercase tracking-widest text-slate-400">Team Progress</p>
+                        <div className="space-y-3">
+                            {[
+                                { name: user?.name || 'You', progress: progressPercentage, isMe: true },
+                                { name: 'Alex M.', progress: 45, isMe: false },
+                                { name: 'Jordan K.', progress: 12, isMe: false }
+                            ].map((member, i) => (
+                                <div key={i} className="flex items-center gap-4">
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black ${member.isMe ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-600'}`}>
+                                        {member.name.charAt(0)}
+                                    </div>
+                                    <div className="flex-1">
+                                        <div className="flex justify-between items-center mb-1">
+                                            <p className="text-xs font-bold">{member.name}</p>
+                                            <p className="text-[10px] font-black text-slate-400">{Math.round(member.progress)}%</p>
+                                        </div>
+                                        <div className="h-1.5 w-full bg-slate-100 dark:bg-stone-800 rounded-full overflow-hidden">
+                                            <div className={`h-full rounded-full ${member.isMe ? 'bg-indigo-600' : 'bg-slate-400'}`} style={{ width: `${member.progress}%` }} />
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Team Activity */}
+                    <div className="space-y-4">
+                        <p className="text-xs font-black uppercase tracking-widest text-slate-400">Recent Activity</p>
+                        <div className="space-y-4 overflow-y-auto max-h-[160px] pr-2 no-scrollbar">
+                            {[
+                                { user: 'Alex M.', action: 'completed Day 4', time: '2h ago' },
+                                { user: 'Jordan K.', action: 'started the plan', time: '5h ago' },
+                                { user: 'You', action: 'completed Day 3', time: '1d ago' }
+                            ].map((act, i) => (
+                                <div key={i} className="flex gap-3 text-[11px]">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 mt-1" />
+                                    <p className="text-slate-600 dark:text-stone-400">
+                                        <span className="font-black text-slate-900 dark:text-white">{act.user}</span> {act.action} · <span className="opacity-60">{act.time}</span>
+                                    </p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )}
 
         {/* 4. Learning Path List */}
         <section aria-labelledby="path-heading">
@@ -481,6 +563,18 @@ const PlanDetails: React.FC = () => {
           onConfirm={handleArchive}
           onCancel={() => setShowArchiveConfirm(false)}
           icon="archive"
+        />
+      )}
+
+      {showCancelConfirm && (
+        <ConfirmationModal 
+          title="Cancel Plan?"
+          message={`Are you sure you want to cancel "${currentPlan.title}"? You can start a new plan afterwards.`}
+          actionLabel="Cancel Plan"
+          onConfirm={handleCancelPlan}
+          onCancel={() => setShowCancelConfirm(false)}
+          icon="cancel"
+          isDanger
         />
       )}
 

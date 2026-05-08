@@ -4,13 +4,17 @@ import { useSearchParams } from 'react-router-dom';
 import Icon from './common/Icon';
 import { adminService, GlobalStats, UserAdminData } from '../services/adminService';
 import { systemService, SystemStatus } from '../services/systemService';
+import { logAdminAction } from '../services/auditLogService';
 import { StudyRoom } from '../types';
 import { triggerHaptic } from '../utils/haptics';
 
 const AdminCharts = React.lazy(() => import('./admin/AdminCharts'));
+import { healthCheckService, HealthReport } from '../services/healthCheckService';
+import { errorTrackingService, AppError } from '../services/errorTrackingService';
+import { scorePlanQuality, QualityScore } from '../services/gemini/qualityScoringService';
 
 
-type AdminTab = 'overview' | 'users' | 'plans' | 'rooms' | 'feedback' | 'system';
+type AdminTab = 'overview' | 'users' | 'plans' | 'rooms' | 'feedback' | 'system' | 'audit' | 'health' | 'errors' | 'quality';
 
 const AdminDashboard: React.FC = () => {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -23,7 +27,12 @@ const AdminDashboard: React.FC = () => {
     const [rooms, setRooms] = useState<StudyRoom[]>([]);
     const [feedback, setFeedback] = useState<any[]>([]);
     const [systemStatus, setSystemStatus] = useState<SystemStatus | null>(null);
+    const [auditLogs, setAuditLogs] = useState<any[]>([]);
     const [growthData, setGrowthData] = useState<any[]>([]);
+    const [healthReport, setHealthReport] = useState<HealthReport | null>(null);
+    const [appErrors, setAppErrors] = useState<AppError[]>([]);
+    const [isFixing, setIsFixing] = useState(false);
+    const [planScores, setPlanScores] = useState<Record<string, QualityScore>>({});
     const [isLoading, setIsLoading] = useState(true);
 
     // User Filter State
@@ -114,6 +123,18 @@ const AdminDashboard: React.FC = () => {
                 const { data, count } = await adminService.getAnnouncements(page, ITEMS_PER_PAGE);
                 setAnnouncements(data);
                 setTotalItems(count);
+            } else if (tab === 'audit') {
+                const { data, count } = await adminService.getAuditLogs(page, ITEMS_PER_PAGE);
+                setAuditLogs(data);
+                setTotalItems(count);
+            } else if (tab === 'health') {
+                const report = await healthCheckService.runFullDiagnostic();
+                setHealthReport(report);
+                setTotalItems(report.issues.length);
+            } else if (tab === 'errors') {
+                const { data, count } = await errorTrackingService.getErrors(page, ITEMS_PER_PAGE);
+                setAppErrors(data);
+                setTotalItems(count);
             }
         } catch (err) {
             console.error(`Failed to load ${tab} data:`, err);
@@ -134,6 +155,19 @@ const AdminDashboard: React.FC = () => {
         try {
             await systemService.updateSystemStatus(updates);
             setSystemStatus(prev => prev ? { ...prev, ...updates } : null);
+            
+            if (user) {
+                logAdminAction(
+                    user.id!,
+                    user.email!,
+                    'system.status_update',
+                    'system',
+                    'global',
+                    'System Status Update',
+                    updates
+                );
+            }
+            
             triggerHaptic('medium');
         } catch (error) {
             console.error('System update failed:', error);
@@ -144,6 +178,19 @@ const AdminDashboard: React.FC = () => {
         if (!deleteModalUser || !deleteReason.trim()) return;
         try {
             await adminService.deleteUser(deleteModalUser.id);
+            
+            if (user) {
+                logAdminAction(
+                    user.id!,
+                    user.email!,
+                    'user.delete',
+                    'user',
+                    deleteModalUser.id,
+                    deleteModalUser.email,
+                    { reason: deleteReason }
+                );
+            }
+
             setUsers(users.filter(u => u.id !== deleteModalUser.id));
 
             // Trigger Mailto
@@ -163,6 +210,18 @@ const AdminDashboard: React.FC = () => {
     const handleResendConfirmation = async (email: string) => {
         try {
             await adminService.resendConfirmationEmail(email);
+            
+            if (user) {
+                logAdminAction(
+                    user.id!,
+                    user.email!,
+                    'user.resend_confirmation',
+                    'user',
+                    undefined,
+                    email
+                );
+            }
+
             triggerHaptic('success');
             setToast({ message: `Confirmation email resent to ${email}`, type: 'success' });
         } catch (error: any) {
@@ -171,9 +230,21 @@ const AdminDashboard: React.FC = () => {
         }
     };
 
-    const handleForceVerify = async (userId: string) => {
+    const handleForceVerify = async (userId: string, email: string) => {
         try {
             await adminService.forceVerifyUser(userId);
+            
+            if (user) {
+                logAdminAction(
+                    user.id!,
+                    user.email!,
+                    'user.verify',
+                    'user',
+                    userId,
+                    email
+                );
+            }
+
             setUsers(users.map(u => u.id === userId ? { ...u, is_verified: true } : u));
             triggerHaptic('success');
         } catch (error: any) {
@@ -186,6 +257,19 @@ const AdminDashboard: React.FC = () => {
         if (!newAnnouncement.trim()) return;
         try {
             await adminService.createAnnouncement(newAnnouncement, announcementType);
+            
+            if (user) {
+                logAdminAction(
+                    user.id!,
+                    user.email!,
+                    'announcement.create',
+                    'announcement',
+                    undefined,
+                    newAnnouncement.slice(0, 30) + '...',
+                    { type: announcementType }
+                );
+            }
+
             setNewAnnouncement('');
             const { data: a } = await adminService.getAnnouncements();
             setAnnouncements(a);
@@ -197,7 +281,20 @@ const AdminDashboard: React.FC = () => {
 
     const handleDeleteAnnouncement = async (id: string) => {
         try {
+            const announcementToDelete = announcements.find(a => a.id === id);
             await adminService.deleteAnnouncement(id);
+            
+            if (user) {
+                logAdminAction(
+                    user.id!,
+                    user.email!,
+                    'announcement.delete',
+                    'announcement',
+                    id,
+                    announcementToDelete?.content?.slice(0, 30)
+                );
+            }
+
             setAnnouncements(announcements.filter(a => a.id !== id));
             triggerHaptic('success');
         } catch (error) {
@@ -208,6 +305,18 @@ const AdminDashboard: React.FC = () => {
     const handlePasswordReset = async (email: string) => {
         try {
             await adminService.sendPasswordResetEmail(email);
+            
+            if (user) {
+                logAdminAction(
+                    user.id!,
+                    user.email!,
+                    'user.password_reset',
+                    'user',
+                    undefined,
+                    email
+                );
+            }
+
             setToast({ message: `Password reset link sent to ${email}`, type: 'success' });
             triggerHaptic('success');
         } catch (error: any) {
@@ -217,11 +326,35 @@ const AdminDashboard: React.FC = () => {
 
     const handleRoleChange = async (userId: string, newRole: 'user' | 'admin') => {
         try {
+            const targetUser = users.find(u => u.id === userId);
             await adminService.updateUserRole(userId, newRole);
+            
+            if (user) {
+                logAdminAction(
+                    user.id!,
+                    user.email!,
+                    'user.role_change',
+                    'user',
+                    userId,
+                    targetUser?.email || userId,
+                    { newRole }
+                );
+            }
+
             setUsers(users.map(u => u.id === userId ? { ...u, role: newRole } : u));
             triggerHaptic('success');
         } catch (error) {
             setToast({ message: 'Failed to update role', type: 'error' });
+        }
+    };
+
+    const handleScorePlan = async (plan: any) => {
+        try {
+            const score = await scorePlanQuality(plan);
+            setPlanScores(prev => ({ ...prev, [plan.id]: score }));
+            triggerHaptic('success');
+        } catch (err) {
+            setToast({ message: 'Scoring failed', type: 'error' });
         }
     };
 
@@ -260,7 +393,7 @@ const AdminDashboard: React.FC = () => {
                 {/* Tab Navigation */}
                 <nav className="flex items-center justify-center bg-white dark:bg-surface-dark p-2 rounded-2xl border border-border-light dark:border-border-dark shadow-sm overflow-x-auto no-scrollbar max-w-full">
                     <div className="flex items-center gap-1.5 sm:gap-3 px-1">
-                        {(['overview', 'users', 'plans', 'rooms', 'feedback', 'system'] as AdminTab[]).map(tab => (
+                        {(['overview', 'users', 'plans', 'rooms', 'feedback', 'system', 'audit', 'health', 'errors', 'quality'] as AdminTab[]).map(tab => (
                             <button
                                 key={tab}
                                 onClick={() => { setActiveTab(tab); triggerHaptic('light'); }}
@@ -409,7 +542,7 @@ const AdminDashboard: React.FC = () => {
                                                         {!u.is_verified && (
                                                             <>
                                                                 <button
-                                                                    onClick={() => handleForceVerify(u.id)}
+                                                                    onClick={() => handleForceVerify(u.id, u.email)}
                                                                     className="p-2 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg text-green-500 hover:text-green-600 transition-colors"
                                                                     title="Force Verify User"
                                                                 >
@@ -834,6 +967,250 @@ const AdminDashboard: React.FC = () => {
                                         </div>
                                     )}
                                 </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'audit' && (
+                        <div className="bg-white dark:bg-surface-dark rounded-[2.5rem] border border-border-light dark:border-border-dark shadow-xl overflow-hidden">
+                            <div className="p-8 border-b border-border-light dark:border-border-dark flex justify-between items-center">
+                                <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
+                                    <Icon name="history" className="text-amber-500" />
+                                    Audit Logs
+                                </h3>
+                            </div>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left">
+                                    <thead>
+                                        <tr className="bg-gray-50/50 dark:bg-stone-900/50">
+                                            <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Timestamp</th>
+                                            <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Admin</th>
+                                            <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Action</th>
+                                            <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Target</th>
+                                            <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Details</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-border-light dark:divide-border-dark">
+                                        {auditLogs.map((log: any) => (
+                                            <tr key={log.id} className="hover:bg-gray-50/30 dark:hover:bg-stone-900/30 transition-colors">
+                                                <td className="px-8 py-5 text-[10px] font-bold text-slate-400">
+                                                    {new Date(log.created_at).toLocaleString()}
+                                                </td>
+                                                <td className="px-8 py-5 text-xs font-black text-slate-700 dark:text-stone-300">
+                                                    {log.admin_email}
+                                                </td>
+                                                <td className="px-8 py-5">
+                                                    <span className="px-3 py-1 bg-amber-50 dark:bg-amber-900/20 text-amber-600 rounded-full text-[9px] font-black uppercase tracking-widest border border-amber-200/50">
+                                                        {log.action}
+                                                    </span>
+                                                </td>
+                                                <td className="px-8 py-5 text-xs font-bold text-slate-700 dark:text-stone-300">
+                                                    {log.target_type}: {log.target_label || log.target_id?.substring(0, 8)}
+                                                </td>
+                                                <td className="px-8 py-5">
+                                                    <div className="max-w-[200px] truncate text-[10px] font-medium text-slate-400" title={JSON.stringify(log.details)}>
+                                                        {log.details ? JSON.stringify(log.details) : 'N/A'}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {/* Pagination (Simplified) */}
+                            {auditLogs.length > 0 && totalItems > ITEMS_PER_PAGE && (
+                                <div className="p-8 border-t border-border-light dark:border-border-dark flex items-center justify-between">
+                                    <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-stone-800 text-[10px] font-black uppercase">Prev</button>
+                                    <button onClick={() => setCurrentPage(p => p + 1)} className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-stone-800 text-[10px] font-black uppercase">Next</button>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {activeTab === 'health' && (
+                        <div className="space-y-6">
+                            {healthReport && (
+                                <>
+                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                                        <KPICard label="Status" value={healthReport.status.toUpperCase()} icon="security" color={healthReport.status === 'healthy' ? 'emerald' : 'amber'} />
+                                        <KPICard label="Total Users" value={healthReport.stats.totalUsers} icon="people" color="indigo" />
+                                        <KPICard label="Total Plans" value={healthReport.stats.totalPlans} icon="auto_awesome" color="purple" />
+                                        <KPICard label="Orphaned Tasks" value={healthReport.stats.orphanedTasks} icon="link_off" color="amber" />
+                                    </div>
+
+                                    <div className="bg-white dark:bg-surface-dark rounded-[2.5rem] border border-border-light dark:border-border-dark shadow-xl overflow-hidden">
+                                        <div className="p-8 border-b border-border-light dark:border-border-dark">
+                                            <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
+                                                <Icon name="checklist" className="text-indigo-600" />
+                                                Diagnostic Issues
+                                            </h3>
+                                        </div>
+                                        <div className="divide-y divide-border-light dark:divide-border-dark">
+                                            {healthReport.issues.map(issue => (
+                                                <div key={issue.id} className="p-6 flex items-center justify-between hover:bg-gray-50/50 transition-colors">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className={`p-3 rounded-xl ${issue.severity === 'high' ? 'bg-red-500/10 text-red-600' : 'bg-amber-500/10 text-amber-600'}`}>
+                                                            <Icon name="warning" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-sm font-black text-slate-800 dark:text-white">{issue.message}</p>
+                                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{issue.type} · {issue.affectedTable}</p>
+                                                        </div>
+                                                    </div>
+                                                    {issue.fixable && (
+                                                        <button 
+                                                            disabled={isFixing}
+                                                            onClick={async () => {
+                                                                setIsFixing(true);
+                                                                const success = await healthCheckService.fixIssue(issue);
+                                                                if (success) {
+                                                                    setHealthReport(await healthCheckService.runFullDiagnostic());
+                                                                    setToast({ message: 'Issue fixed successfully!', type: 'success' });
+                                                                }
+                                                                setIsFixing(false);
+                                                            }}
+                                                            className="px-6 py-2 bg-emerald-500 text-white text-[10px] font-black uppercase tracking-widest rounded-xl shadow-lg shadow-emerald-500/20 hover:bg-emerald-600 transition-all"
+                                                        >
+                                                            {isFixing ? 'Fixing...' : 'Auto-Fix'}
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            ))}
+                                            {healthReport.issues.length === 0 && (
+                                                <div className="p-20 text-center">
+                                                    <Icon name="check_circle" className="text-4xl text-emerald-500 mb-4 mx-auto" />
+                                                    <p className="text-sm font-black text-slate-400 uppercase tracking-widest">System Healthy. No issues found.</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    )}
+
+                    {activeTab === 'errors' && (
+                        <div className="bg-white dark:bg-surface-dark rounded-[2.5rem] border border-border-light dark:border-border-dark shadow-xl overflow-hidden">
+                            <div className="p-8 border-b border-border-light dark:border-border-dark">
+                                <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
+                                    <Icon name="bug_report" className="text-red-500" />
+                                    Internal System Errors
+                                </h3>
+                            </div>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left">
+                                    <thead>
+                                        <tr className="bg-gray-50/50 dark:bg-stone-900/50">
+                                            <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Timestamp</th>
+                                            <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Severity</th>
+                                            <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Message</th>
+                                            <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-border-light dark:divide-border-dark">
+                                        {appErrors.map(err => (
+                                            <tr key={err.timestamp} className={`hover:bg-gray-50/30 dark:hover:bg-stone-900/30 transition-colors ${err.resolved ? 'opacity-50' : ''}`}>
+                                                <td className="px-8 py-5 text-[10px] font-bold text-slate-400">
+                                                    {new Date(err.timestamp).toLocaleString()}
+                                                </td>
+                                                <td className="px-8 py-5">
+                                                    <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
+                                                        err.severity === 'fatal' ? 'bg-red-600 text-white' :
+                                                        err.severity === 'error' ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-600'
+                                                    }`}>
+                                                        {err.severity}
+                                                    </span>
+                                                </td>
+                                                <td className="px-8 py-5">
+                                                    <div className="max-w-md">
+                                                        <p className="text-sm font-black text-slate-800 dark:text-white truncate">{err.message}</p>
+                                                        <p className="text-[10px] font-bold text-slate-400 truncate">{err.url}</p>
+                                                    </div>
+                                                </td>
+                                                <td className="px-8 py-5">
+                                                    {!err.resolved && (
+                                                        <button 
+                                                            onClick={async () => {
+                                                                await errorTrackingService.resolveError(err.id!);
+                                                                setAppErrors(appErrors.map(e => e.id === err.id ? { ...e, resolved: true } : e));
+                                                            }}
+                                                            className="text-xs font-black text-indigo-600 uppercase hover:underline"
+                                                        >
+                                                            Mark Resolved
+                                                        </button>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'quality' && (
+                        <div className="bg-white dark:bg-surface-dark rounded-[2.5rem] border border-border-light dark:border-border-dark shadow-xl overflow-hidden">
+                            <div className="p-8 border-b border-border-light dark:border-border-dark">
+                                <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
+                                    <Icon name="verified" className="text-indigo-600" />
+                                    Educational Plan Quality Audit
+                                </h3>
+                            </div>
+                            <div className="divide-y divide-border-light dark:divide-border-dark">
+                                {plans.map(p => (
+                                    <div key={p.id} className="p-8 space-y-6">
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <h4 className="text-lg font-black text-slate-800 dark:text-white">{p.title}</h4>
+                                                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{p.subject}</p>
+                                            </div>
+                                            {!planScores[p.id] ? (
+                                                <button 
+                                                    onClick={() => handleScorePlan(p)}
+                                                    className="px-6 py-3 bg-indigo-600 text-white text-xs font-black uppercase tracking-widest rounded-2xl shadow-xl shadow-indigo-600/20 hover:scale-105 transition-all"
+                                                >
+                                                    Run AI Quality Score
+                                                </button>
+                                            ) : (
+                                                <div className="text-right">
+                                                    <div className="text-3xl font-black text-indigo-600">{planScores[p.id].overall}%</div>
+                                                    <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Quality Score</div>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {planScores[p.id] && (
+                                            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 p-6 bg-slate-50 dark:bg-stone-900 rounded-3xl">
+                                                {['structure', 'depth', 'clarity', 'engagement'].map(dim => (
+                                                    <div key={dim} className="space-y-2">
+                                                        <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-slate-500">
+                                                            <span>{dim}</span>
+                                                            <span>{(planScores[p.id] as any)[dim]}%</span>
+                                                        </div>
+                                                        <div className="h-1.5 w-full bg-slate-200 dark:bg-stone-800 rounded-full overflow-hidden">
+                                                            <div 
+                                                                className="h-full bg-indigo-500 rounded-full"
+                                                                style={{ width: `${(planScores[p.id] as any)[dim]}%` }}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                                <div className="md:col-span-4 pt-4 border-t border-border-light dark:border-border-dark">
+                                                    <p className="text-xs font-bold text-slate-700 dark:text-stone-300 leading-relaxed italic">
+                                                        "{planScores[p.id].feedback}"
+                                                    </p>
+                                                    <div className="mt-4 flex flex-wrap gap-2">
+                                                        {planScores[p.id].recommendations.map((rec, i) => (
+                                                            <span key={i} className="px-3 py-1 bg-white dark:bg-stone-800 border border-border-light dark:border-border-dark rounded-full text-[9px] font-bold text-slate-500">
+                                                                💡 {rec}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     )}

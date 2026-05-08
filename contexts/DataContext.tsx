@@ -3,7 +3,7 @@ import { Plan, Task, Activity, Notification as AppNotification, UserStats } from
 import { useAuth, defaultPreferences } from './AuthContext';
 import { generatePlanCoverImage as generatePlanImage } from '../services/gemini/imageService';
 import { sendBrowserNotification } from '../services/notificationService';
-import { awardXP, updateStreak, ensureGamificationStats, XP_REWARDS, XPAwardResult } from '../services/gamificationService';
+import { awardXP, updateStreak, updateSubjectMastery, ensureGamificationStats, XP_REWARDS, XPAwardResult } from '../services/gamificationService';
 import { 
   getPlans, getTasks, getActivity, getNotifications, createNotification, 
   markAllNotificationsRead, clearAllNotifications as dsClearAllNotifications,
@@ -26,6 +26,10 @@ interface DataContextType {
   updateVideoLanguage: (code: VideoLanguageCode) => Promise<void>;
   contentLanguage: LanguageCode;
   updateContentLanguage: (code: LanguageCode) => Promise<void>;
+  aiPersona: string;
+  updateAiPersona: (persona: string) => Promise<void>;
+  learningStyle: string;
+  updateLearningStyle: (style: string) => Promise<void>;
   addPlan: (plan: Plan) => Promise<void>;
   addPlanWithTasks: (plan: Plan, tasks: Task[]) => Promise<void>;
   updatePlan: (id: string, updates: Partial<Plan>) => Promise<void>;
@@ -44,6 +48,8 @@ interface DataContextType {
   startAnalyticsSession: (taskId: string) => number;
   endAnalyticsSession: (taskId: string, startTime: number) => void;
   trackAnalyticsEvent: (eventType: string, metadata?: any) => void;
+  xpTrigger: { amount: number; timestamp: number } | null;
+  triggerXP: (amount: number) => void;
   isLoading: boolean;
 }
 
@@ -70,9 +76,12 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [videoLanguage, setVideoLanguageState] = useState<VideoLanguageCode>(getVideoLanguagePreference());
   const [contentLanguage, setContentLanguageState] = useState<LanguageCode>(getContentLanguagePreference());
+  const [aiPersona, setAiPersonaState] = useState<string>(user?.preferences?.aiPersona || 'Chill Friend');
+  const [learningStyle, setLearningStyleState] = useState<string>(user?.preferences?.learningStyle || 'Standard');
+  const [xpTrigger, setXpTrigger] = useState<{ amount: number; timestamp: number } | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // Synchronize initial languages from user profile if they change
+  // Synchronize initial preferences from user profile if they change
   useEffect(() => {
     if (user?.preferences?.videoLanguage) {
       setVideoLanguageState(user.preferences.videoLanguage as VideoLanguageCode);
@@ -82,7 +91,13 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setContentLanguageState(user.preferences.contentLanguage as LanguageCode);
       setContentLanguagePreference(user.preferences.contentLanguage as LanguageCode);
     }
-  }, [user?.preferences?.videoLanguage, user?.preferences?.contentLanguage]);
+    if (user?.preferences?.aiPersona) {
+      setAiPersonaState(user.preferences.aiPersona);
+    }
+    if (user?.preferences?.learningStyle) {
+      setLearningStyleState(user.preferences.learningStyle);
+    }
+  }, [user?.preferences?.videoLanguage, user?.preferences?.contentLanguage, user?.preferences?.aiPersona, user?.preferences?.learningStyle]);
 
   const updateVideoLanguage = async (code: VideoLanguageCode) => {
     setVideoLanguageState(code);
@@ -118,6 +133,30 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  const updateAiPersona = async (persona: string) => {
+    setAiPersonaState(persona);
+    if (user) {
+      await updateProfile({
+        preferences: {
+          ...(user.preferences || defaultPreferences),
+          aiPersona: persona
+        }
+      });
+    }
+  };
+
+  const updateLearningStyle = async (style: string) => {
+    setLearningStyleState(style);
+    if (user) {
+      await updateProfile({
+        preferences: {
+          ...(user.preferences || defaultPreferences),
+          learningStyle: style
+        }
+      });
+    }
+  };
+
   const calculateProgressForPlans = useCallback((allPlans: Plan[], allTasks: Task[]) => {
     return allPlans.map(plan => {
       const planTasks = allTasks.filter(t => t.planId === plan.id);
@@ -125,8 +164,18 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const completed = planTasks.filter(t => t.status === 'Completed').length;
       const progress = total === 0 ? 0 : Math.round((completed / total) * 100);
       
-      if (plan.progress !== progress || plan.completedDays !== completed || plan.totalDays !== total) {
-        return { ...plan, totalDays: total, completedDays: completed, progress };
+      // Status Normalization & Auto-completion
+      let status = plan.status;
+      if (!status) {
+        if (plan.isArchived) status = 'archived';
+        else if (progress >= 100) status = 'completed';
+        else status = 'active';
+      } else if (status === 'active' && progress >= 100) {
+        status = 'completed';
+      }
+
+      if (plan.progress !== progress || plan.completedDays !== completed || plan.totalDays !== total || plan.status !== status) {
+        return { ...plan, totalDays: total, completedDays: completed, progress, status };
       }
       return plan;
     });
@@ -199,26 +248,66 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
   }, [user?.id, calculateProgressForPlans]);
 
-  // Auto-save to localStorage whenever data changes
+  // Daily Login & Comeback Reward Check
   useEffect(() => {
-    if (!user?.id) return;
-    lsSet(`plans_${user.id}`, plans);
-  }, [plans, user?.id]);
+    if (!user?.id || isLoading) return;
+
+    const checkDailyLogin = async () => {
+      const todayStr = new Date().toISOString().split('T')[0];
+      const lastStudyDate = user.stats?.lastStudyDate;
+
+      if (lastStudyDate !== todayStr) {
+        // Trigger a 0-XP reward just to run the streak and comeback checks
+        // and award the daily login bonus
+        const result = await processGamificationReward(XP_REWARDS.DAILY_LOGIN);
+        
+        if (result && result.newBadges.length > 0) {
+          result.newBadges.forEach(badge => {
+            addNotification({
+              type: 'achievement',
+              title: `${badge.icon} Badge Earned: ${badge.name}`,
+              message: badge.description,
+              time: new Date().toISOString(),
+              read: false,
+            });
+          });
+        }
+      }
+    };
+
+    const timeout = setTimeout(checkDailyLogin, 2000); // Wait for things to settle
+    return () => clearTimeout(timeout);
+  }, [user?.id, isLoading]);
+
+  // ── Debounced Persistence ──────────────────────────────────────────
+  
+  const saveToLocalStorage = useCallback((key: string, data: any) => {
+    lsSet(key, data);
+  }, [user?.id]);
 
   useEffect(() => {
     if (!user?.id) return;
-    lsSet(`tasks_${user.id}`, tasks);
-  }, [tasks, user?.id]);
+    const timeout = setTimeout(() => saveToLocalStorage(`plans_${user.id}`, plans), 500);
+    return () => clearTimeout(timeout);
+  }, [plans, user?.id, saveToLocalStorage]);
 
   useEffect(() => {
     if (!user?.id) return;
-    lsSet(`activity_${user.id}`, recentActivity);
-  }, [recentActivity, user?.id]);
+    const timeout = setTimeout(() => saveToLocalStorage(`tasks_${user.id}`, tasks), 500);
+    return () => clearTimeout(timeout);
+  }, [tasks, user?.id, saveToLocalStorage]);
 
   useEffect(() => {
     if (!user?.id) return;
-    lsSet(`notifications_${user.id}`, notifications);
-  }, [notifications, user?.id]);
+    const timeout = setTimeout(() => saveToLocalStorage(`activity_${user.id}`, recentActivity), 800);
+    return () => clearTimeout(timeout);
+  }, [recentActivity, user?.id, saveToLocalStorage]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    const timeout = setTimeout(() => saveToLocalStorage(`notifications_${user.id}`, notifications), 1000);
+    return () => clearTimeout(timeout);
+  }, [notifications, user?.id, saveToLocalStorage]);
 
   // Clear state when user logs out
   useEffect(() => {
@@ -241,22 +330,36 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
    * Awards XP, updates streak, checks for badges, and persists stats.
    * Returns the result so callers can show toasts for level-ups and badges.
    */
-  const processGamificationReward = useCallback(async (xpAmount: number, context?: Parameters<typeof awardXP>[2], statUpdates?: Partial<UserStats>): Promise<XPAwardResult | null> => {
+  const processGamificationReward = useCallback(async (xpAmount: number, context?: any, statUpdates?: any): Promise<XPAwardResult | null> => {
     if (!user?.stats) return null;
     
     const currentStats = { ...ensureGamificationStats(user.stats), ...statUpdates };
     const streakUpdated = updateStreak(currentStats);
-    const result = awardXP(streakUpdated, xpAmount, context);
+    const result = awardXP(streakUpdated, xpAmount, { ...context, userName: user.name });
     
+    // Trigger animation if XP was gained
+    if (xpAmount > 0) {
+      setXpTrigger({ amount: xpAmount, timestamp: Date.now() });
+    }
+
     await updateProfile({ stats: result.stats });
     return result;
-  }, [user?.stats, updateProfile]);
+  }, [user?.stats, user?.name, updateProfile]);
+
+  const triggerXP = useCallback((amount: number) => {
+    setXpTrigger({ amount, timestamp: Date.now() });
+  }, []);
 
   // =================== DATA OPERATIONS ===================
   const addPlan = async (plan: Plan) => {
     if (!user?.id) return;
 
-    const newPlan = { ...plan, id: plan.id || crypto.randomUUID(), createdAt: new Date().toISOString() };
+    const newPlan: Plan = { 
+      ...plan, 
+      id: plan.id || crypto.randomUUID(), 
+      status: 'active',
+      createdAt: new Date().toISOString() 
+    };
     setPlans(prev => [newPlan, ...prev]);
 
     try { await createPlan(user.id, newPlan); } catch (e) { console.error(e); }
@@ -285,6 +388,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       totalDays: total,
       completedDays: completed,
       progress,
+      status: 'active',
       createdAt: new Date().toISOString()
     };
     setPlans(prev => [savedPlan, ...prev]);
@@ -430,9 +534,14 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           t => t.status === 'Completed' && t.completedAt?.startsWith(todayStr)
         ).length + 1;
 
+        const masteryStats = plan?.subject 
+          ? updateSubjectMastery(user?.stats ? ensureGamificationStats(user.stats) : {} as any, plan.subject, 2)
+          : user?.stats;
+
         const result = await processGamificationReward(XP_REWARDS.COMPLETE_TASK, {
           tasksCompletedToday: todayCompletions,
         }, {
+          ...masteryStats,
           totalTasksCompleted: (user?.stats?.totalTasksCompleted || 0) + 1
         });
 
@@ -595,6 +704,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       plans, tasks, recentActivity, notifications, 
       videoLanguage, updateVideoLanguage,
       contentLanguage, updateContentLanguage,
+      aiPersona, updateAiPersona,
+      learningStyle, updateLearningStyle,
       addPlan, addPlanWithTasks, updatePlan, deletePlan,
       addTask, updateTask, updateTasksBatch, deleteTask,
       addActivity, clearAllActivity, markAllNotificationsAsRead, clearAllNotifications, addNotification,
@@ -603,6 +714,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       startAnalyticsSession: dsStartAnalyticsSession,
       endAnalyticsSession: dsEndAnalyticsSession,
       trackAnalyticsEvent: dsTrackAnalyticsEvent,
+      xpTrigger,
+      triggerXP,
       isLoading
     }}>
       {children}

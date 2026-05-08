@@ -1,13 +1,50 @@
 import { Context } from "@netlify/functions";
+import { createClient } from "@supabase/supabase-js";
+
+const supabaseUrl = process.env.SUPABASE_URL || "";
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || "";
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+const ALLOWED_ORIGINS = [
+  "https://relearn-ai.netlify.app",
+  "https://relearn.ai",
+  "http://localhost:5173",
+  "http://localhost:8888"
+];
 
 export default async (req: Request, context: Context) => {
+  const origin = req.headers.get("origin") || "";
+  const isAllowedOrigin = ALLOWED_ORIGINS.includes(origin);
+  const corsHeaders = {
+    "Access-Control-Allow-Origin": isAllowedOrigin ? origin : ALLOWED_ORIGINS[0],
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, x-gemini-use-case, x-goog-api-key",
+    "Access-Control-Allow-Credentials": "true",
+  };
+
   if (req.method === "OPTIONS") {
     return new Response("OK", {
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization",
-      },
+      headers: corsHeaders,
+    });
+  }
+
+  // 🔐 Authentication Check
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader) {
+    return new Response(JSON.stringify({ error: "Unauthorized: Missing token" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const token = authHeader.replace("Bearer ", "");
+  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+  if (authError || !user) {
+    console.error("[gemini-proxy] Auth Error:", authError?.message);
+    return new Response(JSON.stringify({ error: "Unauthorized: Invalid token" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
@@ -82,10 +119,8 @@ export default async (req: Request, context: Context) => {
         return new Response(responseText, {
           status: response.status,
           headers: {
+            ...corsHeaders,
             "Content-Type": response.headers.get("Content-Type") || "application/json",
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type, Authorization, x-goog-api-key",
             "X-Proxy-Debug-Key-Prefix": apiKey.substring(0, 6),
             "X-Proxy-Attempt-Success": "true"
           },
@@ -96,8 +131,8 @@ export default async (req: Request, context: Context) => {
       lastResponse = new Response(responseText, { 
         status: response.status, 
         headers: {
+          ...corsHeaders,
           "Content-Type": response.headers.get("Content-Type") || "application/json",
-          "Access-Control-Allow-Origin": "*",
           "X-Proxy-Failed-Key": `${apiKey.substring(0, 6)}...${apiKey.slice(-4)}`
         }
       });
@@ -115,6 +150,6 @@ export default async (req: Request, context: Context) => {
 
   return new Response(JSON.stringify({ error: "All available API keys failed to return a response." }), {
     status: 500,
-    headers: { 'Content-Type': 'application/json', "Access-Control-Allow-Origin": "*" }
+    headers: { 'Content-Type': 'application/json', ...corsHeaders }
   });
 };

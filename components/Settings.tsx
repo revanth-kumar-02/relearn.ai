@@ -10,10 +10,31 @@ import {
 } from '../services/youtubeService';
 import { SyncIndicator } from './common/SyncIndicator';
 
+const AI_PERSONA_OPTIONS = [
+  { label: 'Chill Friend', value: 'Chill Friend' },
+  { label: 'Strict Professor', value: 'Strict Professor' },
+  { label: 'Hype Coach', value: 'Hype Coach' },
+  { label: 'Socratic Questioner', value: 'Socratic Questioner' },
+];
+
+const LEARNING_STYLE_OPTIONS = [
+  { label: 'Standard', value: 'Standard' },
+  { label: 'Pirate', value: 'Pirate' },
+  { label: 'Bollywood Narrator', value: 'Bollywood Narrator' },
+  { label: 'Explainer (5-year-old)', value: '5-year-old' },
+  { label: 'Detective Story', value: 'Detective' },
+];
+
 const Settings: React.FC = () => {
   const navigate = useNavigate();
   const { user, deleteAccount, logout } = useAuth();
-  const { refreshData, videoLanguage, updateVideoLanguage, contentLanguage, updateContentLanguage } = useData();
+  const { 
+    refreshData, 
+    videoLanguage, updateVideoLanguage, 
+    contentLanguage, updateContentLanguage,
+    aiPersona, updateAiPersona,
+    learningStyle, updateLearningStyle
+  } = useData();
   
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
@@ -88,11 +109,62 @@ const Settings: React.FC = () => {
                </div>
           </div>
 
+          {/* AI Tutor Customization */}
+          <div className="space-y-3">
+              <h3 className="px-2 text-[11px] font-black text-text-secondary-light/60 dark:text-text-secondary-dark/60 uppercase tracking-[0.15em]">AI Tutor</h3>
+              <div className="bg-white dark:bg-surface-dark rounded-2xl overflow-hidden border border-border-light dark:border-border-dark shadow-sm">
+                  {/* Persona Selector */}
+                  <div className="w-full flex items-center justify-between p-5 border-b border-border-light dark:border-border-dark">
+                      <div className="flex items-center gap-4">
+                          <div className="text-[#334155] dark:text-text-secondary-dark">
+                              <span className="material-symbols-outlined text-2xl">psychology</span>
+                          </div>
+                          <div>
+                              <span className="font-bold text-text-primary-light dark:text-text-primary-dark text-base">Study Buddy Persona</span>
+                              <p className="text-[11px] text-text-secondary-light dark:text-text-secondary-dark mt-0.5">Determines the AI's tone and behavior</p>
+                          </div>
+                      </div>
+                      <select
+                          id="ai-persona-select"
+                          value={aiPersona}
+                          onChange={(e) => updateAiPersona(e.target.value)}
+                          className="bg-stone-100 dark:bg-stone-800 text-text-primary-light dark:text-text-primary-dark text-sm font-bold rounded-xl px-3 py-2 border border-border-light dark:border-border-dark outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer transition-all hover:bg-stone-200 dark:hover:bg-stone-700"
+                      >
+                          {AI_PERSONA_OPTIONS.map(opt => (
+                              <option key={opt.value} value={opt.value}>{opt.label}</option>
+                          ))}
+                      </select>
+                  </div>
+
+                  {/* Learning Style Selector */}
+                  <div className="w-full flex items-center justify-between p-5">
+                      <div className="flex items-center gap-4">
+                          <div className="text-[#334155] dark:text-text-secondary-dark">
+                              <span className="material-symbols-outlined text-2xl">auto_awesome</span>
+                          </div>
+                          <div>
+                              <span className="font-bold text-text-primary-light dark:text-text-primary-dark text-base">Explanation Format</span>
+                              <p className="text-[11px] text-text-secondary-light dark:text-text-secondary-dark mt-0.5">Choose how lessons are presented</p>
+                          </div>
+                      </div>
+                      <select
+                          id="learning-style-select"
+                          value={learningStyle}
+                          onChange={(e) => updateLearningStyle(e.target.value)}
+                          className="bg-stone-100 dark:bg-stone-800 text-text-primary-light dark:text-text-primary-dark text-sm font-bold rounded-xl px-3 py-2 border border-border-light dark:border-border-dark outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer transition-all hover:bg-stone-200 dark:hover:bg-stone-700"
+                      >
+                          {LEARNING_STYLE_OPTIONS.map(opt => (
+                              <option key={opt.value} value={opt.value}>{opt.label}</option>
+                          ))}
+                      </select>
+                  </div>
+              </div>
+          </div>
+
           {/* Preferences Section */}
           <div className="space-y-3">
-              <h3 className="px-2 text-[11px] font-black text-text-secondary-light/60 dark:text-text-secondary-dark/60 uppercase tracking-[0.15em]">Preferences</h3>
+              <h3 className="px-2 text-[11px] font-black text-text-secondary-light/60 dark:text-text-secondary-dark/60 uppercase tracking-[0.15em]">Language</h3>
               <div className="bg-white dark:bg-surface-dark rounded-2xl overflow-hidden border border-border-light dark:border-border-dark shadow-sm">
-                  {/* Video Language Selector */}
                   {/* Video Language Selector */}
                   <div className="w-full flex items-center justify-between p-5 border-b border-border-light dark:border-border-dark">
                       <div className="flex items-center gap-4">

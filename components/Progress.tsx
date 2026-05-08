@@ -188,6 +188,17 @@ const Progress: React.FC = () => {
       }
       return streak;
   }, [filteredTasks]);
+  
+  // 7. Mastery Data
+  const masteryData = useMemo(() => {
+      const mastery = stats.subjectMastery || {};
+      return Object.entries(mastery)
+        .filter(([_, value]) => value > 0)
+        .map(([subject, value]) => ({
+          subject: subject.length > 12 ? subject.substring(0, 10) + '...' : subject,
+          mastery: value
+        }));
+  }, [stats.subjectMastery]);
 
   return (
     <div className="pb-24 animate-fade-in">
@@ -265,6 +276,7 @@ const Progress: React.FC = () => {
                 weeklyData={weeklyData} 
                 taskStats={taskStats} 
                 totalTasks={filteredTasks.length} 
+                masteryData={masteryData}
             />
          </Suspense>
       </div>

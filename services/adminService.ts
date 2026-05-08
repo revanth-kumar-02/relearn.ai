@@ -375,5 +375,28 @@ export const adminService = {
     } catch {
       // Silently fail
     }
+  },
+
+  getAuditLogs: async (page = 1, limit = 10): Promise<{ data: any[], count: number }> => {
+    try {
+      const from = (page - 1) * limit;
+      const to = from + limit - 1;
+      const { data, error, count } = await supabase
+        .from('admin_audit_logs')
+        .select('*', { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .range(from, to);
+      
+      if (error) throw error;
+      return { data: data || [], count: count || 0 };
+    } catch {
+      const localLogs = JSON.parse(localStorage.getItem('relearn_admin_audit_logs') || '[]');
+      const from = (page - 1) * limit;
+      const to = from + limit - 1;
+      return { 
+        data: localLogs.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(from, to + 1), 
+        count: localLogs.length 
+      };
+    }
   }
 };

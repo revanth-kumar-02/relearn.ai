@@ -6,6 +6,10 @@ import Icon from './common/Icon';
 import Skeleton, { PlanCardSkeleton } from './common/Skeleton';
 import { generateStudyNudges, sendSmartReminder, type StudyNudge } from '../services/smartReminderService';
 import { useConnection } from '../contexts/ConnectionContext';
+import ConceptCollisionWidget from './ConceptCollisionWidget';
+import { getWarmUpQuestions } from '../services/mistakeMuseumService';
+import { discoverMentors } from '../services/dataService';
+import { User } from '../types';
 
 const Dashboard: React.FC = () => {
     const navigate = useNavigate();
@@ -21,7 +25,7 @@ const Dashboard: React.FC = () => {
     const [scrollDist, setScrollDist] = useState(0);
 
     const activePlans = useMemo(() => 
-        (plans || []).filter(p => !p.isArchived && p.progress < 100),
+        (plans || []).filter(p => p.status === 'active'),
     [plans]);
 
     useEffect(() => {
@@ -58,6 +62,26 @@ const Dashboard: React.FC = () => {
     const visibleNudges = useMemo(() =>
         studyNudges.filter(n => !dismissedNudges.has(n.id)),
     [studyNudges, dismissedNudges]);
+
+    const [warmUpQuestions, setWarmUpQuestions] = useState<any[]>([]);
+    const [mentors, setMentors] = useState<User[]>([]);
+
+    const hasComebackBadge = useMemo(() => 
+        user?.stats?.badges?.includes('comeback_king') || user?.stats?.badges?.includes('comeback_queen'),
+    [user?.stats?.badges]);
+    const comebackBadgeId = user?.stats?.badges?.includes('comeback_queen') ? 'comeback_queen' : 'comeback_king';
+
+    useEffect(() => {
+        if (user?.id) {
+            setWarmUpQuestions(getWarmUpQuestions(user.id));
+        }
+    }, [user?.id]);
+
+    useEffect(() => {
+        if (user?.id && user?.weakSubjects && user.weakSubjects.length > 0) {
+            discoverMentors(user.id, user.weakSubjects).then(setMentors);
+        }
+    }, [user?.id, user?.weakSubjects]);
 
     const activeLearningNudges = useMemo(() => 
         visibleNudges.filter(n => n.type === 'no_progress_today' || n.type === 'streak_at_risk'),
@@ -203,6 +227,40 @@ const Dashboard: React.FC = () => {
             </div>
 
             <div className="max-w-4xl mx-auto px-4 space-y-10">
+                {hasComebackBadge && (
+                    <div className="bg-gradient-to-r from-amber-400/20 to-orange-500/20 rounded-2xl p-6 border border-amber-400/30 flex items-center gap-4 animate-fade-in relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-4 opacity-10">
+                            <span className="material-symbols-outlined text-6xl">military_tech</span>
+                        </div>
+                        <div className="text-4xl">
+                            {comebackBadgeId === 'comeback_queen' ? '👸' : '👑'}
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-lg text-amber-800 dark:text-amber-400">Welcome Back, {firstName}!</h3>
+                            <p className="text-sm text-amber-700/80 dark:text-amber-300/80">The {comebackBadgeId === 'comeback_queen' ? 'Queen' : 'King'} has returned. We missed your brilliance! Ready to reclaim your streak?</p>
+                        </div>
+                    </div>
+                )}
+
+                {warmUpQuestions.length > 0 && (
+                    <section aria-labelledby="warmup-heading">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 id="warmup-heading" className="text-xl font-bold text-text-primary-light dark:text-text-primary-dark">Mistake Museum Warm-up</h3>
+                            <span className="text-xs font-bold px-2 py-1 bg-red-100 text-red-600 rounded-lg uppercase tracking-wider">Targeted Review</span>
+                        </div>
+                        <div className="bg-white dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-2xl p-5 shadow-sm">
+                            <p className="text-sm text-text-secondary-light mb-4">You have {warmUpQuestions.length} pending mistakes to master. Start a quick warm-up session?</p>
+                            <button 
+                                onClick={() => navigate('/learning-workspace', { state: { warmUpMode: true } })}
+                                className="w-full py-3 bg-red-50 text-red-600 dark:bg-red-900/10 dark:text-red-400 rounded-xl font-bold text-sm hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors flex items-center justify-center gap-2"
+                            >
+                                <Icon name="history_edu" />
+                                Review Mistake Museum
+                            </button>
+                        </div>
+                    </section>
+                )}
+
                 {isNewUser && showWelcome && (
                     <div className="mb-6">
                         <div className="bg-primary/10 rounded-2xl p-6 flex items-start gap-4 border border-primary/20 relative overflow-hidden">
@@ -309,6 +367,52 @@ const Dashboard: React.FC = () => {
                         </button>
                     )}
                 </section>
+
+                <ConceptCollisionWidget />
+
+                {mentors.length > 0 && (
+                    <section aria-labelledby="mentors-heading">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 id="mentors-heading" className="text-xl font-bold text-text-primary-light dark:text-text-primary-dark">Peer Mentor Matching</h3>
+                            <span className="text-[10px] font-black px-2 py-1 bg-primary/10 text-primary rounded-lg uppercase tracking-widest">Recommended for You</span>
+                        </div>
+                        <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar">
+                            {mentors.map(mentor => (
+                                <div 
+                                    key={mentor.id} 
+                                    className="min-w-[240px] p-5 bg-white dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-2xl shadow-sm hover:border-primary/30 transition-all group"
+                                >
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 text-white flex items-center justify-center font-black text-lg shadow-inner">
+                                            {mentor.name.charAt(0)}
+                                        </div>
+                                        <div className="min-w-0">
+                                            <h4 className="font-bold text-sm truncate">{mentor.name}</h4>
+                                            <p className="text-[10px] text-text-secondary-light uppercase tracking-wider">{mentor.academicLevel || 'Expert'}</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="space-y-3">
+                                        <div className="flex flex-wrap gap-1.5">
+                                            {mentor.strongSubjects?.slice(0, 3).map(subject => (
+                                                <span key={subject} className="px-2 py-0.5 bg-gray-50 dark:bg-background-dark border border-border-light dark:border-border-dark rounded-md text-[9px] font-bold text-text-secondary-light">
+                                                    {subject}
+                                                </span>
+                                            ))}
+                                        </div>
+                                        <button 
+                                            onClick={() => navigate('/rooms')}
+                                            className="w-full py-2.5 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary/90 transition-all flex items-center justify-center gap-2"
+                                        >
+                                            <Icon name="chat" className="text-sm" />
+                                            Collaborate
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+                )}
 
                 <ScheduleSection
                     currentMonthName={currentMonthName}

@@ -26,6 +26,10 @@ const RoomView: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'focus' | 'plan' | 'chat'>('focus');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   
+  const [localNotes, setLocalNotes] = useState('');
+  const [isTypingNotes, setIsTypingNotes] = useState(false);
+  const [lastSavedNotes, setLastSavedNotes] = useState('');
+  
   const chatEndRef = useRef<HTMLDivElement>(null);
   const subscriptionRef = useRef<any>(null);
 
@@ -51,6 +55,25 @@ const RoomView: React.FC = () => {
     scrollToBottom();
   }, [messages]);
 
+  // Debounced save for notes
+  useEffect(() => {
+    if (!isTypingNotes) return;
+    
+    const timeout = setTimeout(async () => {
+      if (id && localNotes !== lastSavedNotes) {
+        try {
+          await roomService.updateRoomNotes(id, localNotes);
+          setLastSavedNotes(localNotes);
+        } catch (err) {
+          console.error('Failed to save notes:', err);
+        }
+      }
+      setIsTypingNotes(false);
+    }, 1500);
+
+    return () => clearTimeout(timeout);
+  }, [localNotes, id, isTypingNotes, lastSavedNotes]);
+
   const scrollToBottom = () => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -60,6 +83,8 @@ const RoomView: React.FC = () => {
       setLoading(true);
       const roomData = await roomService.getRoom(id!);
       setRoom(roomData);
+      setLocalNotes(roomData.shared_notes || '');
+      setLastSavedNotes(roomData.shared_notes || '');
 
       const memberList = await roomService.getRoomMembers(id!);
       setMembers(memberList);
@@ -70,7 +95,8 @@ const RoomView: React.FC = () => {
       subscriptionRef.current = roomService.subscribeToRoom(
         id!,
         handleMemberUpdate,
-        handleNewMessage
+        handleNewMessage,
+        handleRoomUpdate
       );
 
       setLoading(false);
@@ -78,6 +104,22 @@ const RoomView: React.FC = () => {
       console.error('Error initializing room:', err);
       navigate('/rooms');
     }
+  };
+
+  const handleRoomUpdate = (payload: any) => {
+    const { new: updatedRoom } = payload;
+    setRoom(updatedRoom);
+    
+    // Only sync remote notes if we're not currently typing
+    if (!isTypingNotes) {
+      setLocalNotes(updatedRoom.shared_notes || '');
+      setLastSavedNotes(updatedRoom.shared_notes || '');
+    }
+  };
+
+  const handleNotesChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setLocalNotes(e.target.value);
+    setIsTypingNotes(true);
   };
 
   const handleMemberUpdate = (payload: any) => {
@@ -176,14 +218,6 @@ const RoomView: React.FC = () => {
     );
   }
 
-  // Mock Group Plan derived from room name
-  const groupGoals = [
-    { id: 1, title: `Core Concepts of ${room?.name || 'Topic'}`, done: true },
-    { id: 2, title: 'Collaborative Problem Solving', done: false },
-    { id: 3, title: 'Peer Review & Feedback', done: false },
-    { id: 4, title: 'Final Summary & Wrap-up', done: false },
-  ];
-
   return (
     <div className="h-screen flex flex-col overflow-hidden bg-background-light dark:bg-background-dark">
       
@@ -199,7 +233,7 @@ const RoomView: React.FC = () => {
           onClick={() => setActiveTab('plan')}
           className={`flex-1 py-4 text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'plan' ? 'text-primary border-b-2 border-primary' : 'text-text-secondary-light'}`}
         >
-          Group Plan
+          Notes
         </button>
         <button 
           onClick={() => setActiveTab('chat')}
@@ -211,9 +245,9 @@ const RoomView: React.FC = () => {
 
       <div className="flex-1 flex overflow-hidden relative">
         
-        {/* Left Column: Room Info & Plan (Desktop Only or Plan Tab) */}
+        {/* Left Column: Room Info & Notes (Desktop Only or Plan Tab) */}
         <aside className={`${activeTab === 'plan' ? 'flex' : 'hidden'} md:flex w-full md:w-72 lg:w-80 flex-col border-r border-border-light dark:border-border-dark bg-surface-light/30 dark:bg-surface-dark/30 backdrop-blur-xl overflow-y-auto no-scrollbar`}>
-          <div className="p-6 space-y-8">
+          <div className="p-6 h-full flex flex-col space-y-6">
             <div className="space-y-4">
                 <div className="flex items-center gap-3">
                     <button 
@@ -261,23 +295,26 @@ const RoomView: React.FC = () => {
                 </div>
             </div>
 
-            <div className="space-y-4">
-                <h3 className="px-1 text-[11px] font-black text-text-secondary-light/60 dark:text-text-secondary-dark/60 uppercase tracking-[0.2em]">Group Learning Plan</h3>
-                <div className="space-y-2">
-                    {groupGoals.map(goal => (
-                        <div key={goal.id} className={`group p-4 rounded-2xl border transition-all flex items-start gap-3 ${goal.done ? 'bg-green-500/5 border-green-500/10 opacity-70' : 'bg-white dark:bg-surface-dark border-border-light dark:border-border-dark hover:border-primary/30 shadow-sm'}`}>
-                            <div className={`mt-0.5 w-5 h-5 rounded-md flex items-center justify-center border-2 transition-colors ${goal.done ? 'bg-green-500 border-green-500 text-white' : 'border-border-light dark:border-border-dark group-hover:border-primary/40'}`}>
-                                {goal.done && <Icon name="check" className="text-[10px]" />}
-                            </div>
-                            <p className={`text-xs font-bold leading-relaxed ${goal.done ? 'line-through text-text-secondary-light/60' : 'text-text-primary-light dark:text-text-primary-dark'}`}>
-                                {goal.title}
-                            </p>
-                        </div>
-                    ))}
+            <div className="flex-1 flex flex-col space-y-4 overflow-hidden">
+                <div className="flex items-center justify-between px-1">
+                    <h3 className="text-[11px] font-black text-text-secondary-light/60 dark:text-text-secondary-dark/60 uppercase tracking-[0.2em]">Shared Notes</h3>
+                    {isTypingNotes && <span className="text-[9px] font-black text-primary animate-pulse uppercase tracking-tighter">Syncing...</span>}
                 </div>
-                <button className="w-full py-3 rounded-xl border border-dashed border-border-light dark:border-border-dark text-text-secondary-light hover:text-primary hover:border-primary/40 transition-all text-[10px] font-black uppercase tracking-widest">
-                    + Add Session Goal
-                </button>
+                
+                <div className="flex-1 bg-white/50 dark:bg-surface-dark/50 rounded-2xl border border-border-light dark:border-border-dark overflow-hidden flex flex-col group hover:border-primary/30 transition-all">
+                    <textarea 
+                        value={localNotes}
+                        onChange={handleNotesChange}
+                        placeholder="Start typing shared notes with your group... Use Markdown!"
+                        className="flex-1 p-4 bg-transparent outline-none resize-none text-xs leading-relaxed font-medium text-text-primary-light dark:text-text-primary-dark placeholder:text-text-secondary-light/30"
+                    />
+                    <div className="p-3 bg-gray-50/50 dark:bg-black/20 border-t border-border-light dark:border-border-dark flex items-center justify-between">
+                        <span className="text-[9px] font-bold text-text-secondary-light/40 italic">Supports Markdown</span>
+                        <div className="flex gap-2">
+                             <Icon name="markdown" className="text-text-secondary-light/30 text-base" />
+                        </div>
+                    </div>
+                </div>
             </div>
           </div>
         </aside>

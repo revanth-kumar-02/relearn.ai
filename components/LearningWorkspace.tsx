@@ -29,6 +29,8 @@ import ReactMarkdown from 'react-markdown';
 import StudyTimer from './StudyTimer';
 import VideoResources from './VideoResources';
 import QuizModule from './QuizModule';
+import FlashcardModule from './FlashcardModule';
+import CheatSheetModule from './CheatSheetModule';
 
 
 const LearningWorkspace: React.FC = () => {
@@ -62,6 +64,7 @@ const LearningWorkspace: React.FC = () => {
   const [showPdfPanel, setShowPdfPanel] = useState(!task?.aiExplanation);
   const [timeLeft, setTimeLeft] = useState(10);
   const [isDragging, setIsDragging] = useState(false);
+  const [lessonMode, setLessonMode] = useState<'standard' | 'socratic' | 'story'>('standard');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const notesTimeout = useRef<any>(null);
@@ -160,16 +163,20 @@ const LearningWorkspace: React.FC = () => {
     }
   };
 
-  const handleGenerateWithPdf = async () => {
+  const fetchSession = useCallback(async (isRetry = false) => {
     if (!task) return;
     setIsLoading(true);
-    setShowPdfPanel(false);
     try {
       const result = await generateLessonContent(
         task.title,
         plan?.title || 'General Study',
         getContentLanguageLabel(contentLanguage),
-        pdfContent || undefined
+        pdfContent || undefined,
+        {
+          persona: user?.preferences?.aiPersona || 'Expert Tutor',
+          explainStyle: user?.preferences?.learningStyle === 'Standard' ? undefined : user?.preferences?.learningStyle,
+          mode: lessonMode
+        }
       );
       if (!result) throw new Error("No content generated");
       const data = JSON.parse(result);
@@ -201,7 +208,16 @@ const LearningWorkspace: React.FC = () => {
       trackAnalyticsEvent('manual_generation_skipped_pdf', { taskId: task?.id });
     }
 
-    generateLessonContent(task!.title, plan?.title || 'General Study', getContentLanguageLabel(contentLanguage))
+    generateLessonContent(
+      task!.title, 
+      plan?.title || 'General Study', 
+      getContentLanguageLabel(contentLanguage),
+      undefined,
+      {
+        persona: user?.preferences?.aiPersona,
+        explainStyle: user?.preferences?.learningStyle === 'Standard' ? undefined : user?.preferences?.learningStyle
+      }
+    )
       .then(result => {
         if (!result) throw new Error("No content generated");
         const data = JSON.parse(result);
@@ -633,9 +649,31 @@ const LearningWorkspace: React.FC = () => {
 
                   {/* Explanation */}
                   <section className="bg-white dark:bg-stone-900 p-6 rounded-2xl border border-stone-200 dark:border-stone-800 shadow-sm space-y-4">
-                    <div className="flex items-center gap-2 text-stone-500">
-                      <BookOpen size={18} />
-                      <h2 className="text-xs font-black uppercase tracking-widest">Concept Explanation</h2>
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-2 text-stone-500">
+                        <BookOpen size={18} />
+                        <h2 className="text-xs font-black uppercase tracking-widest">Concept Explanation</h2>
+                      </div>
+                      
+                      {/* Lesson Mode Switcher */}
+                      <div className="flex bg-stone-100 dark:bg-stone-800 p-1 rounded-lg">
+                        {(['standard', 'socratic', 'story'] as const).map((m) => (
+                          <button
+                            key={m}
+                            onClick={() => {
+                              setLessonMode(m);
+                              if (task.aiExplanation) fetchSession(); // Auto-regenerate on mode change if content exists
+                            }}
+                            className={`px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-md transition-all ${
+                              lessonMode === m 
+                                ? 'bg-white dark:bg-stone-700 text-primary shadow-sm' 
+                                : 'text-stone-400 hover:text-stone-600 dark:hover:text-stone-300'
+                            }`}
+                          >
+                            {m}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                     <div className="prose-content max-w-none">
                       <ReactMarkdown>{task.aiExplanation || ''}</ReactMarkdown>
@@ -704,6 +742,30 @@ const LearningWorkspace: React.FC = () => {
                       topic={task.title}
                       lessonContent={task.aiExplanation || ''}
                       difficulty={plan?.difficulty || 'Beginner'}
+                    />
+                  </section>
+
+                  {/* Active Recall Flashcards */}
+                  <section className="space-y-4">
+                    <div className="flex items-center gap-2 text-stone-500">
+                      <Lightbulb size={18} />
+                      <h2 className="text-xs font-black uppercase tracking-widest">Active Recall Drills</h2>
+                    </div>
+                    <FlashcardModule
+                      topic={task.title}
+                      content={task.aiExplanation || ''}
+                    />
+                  </section>
+
+                  {/* AI Cheat Sheet */}
+                  <section className="space-y-4">
+                    <div className="flex items-center gap-2 text-stone-500">
+                      <FileText size={18} />
+                      <h2 className="text-xs font-black uppercase tracking-widest">Mastery Reference</h2>
+                    </div>
+                    <CheatSheetModule
+                      topic={task.title}
+                      content={task.aiExplanation || ''}
                     />
                   </section>
                 </div>

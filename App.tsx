@@ -21,6 +21,8 @@ import { usePresence } from './hooks/usePresence';
 import { SystemBanner } from './components/SystemBanner';
 import { CommandPalette } from './components/admin/CommandPalette';
 import { GlobalCommandPalette } from './components/common/GlobalCommandPalette';
+import SyncStatus from './components/common/SyncStatus';
+import XPDropAnimation from './components/common/XPDropAnimation';
 
 const KeyboardShortcutsModal = lazy(() => import('./components/common/KeyboardShortcutsModal'));
 
@@ -48,6 +50,8 @@ const SharedPlanView = lazy(() => import('./components/SharedPlanView'));
 const StudyRooms = lazy(() => import('./components/StudyRooms'));
 const RoomView = lazy(() => import('./components/RoomView'));
 const AdminDashboard = lazy(() => import('./components/AdminDashboard'));
+const CollaborationHub = lazy(() => import('./components/CollaborationHub'));
+const GratitudeLog = lazy(() => import('./components/GratitudeLog'));
 
 const PageLoader = () => (
   <div className="p-4 space-y-6 animate-pulse">
@@ -75,6 +79,7 @@ const AppContent: React.FC = () => {
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isGlobalSearchOpen, setIsGlobalSearchOpen] = useState(false);
   const { user } = useAuth();
+  const { xpTrigger } = useData();
   const isAdmin = user?.role === 'admin';
 
   useEffect(() => {
@@ -154,6 +159,7 @@ const AppContent: React.FC = () => {
       </Suspense>
       <EmailVerificationModal />
       <MaintenanceOverlay />
+      <SyncStatus />
       {isAdmin && (
         <CommandPalette 
           isOpen={isCommandPaletteOpen} 
@@ -203,11 +209,27 @@ const AppContent: React.FC = () => {
               showLabel={isSidebarExpanded}
             />
             <SidebarItem
+              icon="groups"
+              label="Collaboration"
+              active={location.pathname === '/collaboration'}
+              onClick={() => navigate('/collaboration')}
+              ariaLabel="Navigate to Collaboration Hub"
+              showLabel={isSidebarExpanded}
+            />
+            <SidebarItem
               icon="menu_book"
               label="Learning Diary"
               active={location.pathname === '/diary'}
               onClick={() => navigate('/diary')}
               ariaLabel="Navigate to Learning Diary"
+              showLabel={isSidebarExpanded}
+            />
+            <SidebarItem
+              icon="self_improvement"
+              label="Gratitude Log"
+              active={location.pathname === '/gratitude'}
+              onClick={() => navigate('/gratitude')}
+              ariaLabel="Navigate to Gratitude Log"
               showLabel={isSidebarExpanded}
             />
             <SidebarItem
@@ -310,6 +332,8 @@ const AppContent: React.FC = () => {
                         <Route path="/archived" element={<ProtectedRoute><ArchivedPlans /></ProtectedRoute>} />
                         <Route path="/rooms" element={<ProtectedRoute><StudyRooms /></ProtectedRoute>} />
                         <Route path="/rooms/:id" element={<ProtectedRoute><RoomView /></ProtectedRoute>} />
+                        <Route path="/collaboration" element={<ProtectedRoute><CollaborationHub /></ProtectedRoute>} />
+                        <Route path="/gratitude" element={<ProtectedRoute><GratitudeLog /></ProtectedRoute>} />
                         <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
                     </Routes>
                     </Suspense>
@@ -329,6 +353,7 @@ const AppContent: React.FC = () => {
             >
               <Icon name="psychology" className="text-3xl" />
             </button>
+            <XPDropAnimation trigger={xpTrigger} />
             <ChatBot isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
           </Suspense>
         )}

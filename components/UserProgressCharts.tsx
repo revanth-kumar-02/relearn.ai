@@ -1,5 +1,8 @@
 import React from 'react';
-import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
+import { 
+    BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell, 
+    PieChart, Pie, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis 
+} from 'recharts';
 
 interface UserProgressChartsProps {
     weeklyData: {
@@ -8,9 +11,12 @@ interface UserProgressChartsProps {
     };
     taskStats: any[];
     totalTasks: number;
+    masteryData?: { subject: string; mastery: number }[];
 }
 
-const UserProgressCharts: React.FC<UserProgressChartsProps> = ({ weeklyData, taskStats, totalTasks }) => {
+const UserProgressCharts: React.FC<UserProgressChartsProps> = ({ 
+    weeklyData, taskStats, totalTasks, masteryData = [] 
+}) => {
     return (
         <div className="space-y-6">
             {/* Activity Chart */}
@@ -40,6 +46,40 @@ const UserProgressCharts: React.FC<UserProgressChartsProps> = ({ weeklyData, tas
                     </ResponsiveContainer>
                 </div>
             </div>
+
+            {/* Subject Mastery Radar */}
+            {masteryData.length > 0 && (
+                <div className="bg-surface-light dark:bg-surface-dark p-5 rounded-xl border border-border-light dark:border-border-dark shadow-sm">
+                    <h3 className="font-bold text-text-primary-light dark:text-text-primary-dark mb-4">Subject Mastery</h3>
+                    <div className="h-[250px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <RadarChart cx="50%" cy="50%" outerRadius="80%" data={masteryData}>
+                                <PolarGrid stroke="#94a3b8" strokeOpacity={0.2} />
+                                <PolarAngleAxis 
+                                    dataKey="subject" 
+                                    tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 'bold' }} 
+                                />
+                                <PolarRadiusAxis 
+                                    angle={30} 
+                                    domain={[0, 100]} 
+                                    tick={false} 
+                                    axisLine={false} 
+                                />
+                                <Radar
+                                    name="Mastery"
+                                    dataKey="mastery"
+                                    stroke="#6366f1"
+                                    fill="#6366f1"
+                                    fillOpacity={0.3}
+                                />
+                                <Tooltip
+                                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', backgroundColor: 'var(--color-surface-light)' }}
+                                />
+                            </RadarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+            )}
 
             {/* Task Breakdown */}
             <div className="bg-surface-light dark:bg-surface-dark p-5 rounded-xl border border-border-light dark:border-border-dark flex flex-col md:flex-row items-center gap-6 shadow-sm">

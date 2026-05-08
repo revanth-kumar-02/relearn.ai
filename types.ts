@@ -1,5 +1,7 @@
 
 
+export type PlanStatus = 'active' | 'completed' | 'archived' | 'cancelled';
+
 export interface Plan {
   id: string;
   title: string;
@@ -9,13 +11,15 @@ export interface Plan {
   completedDays: number;
   progress: number; // 0 to 100
   dailyGoalMins: number;
-  status?: 'Active' | 'Completed' | 'Archived';
+  status: PlanStatus;
   createdAt?: string;
   isArchived?: boolean;
   coverImage?: string; // Base64 Data URL for the AI-generated cover
   journal?: string; // For long-form user notes about the entire plan
   difficulty?: 'Beginner' | 'Intermediate' | 'Advanced';
   updatedAt?: string;
+  isTeamPlan?: boolean;
+  teamMembers?: string[];
 }
 
 export interface Task {
@@ -76,6 +80,8 @@ export interface UserPreferences {
   theme?: 'light' | 'dark' | 'system';
   videoLanguage?: string; // e.g. "en", "es"
   contentLanguage?: string; // e.g. "en", "es"
+  aiPersona?: string; // e.g. "Strict Professor", "Chill Friend"
+  learningStyle?: string; // e.g. "Pirate", "Socratic"
   notifications: {
     dailyReminder: boolean;
     dailyReminderTime: string; // "09:00"
@@ -103,6 +109,7 @@ export interface UserStats {
   totalPDFExports?: number;
   totalAIPlansGenerated?: number;
   quizPerfectScores?: number;
+  subjectMastery?: Record<string, number>; // subject -> mastery percentage (0-100)
 }
 
 export interface ProfileSettings {
@@ -180,6 +187,7 @@ export interface StudyRoom {
     break: number;
     longBreak: number;
   };
+  shared_notes?: string;
 }
 
 export interface RoomMember {
@@ -192,6 +200,35 @@ export interface RoomMember {
   joined_at: string;
   last_active_at: string;
   study_minutes_session: number;
+}
+
+export interface StudyPact {
+  id: string;
+  creator_id: string;
+  target_id: string;
+  creator_name: string;
+  target_name: string;
+  goal_description: string;
+  deadline: string;
+  status: 'pending' | 'active' | 'completed' | 'failed';
+  stakes: string; // e.g. "Loser buys coffee"
+  created_at: string;
+}
+
+export interface PublicChallenge {
+  id: string;
+  title: string;
+  description: string;
+  subject: string;
+  xp_reward: number;
+  badge_reward?: string;
+  start_date: string;
+  end_date: string;
+  participants_count: number;
+  goal_criteria: {
+    type: 'tasks_completed' | 'xp_earned' | 'quiz_score';
+    target: number;
+  };
 }
 
 export interface RoomMessage {

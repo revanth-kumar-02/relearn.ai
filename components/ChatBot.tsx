@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import ReactMarkdown from 'react-markdown';
 import { useData } from '../contexts/DataContext';
 import { getContentLanguageLabel } from '../services/youtubeService';
+import { CHAT_PERSONAS, ChatPersonaId, getPersona, getSelectedPersonaId, setSelectedPersonaId } from '../services/gemini/chatPersonas';
 
 interface ChatBotProps {
   isOpen: boolean;
@@ -13,6 +14,10 @@ interface ChatBotProps {
 const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
   const { user } = useAuth();
   const { contentLanguage } = useData();
+  const [personaId, setPersonaId] = useState<ChatPersonaId>(getSelectedPersonaId());
+  const [showPersonaPicker, setShowPersonaPicker] = useState(false);
+  const persona = getPersona(personaId);
+
   const [messages, setMessages] = useState<{ role: 'user' | 'bot'; text: string }[]>([
     { role: 'bot', text: `Hi ${user?.name.split(' ')[0] || ''}! I'm your ReLearn.ai study assistant. How can I help you with your learning journey today?` }
   ]);
@@ -28,6 +33,19 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
   useEffect(() => {
     scrollToBottom();
   }, [messages, scrollToBottom]);
+
+  const handlePersonaChange = (id: ChatPersonaId) => {
+    setPersonaId(id);
+    setSelectedPersonaId(id);
+    const p = getPersona(id);
+    setMessages([
+      { role: 'bot', text: id === 'default' 
+        ? `Hi ${user?.name.split(' ')[0] || ''}! I'm your ReLearn.ai study assistant. How can I help you?`
+        : `${p.icon === 'local_fire_department' ? '🔥' : '✨'} **${p.name} activated!** ${p.description}. Let's go!` 
+      }
+    ]);
+    setShowPersonaPicker(false);
+  };
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,6 +77,10 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
         Preferred Study Time: ${user.preferredStudyTime}
       ` : undefined;
 
+      // Generate persona-specific system prompt
+      const lang = getContentLanguageLabel(contentLanguage);
+      const personaPrompt = persona.systemPrompt(lang, userContext);
+
       await sendChatMessageStreaming(
         userMessage,
         history,
@@ -73,8 +95,9 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
             return updated;
           });
         },
-        getContentLanguageLabel(contentLanguage),
-        userContext
+        lang,
+        userContext,
+        personaPrompt
       );
     } catch (error) {
       setMessages(prev => {
@@ -109,30 +132,72 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
         `}
       >
         {/* Header */}
-        <div className="p-4 border-b border-border-light dark:border-border-dark flex items-center justify-between bg-indigo-600 text-white md:rounded-none rounded-t-3xl">
+        <div className={`p-4 border-b border-border-light dark:border-border-dark flex items-center justify-between bg-gradient-to-r ${persona.color} text-white md:rounded-none rounded-t-3xl transition-all duration-300`}>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
-              <span className="material-symbols-outlined">psychology</span>
+              <span className="material-symbols-outlined">{persona.icon}</span>
             </div>
             <div>
-              <h3 className="font-bold text-sm">Study Assistant</h3>
+              <h3 className="font-bold text-sm">{persona.name}</h3>
               <p className="text-[10px] opacity-80 uppercase tracking-widest">
                 {isStreaming ? (
                   <span className="flex items-center gap-1">
                     <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
                     Typing...
                   </span>
-                ) : 'Always Online'}
+                ) : persona.description}
               </p>
             </div>
           </div>
-          <button 
-            onClick={onClose}
-            className="p-2 hover:bg-white/10 rounded-full transition-colors"
-          >
-            <span className="material-symbols-outlined">close</span>
-          </button>
+          <div className="flex items-center gap-1">
+            <button 
+              onClick={() => setShowPersonaPicker(!showPersonaPicker)}
+              className="p-2 hover:bg-white/10 rounded-full transition-colors"
+              title="Switch AI Persona"
+            >
+              <span className="material-symbols-outlined text-xl">swap_horiz</span>
+            </button>
+            <button 
+              onClick={onClose}
+              className="p-2 hover:bg-white/10 rounded-full transition-colors"
+            >
+              <span className="material-symbols-outlined">close</span>
+            </button>
+          </div>
         </div>
+
+        {/* Persona Picker Dropdown */}
+        {showPersonaPicker && (
+          <>
+            <div className="fixed inset-0 z-[1]" onClick={() => setShowPersonaPicker(false)} />
+            <div className="absolute top-16 left-2 right-2 z-[2] bg-surface-light dark:bg-surface-dark rounded-2xl border border-border-light dark:border-border-dark shadow-2xl p-2 max-h-[60vh] overflow-y-auto no-scrollbar animate-fade-in">
+              <p className="text-[9px] font-black uppercase tracking-widest text-text-secondary-light px-3 py-2">Choose AI Persona</p>
+              <div className="grid grid-cols-2 gap-1.5">
+                {CHAT_PERSONAS.map(p => (
+                  <button
+                    key={p.id}
+                    onClick={() => handlePersonaChange(p.id)}
+                    className={`flex items-center gap-2.5 p-2.5 rounded-xl text-left transition-all hover:scale-[1.02] active:scale-95 ${
+                      personaId === p.id 
+                        ? 'bg-gradient-to-r ' + p.color + ' text-white shadow-lg' 
+                        : 'hover:bg-gray-50 dark:hover:bg-stone-800'
+                    }`}
+                  >
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                      personaId === p.id ? 'bg-white/20' : 'bg-gray-100 dark:bg-stone-700'
+                    }`}>
+                      <span className="material-symbols-outlined text-base">{p.icon}</span>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-bold truncate">{p.name}</p>
+                      <p className={`text-[9px] truncate ${personaId === p.id ? 'opacity-70' : 'text-text-secondary-light'}`}>{p.description}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4 h-[calc(100%-130px)] no-scrollbar">
@@ -182,7 +247,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
               type="text" 
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder={isStreaming ? "Wait for response..." : "Ask me anything..."}
+              placeholder={isStreaming ? "Wait for response..." : `Ask ${persona.name}...`}
               disabled={isStreaming}
               className="w-full p-3 pr-12 rounded-xl bg-gray-50 dark:bg-background-dark border border-border-light dark:border-border-dark outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all text-sm disabled:opacity-50"
             />

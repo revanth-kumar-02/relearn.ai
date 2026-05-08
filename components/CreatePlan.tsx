@@ -1,7 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { generateLearningPlan } from '../services/gemini/planGeneratorService';
-
 import { generatePlanCoverImage } from '../services/gemini/imageService';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -9,22 +8,26 @@ import { useToast } from '../contexts/ToastContext';
 import { triggerHaptic } from '../utils/haptics';
 import { Plan, Task } from '../types';
 import Icon from './common/Icon';
+import ActivePlanModal from './common/ActivePlanModal';
 import { getContentLanguageLabel } from '../services/youtubeService';
 
 const CreatePlan: React.FC = () => {
     const navigate = useNavigate();
     const { user } = useAuth();
-    const { addPlanWithTasks, updatePlan, contentLanguage } = useData();
+    const { addPlanWithTasks, updatePlan, contentLanguage, plans } = useData();
     const { showToast } = useToast();
     
     const [prompt, setPrompt] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [showActivePlanModal, setShowActivePlanModal] = useState(false);
+    const activePlan = useMemo(() => plans.find(p => p.status === 'active'), [plans]);
     const abortControllerRef = useRef<AbortController | null>(null);
 
     // AI Inputs
     const [aiDuration, setAiDuration] = useState(30);
     const [dailyGoalMins, setDailyGoalMins] = useState(45);
     const [difficulty, setDifficulty] = useState<'Beginner' | 'Intermediate' | 'Advanced'>('Beginner');
+    const [isTeamPlan, setIsTeamPlan] = useState(false);
 
     useEffect(() => {
         // Cleanup on unmount - cancel any pending AI request
@@ -40,6 +43,13 @@ const CreatePlan: React.FC = () => {
         const cleanPrompt = prompt.trim();
         if (!cleanPrompt) {
             showToast("What's on your mind? Add a topic to get started.", "warning");
+            return;
+        }
+
+        // Enforcement: Only one active plan allowed
+        if (activePlan) {
+            setShowActivePlanModal(true);
+            triggerHaptic('warning');
             return;
         }
         
@@ -106,6 +116,9 @@ const CreatePlan: React.FC = () => {
                 dailyGoalMins: dailyGoalMins,
                 difficulty: difficulty,
                 coverImage: immediateCover,
+                status: 'active',
+                isTeamPlan: isTeamPlan,
+                teamMembers: isTeamPlan ? [user?.id!] : [],
                 updatedAt: new Date().toISOString()
             };
 
@@ -286,7 +299,7 @@ const CreatePlan: React.FC = () => {
                                 </div>
                             </div>
 
-                            <div role="group" aria-labelledby="difficulty-label">
+                                <div role="group" aria-labelledby="difficulty-label">
                                 <label id="difficulty-label" className="text-xs font-bold text-text-secondary-light uppercase tracking-widest block mb-2 px-1">Difficulty Level</label>
                                 <div className="grid grid-cols-3 gap-2">
                                     {(['Beginner', 'Intermediate', 'Advanced'] as const).map((level) => (
@@ -303,6 +316,24 @@ const CreatePlan: React.FC = () => {
                                         </button>
                                     ))}
                                 </div>
+                            </div>
+
+                            <div className="flex items-center justify-between p-4 bg-indigo-500/5 rounded-xl border border-indigo-500/10">
+                                <div className="flex items-center gap-3">
+                                    <div className="h-10 w-10 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center">
+                                        <Icon name="groups" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-bold text-text-primary-light dark:text-text-primary-dark">Team Plan</p>
+                                        <p className="text-[10px] text-text-secondary-light uppercase tracking-tight font-black">Enable collaborative learning</p>
+                                    </div>
+                                </div>
+                                <button 
+                                    onClick={() => { setIsTeamPlan(!isTeamPlan); triggerHaptic('light'); }}
+                                    className={`w-12 h-6 rounded-full relative transition-all ${isTeamPlan ? 'bg-indigo-600' : 'bg-gray-300'}`}
+                                >
+                                    <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${isTeamPlan ? 'left-7' : 'left-1'}`} />
+                                </button>
                             </div>
                         </div>
 
@@ -326,6 +357,13 @@ const CreatePlan: React.FC = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Active Plan Constraint Modal */}
+            <ActivePlanModal 
+                isOpen={showActivePlanModal}
+                onClose={() => setShowActivePlanModal(false)}
+                activePlan={activePlan!}
+            />
         </div>
     );
 };

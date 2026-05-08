@@ -1,5 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import { recordTokenUsage } from "./config";
+import { getAuthHeaders } from "../utils/auth";
 
 /**
  * Gets a configured instance of GoogleGenAI that uses the local proxy. 
@@ -13,7 +14,11 @@ export const getProxyConfiguredGenAI = (useCase?: 'plan' | 'chat' | 'image' | 'l
     httpOptions: {
       baseUrl: window.location.origin + '/api/gemini',
       // Pass the use-case to the proxy so it can select the correct key
-      headers: useCase ? { 'x-gemini-use-case': useCase } : {}
+      // and include the Authorization header for JWT verification
+      headers: {
+        ...getAuthHeaders(),
+        ...(useCase ? { 'x-gemini-use-case': useCase } : {})
+      }
     }
   });
 

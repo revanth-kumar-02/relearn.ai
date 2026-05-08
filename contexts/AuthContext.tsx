@@ -3,6 +3,7 @@ import { User, UserPreferences } from '../types';
 import { supabase, supabaseAvailable } from '../services/supabase';
 import { getUserProfile, saveUserProfile } from '../services/dataService';
 import { requestNotificationPermission } from '../services/notificationService';
+import { setServiceAuthToken } from '../services/utils/auth';
 
 interface AuthContextType {
   user: User | null;
@@ -24,6 +25,8 @@ export const defaultPreferences: UserPreferences = {
   theme: 'system',
   videoLanguage: 'en',
   contentLanguage: 'en',
+  aiPersona: 'Chill Friend',
+  learningStyle: 'Standard',
   notifications: {
     dailyReminder: true,
     dailyReminderTime: "09:00",
@@ -90,6 +93,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (supabaseAvailable) {
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (session && session.user) {
+          setServiceAuthToken(session.access_token);
           syncSupabaseUser(session.user.id, session.user);
         } else {
           setLoading(false);
@@ -98,8 +102,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
         if (session && session.user) {
+          setServiceAuthToken(session.access_token);
           syncSupabaseUser(session.user.id, session.user);
         } else {
+          setServiceAuthToken(null);
           setUser(null);
           clearSession();
           setLoading(false);

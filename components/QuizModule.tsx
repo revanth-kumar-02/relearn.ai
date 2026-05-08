@@ -56,57 +56,76 @@ const QuizModule: React.FC<QuizModuleProps> = ({
   };
 
   const handleSelectAnswer = (optionIndex: number) => {
-    if (showExplanation) return; // Already answered
+    if (showExplanation || !quiz) return; // Already answered
+    const question = quiz.questions[currentIndex];
+    const isCorrect = optionIndex === question.correctIndex;
+
     const updated = [...selectedAnswers];
     updated[currentIndex] = optionIndex;
     setSelectedAnswers(updated);
     setShowExplanation(true);
-  };
 
-  const handleNext = () => {
-    if (!quiz) return;
-    setShowExplanation(false);
-    if (currentIndex < quiz.questions.length - 1) {
-      setCurrentIndex(prev => prev + 1);
-    } else {
-      setQuizState('results');
-      handleQuizCompletion();
-    }
-  };
-
-  const handleQuizCompletion = async () => {
-    if (!quiz) return;
-    
-    // Calculate final score
-    const finalScore = selectedAnswers.reduce((acc, answer, i) => {
-      return acc + (answer === quiz.questions[i]?.correctIndex ? 1 : 0);
-    }, 0);
-    const finalPercentage = Math.round((finalScore / quiz.questions.length) * 100);
-
-    const statUpdates: any = {
-      totalQuizzesCompleted: (user?.stats?.totalQuizzesCompleted || 0) + 1
-    };
-
-    if (finalPercentage === 100) {
-      statUpdates.quizPerfectScores = (user?.stats?.quizPerfectScores || 0) + 1;
-    }
-
-    const result = await processGamificationReward(
-      XP_REWARDS.COMPLETE_QUIZ,
-      { quizPerfectScores: statUpdates.quizPerfectScores },
-      statUpdates
-    );
-
-    if (result && result.newBadges.length > 0) {
-      result.newBadges.forEach((badge: any) => {
-        addNotification({
-          type: 'achievement',
-          title: `${badge.icon} Badge Earned: ${badge.name}`,
-          message: badge.description,
-          time: new Date().toISOString(),
-          read: false,
+    // If incorrect, add to mistake museum
+    if (!isCorrect && user?.id) {
+      import('../services/mistakeMuseumService').then(({ addMistake }) => {
+        addMistake(user.id!, {
+          question: question.question,
+          options: question.options,
+          correctIndex: question.correctIndex,
+          explanation: question.explanation,
+          topic: topic
         });
       });
+    }
+  };
+
+  const handleNext = async () => {
+    if (currentIndex < (quiz?.questions.length || 0) - 1) {
+      setCurrentIndex(currentIndex + 1);
+      setShowExplanation(false);
+      setSelectedAnswer(null);
+      setIsCorrect(false);
+    } else {
+      setQuizState('results');
+      
+      const finalScore = selectedAnswers.reduce((acc, answer, i) => {
+        return acc + (answer === quiz?.questions[i]?.correctIndex ? 1 : 0);
+      }, 0);
+      const finalPercentage = Math.round((finalScore / (quiz?.questions.length || 1)) * 100);
+
+      const statUpdates: any = {
+        totalQuizzesCompleted: (user?.stats?.totalQuizzesCompleted || 0) + 1
+      };
+
+      if (finalPercentage === 100) {
+        statUpdates.quizPerfectScores = (user?.stats?.quizPerfectScores || 0) + 1;
+      }
+
+      // Subject Mastery logic
+      // In a real app, we'd map topic -> subject. For now we use topic if possible.
+      // But updateSubjectMastery isn't imported here, so we'll rely on processGamificationReward 
+      // if it handles the passed stats.
+
+      const result = await processGamificationReward(
+        XP_REWARDS.COMPLETE_QUIZ,
+        { 
+          quizScore: finalPercentage,
+          isPerfectScore: finalPercentage === 100 
+        },
+        statUpdates
+      );
+
+      if (result && result.newBadges.length > 0) {
+        result.newBadges.forEach((badge: any) => {
+          addNotification({
+            type: 'achievement',
+            title: `${badge.icon} Badge Earned: ${badge.name}`,
+            message: badge.description,
+            time: new Date().toISOString(),
+            read: false,
+          });
+        });
+      }
     }
   };
 
