@@ -258,14 +258,14 @@ const Settings: React.FC = () => {
           {/* Version Footer */}
           <div className="text-center pt-8 space-y-1">
               <p className="text-[10px] font-black text-text-secondary-light/30 dark:text-text-secondary-dark/30 uppercase tracking-[0.2em]">
-                RELEARN.AI V4.0.1
+                RELEARN.AI V8.1
               </p>
               <div className="space-y-0.5 px-4">
                   <p className="text-[9px] font-bold text-text-secondary-light/40 dark:text-text-secondary-dark/40 tracking-tight leading-relaxed">
                     © 2026 ReLearn.ai . All rights reserved to Revanth.
                   </p>
                   <p className="text-[9px] font-bold text-text-secondary-light/40 dark:text-text-secondary-dark/40 tracking-tight leading-relaxed">
-                    Released on 17 April 2026.
+                    Released on 9 May 2026.
                   </p>
               </div>
           </div>
