@@ -37,7 +37,11 @@ const XPDropAnimation: React.FC<XPDropAnimationProps> = ({ trigger }) => {
 
   useEffect(() => {
     if (trigger && trigger.amount > 0) {
-      spawnParticles(trigger.amount);
+      // Only trigger if the reward is fresh (within the last 2 seconds)
+      const isFresh = Date.now() - trigger.timestamp < 2000;
+      if (isFresh) {
+        spawnParticles(trigger.amount);
+      }
     }
   }, [trigger, spawnParticles]);
 

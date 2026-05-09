@@ -8,8 +8,33 @@ import { exportPlanAsPDF } from '../services/documentService';
 import Icon from './common/Icon';
 import Skeleton from './common/Skeleton';
 import { triggerHaptic } from '../utils/haptics';
+import { progressionService } from '../services/progressionService';
 import SharePlanModal from './SharePlanModal';
 import { useAuth } from '../contexts/AuthContext';
+
+const ConfirmationModal: React.FC<{
+  title: string;
+  message: string;
+  actionLabel: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+  icon: string;
+  isDanger?: boolean;
+}> = ({ title, message, actionLabel, onConfirm, onCancel, icon, isDanger }) => (
+    <div className="fixed inset-0 bg-black/60 z-[70] flex items-center justify-center p-4 backdrop-blur-sm">
+        <div className="bg-surface-light dark:bg-surface-dark rounded-3xl w-full max-w-[340px] p-8 shadow-2xl animate-scale-in border border-border-light dark:border-border-dark">
+            <div className={`h-12 w-12 rounded-full ${isDanger ? 'bg-red-100 text-red-600' : 'bg-primary/10 text-primary'} flex items-center justify-center mb-4 mx-auto`}>
+                <Icon name={icon} className="text-2xl" />
+            </div>
+            <h3 className="font-bold text-lg text-center mb-2 text-text-primary-light dark:text-text-primary-dark">{title}</h3>
+            <p className="text-center text-sm text-text-secondary-light mb-6 px-2">{message}</p>
+            <div className="flex gap-3">
+                <button onClick={onCancel} className="flex-1 py-3 rounded-xl bg-gray-200 dark:bg-gray-700 font-bold text-text-primary-light dark:text-text-primary-dark">Cancel</button>
+                <button onClick={onConfirm} className={`flex-1 py-3 rounded-xl text-white font-bold ${isDanger ? 'bg-red-600' : 'bg-primary'}`}>{actionLabel}</button>
+            </div>
+        </div>
+    </div>
+);
 
 const PlanDetails: React.FC = () => {
   const navigate = useNavigate();
@@ -92,14 +117,22 @@ const PlanDetails: React.FC = () => {
       img.src = primarySrc;
   }, [currentPlan?.coverImage, currentPlan?.id, currentPlan?.title, currentPlan?.subject]);
 
-  const handleTaskCompletion = useCallback((taskId: string, currentStatus: string) => {
+  const handleTaskCompletion = useCallback(async (taskId: string, currentStatus: string) => {
       const newStatus = currentStatus === 'Completed' ? 'Not Started' : 'Completed';
       updateTask(taskId, { status: newStatus as 'Not Started' | 'In Progress' | 'Completed' });
       if (newStatus === 'Completed') {
+          triggerHaptic('success');
+          if (user) {
+              const { completedMarathons } = await progressionService.handleTaskCompletion(user.id);
+              if (completedMarathons && completedMarathons.length > 0) {
+                  completedMarathons.forEach(m => {
+                      showToast(`🏆 Marathon Completed: ${m.title}! +${m.xp_reward} XP rewarded`, "success");
+                  });
+              }
+          }
           showToast("Nicely done. Task completed.", "success");
-          triggerHaptic('success'); // U3: Tactile feedback
       }
-  }, [updateTask, showToast]);
+  }, [updateTask, showToast, user]);
 
   const handleSaveEdit = () => {
       if(currentPlan && editTitle.trim()) {
@@ -323,7 +356,6 @@ const PlanDetails: React.FC = () => {
                     </button>
                 </div>
             </div>
-            </div>
         </div>
 
         {/* 3. Team Hub (Conditional) */}
@@ -490,7 +522,7 @@ const PlanDetails: React.FC = () => {
       {/* Edit Modal */}
       {isEditing && (
           <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4">
-              <div className="bg-surface-light dark:bg-surface-dark rounded-2xl w-full max-w-sm p-6 shadow-xl" role="dialog" aria-labelledby="edit-title">
+              <div className="bg-surface-light dark:bg-surface-dark rounded-2xl w-full max-sm p-6 shadow-xl" role="dialog" aria-labelledby="edit-title">
                   <h3 id="edit-title" className="font-bold text-lg mb-4 text-text-primary-light dark:text-text-primary-dark">Edit Plan</h3>
                   <div className="space-y-4">
                       <div>
@@ -517,7 +549,7 @@ const PlanDetails: React.FC = () => {
       {/* Bulk Import Modal */}
       {isImporting && (
           <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4">
-              <div className="bg-surface-light dark:bg-surface-dark rounded-2xl w-full max-w-sm p-6 shadow-xl" role="dialog" aria-labelledby="import-title">
+              <div className="bg-surface-light dark:bg-surface-dark rounded-2xl w-full max-sm p-6 shadow-xl" role="dialog" aria-labelledby="import-title">
                   <h3 id="import-title" className="font-bold text-lg mb-2 text-text-primary-light dark:text-text-primary-dark">Quick Add Tasks</h3>
                   <p className="text-sm text-text-secondary-light mb-4">Enter one task per line. We'll automatically schedule them.</p>
                   <textarea 
@@ -607,33 +639,8 @@ const PlanDetails: React.FC = () => {
         plan={currentPlan} 
         tasks={planTasks} 
       />
-
     </div>
   );
 };
-
-const ConfirmationModal: React.FC<{
-  title: string;
-  message: string;
-  actionLabel: string;
-  onConfirm: () => void;
-  onCancel: () => void;
-  icon: string;
-  isDanger?: boolean;
-}> = ({ title, message, actionLabel, onConfirm, onCancel, icon, isDanger }) => (
-    <div className="fixed inset-0 bg-black/60 z-[70] flex items-center justify-center p-4 backdrop-blur-sm">
-        <div className="bg-surface-light dark:bg-surface-dark rounded-3xl w-full max-w-[340px] p-8 shadow-2xl animate-scale-in border border-border-light dark:border-border-dark">
-            <div className={`h-12 w-12 rounded-full ${isDanger ? 'bg-red-100 text-red-600' : 'bg-primary/10 text-primary'} flex items-center justify-center mb-4 mx-auto`}>
-                <Icon name={icon} className="text-2xl" />
-            </div>
-            <h3 className="font-bold text-lg text-center mb-2 text-text-primary-light dark:text-text-primary-dark">{title}</h3>
-            <p className="text-center text-sm text-text-secondary-light mb-6 px-2">{message}</p>
-            <div className="flex gap-3">
-                <button onClick={onCancel} className="flex-1 py-3 rounded-xl bg-gray-200 dark:bg-gray-700 font-bold text-text-primary-light dark:text-text-primary-dark">Cancel</button>
-                <button onClick={onConfirm} className={`flex-1 py-3 rounded-xl text-white font-bold ${isDanger ? 'bg-red-600' : 'bg-primary'}`}>{actionLabel}</button>
-            </div>
-        </div>
-    </div>
-);
 
 export default PlanDetails;

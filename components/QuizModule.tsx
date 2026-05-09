@@ -68,13 +68,7 @@ const QuizModule: React.FC<QuizModuleProps> = ({
     // If incorrect, add to mistake museum
     if (!isCorrect && user?.id) {
       import('../services/mistakeMuseumService').then(({ addMistake }) => {
-        addMistake(user.id!, {
-          question: question.question,
-          options: question.options,
-          correctIndex: question.correctIndex,
-          explanation: question.explanation,
-          topic: topic
-        });
+        addMistake(question, optionIndex, topic);
       });
     }
   };
@@ -83,8 +77,6 @@ const QuizModule: React.FC<QuizModuleProps> = ({
     if (currentIndex < (quiz?.questions.length || 0) - 1) {
       setCurrentIndex(currentIndex + 1);
       setShowExplanation(false);
-      setSelectedAnswer(null);
-      setIsCorrect(false);
     } else {
       setQuizState('results');
       

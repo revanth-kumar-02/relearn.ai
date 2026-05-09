@@ -1,46 +1,71 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import Icon from './common/Icon';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import { studyPactService } from '../services/studyPactService';
-import { challengeService } from '../services/challengeService';
-import { StudyPact, PublicChallenge } from '../types';
+import { marathonService } from '../services/marathonService';
+import { friendService } from '../services/friendService';
+import { xpService } from '../services/xpService';
+import { StudyPact, Marathon, MarathonParticipant } from '../types';
 import { triggerHaptic } from '../utils/haptics';
+import { useToast } from '../contexts/ToastContext';
 
-type HubTab = 'pacts' | 'challenges' | 'teams';
+type HubTab = 'pacts' | 'marathons' | 'teams';
 
 const CollaborationHub: React.FC = () => {
     const { user } = useAuth();
+    const { showToast } = useToast();
     const { plans } = useData();
     const [activeTab, setActiveTab] = useState<HubTab>('pacts');
     const [pacts, setPacts] = useState<StudyPact[]>([]);
-    const [challenges, setChallenges] = useState<PublicChallenge[]>([]);
+    const [marathons, setMarathons] = useState<Marathon[]>([]);
+    const [participations, setParticipations] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     // Pact Creation State
     const [showNewPact, setShowNewPact] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState<any[]>([]);
+    const [selectedUser, setSelectedUser] = useState<any>(null);
+    const [isSearching, setIsSearching] = useState(false);
     const [newPact, setNewPact] = useState({
-        target_name: '',
         goal_description: '',
         stakes: '',
         deadline: ''
     });
 
+    const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
     useEffect(() => {
         loadData();
-    }, [activeTab]);
+        
+        // Setup subscriptions
+        if (user) {
+            const pactSub = studyPactService.subscribeToPacts(user.id, loadData);
+            const marathonSub = marathonService.subscribeToMarathons(loadData);
+            
+            return () => {
+                pactSub.unsubscribe();
+                marathonSub.unsubscribe();
+            };
+        }
+    }, [activeTab, user]);
 
     const loadData = async () => {
         if (!user) return;
-        setIsLoading(true);
+        setIsLoading(activeTab !== activeTab); // Only show loader on initial switch
         try {
             if (activeTab === 'pacts') {
                 const data = await studyPactService.getUserPacts(user.id!);
                 setPacts(data);
-            } else if (activeTab === 'challenges') {
-                const data = await challengeService.getChallenges();
-                setChallenges(data);
+            } else if (activeTab === 'marathons') {
+                const [mData, pData] = await Promise.all([
+                    marathonService.getMarathons(),
+                    marathonService.getParticipation(user.id!)
+                ]);
+                setMarathons(mData);
+                setParticipations(pData);
             }
         } catch (error) {
             console.error('Failed to load hub data:', error);
@@ -49,25 +74,87 @@ const CollaborationHub: React.FC = () => {
         }
     };
 
+    const handleSearchUsers = (val: string) => {
+        setSearchQuery(val);
+        if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+        
+        if (!val || val.length < 1) {
+            setSearchResults([]);
+            return;
+        }
+
+        setIsSearching(true);
+        searchTimeoutRef.current = setTimeout(async () => {
+            try {
+                const results = await friendService.searchUsers(val, user!.id);
+                setSearchResults(results);
+            } catch (err) {
+                console.error('Search failed:', err);
+            } finally {
+                setIsSearching(false);
+            }
+        }, 400);
+    };
+
     const handleCreatePact = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!user) return;
+        if (!user || !selectedUser) {
+            showToast("Please select a study partner", "error");
+            return;
+        }
+        
         try {
             await studyPactService.createPact({
                 creator_id: user.id!,
                 creator_name: user.name,
-                target_id: 'pending_invite', // Simplified for demo, would normally search for a user
-                target_name: newPact.target_name,
+                target_id: selectedUser.id,
+                target_name: selectedUser.name,
                 goal_description: newPact.goal_description,
                 stakes: newPact.stakes,
                 deadline: newPact.deadline
             });
             setShowNewPact(false);
-            loadData();
+            setSelectedUser(null);
+            setSearchQuery('');
+            setNewPact({ goal_description: '', stakes: '', deadline: '' });
+            showToast("Pact proposal sent!", "success");
             triggerHaptic('success');
-        } catch (error) {
-            console.error('Failed to create pact:', error);
+            loadData();
+        } catch (error: any) {
+            showToast(error.message || "Failed to create pact", "error");
         }
+    };
+
+    const handleJoinMarathon = async (marathonId: string) => {
+        if (!user) return;
+        try {
+            await marathonService.joinMarathon(marathonId, user.id);
+            showToast("Joined marathon successfully!", "success");
+            triggerHaptic('success');
+            loadData();
+        } catch (error: any) {
+            showToast(error.message || "Already joined or failed to join", "error");
+        }
+    };
+
+    const handlePactAction = async (pactId: string, status: StudyPact['status']) => {
+        try {
+            await studyPactService.updatePactStatus(pactId, status);
+            if (status === 'completed') {
+                await xpService.logXP(user!.id, 500, 'pact', pactId);
+                showToast("Pact completed! +500 XP rewarded", "success");
+            } else {
+                showToast(`Pact ${status}`, "success");
+            }
+            triggerHaptic('medium');
+            loadData();
+        } catch (err) {
+            showToast("Action failed", "error");
+        }
+    };
+
+    const getMarathonProgress = (marathonId: string) => {
+        return participations.find(p => p.marathon_id === marathonId);
     };
 
     return (
@@ -85,7 +172,7 @@ const CollaborationHub: React.FC = () => {
                 </div>
 
                 <nav className="flex bg-white dark:bg-stone-900 p-1.5 rounded-2xl border border-border-light dark:border-border-dark shadow-sm">
-                    {(['pacts', 'challenges', 'teams'] as HubTab[]).map(tab => (
+                    {(['pacts', 'marathons', 'teams'] as HubTab[]).map(tab => (
                         <button
                             key={tab}
                             onClick={() => { setActiveTab(tab); triggerHaptic('light'); }}
@@ -112,7 +199,7 @@ const CollaborationHub: React.FC = () => {
                     {activeTab === 'pacts' && (
                         <div className="space-y-6">
                             <div className="flex items-center justify-between">
-                                <h2 className="text-xl font-black tracking-tight">Active Pacts</h2>
+                                <h2 className="text-xl font-black tracking-tight">Study Pacts</h2>
                                 <button 
                                     onClick={() => setShowNewPact(true)}
                                     className="px-6 py-3 bg-indigo-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-indigo-600/20 hover:scale-105 transition-all flex items-center gap-2"
@@ -121,104 +208,167 @@ const CollaborationHub: React.FC = () => {
                                 </button>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {pacts.map(pact => (
-                                    <div key={pact.id} className="bg-white dark:bg-stone-900 rounded-[2rem] p-8 border border-border-light dark:border-border-dark shadow-xl group hover:border-indigo-500/50 transition-all">
-                                        <div className="flex justify-between items-start mb-6">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white font-black text-lg">
-                                                    {pact.target_name.charAt(0)}
+                            {isLoading ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {[1, 2].map(i => (
+                                        <div key={i} className="h-64 bg-gray-100 dark:bg-stone-800 animate-pulse rounded-[2rem]" />
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {pacts.map(pact => (
+                                        <div key={pact.id} className="bg-white dark:bg-stone-900 rounded-[2rem] p-8 border border-border-light dark:border-border-dark shadow-xl group hover:border-indigo-500/50 transition-all relative overflow-hidden">
+                                            <div className="flex justify-between items-start mb-6">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white font-black text-lg">
+                                                        {(pact.creator_id === user?.id ? pact.target_name : pact.creator_name).charAt(0)}
+                                                    </div>
+                                                    <div>
+                                                        <h3 className="font-black text-lg">
+                                                            {pact.creator_id === user?.id ? `With ${pact.target_name}` : `From ${pact.creator_name}`}
+                                                        </h3>
+                                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Ends {new Date(pact.deadline).toLocaleDateString()}</p>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <h3 className="font-black text-lg">Pact with {pact.target_name}</h3>
-                                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Ends {new Date(pact.deadline).toLocaleDateString()}</p>
+                                                <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest ${
+                                                    pact.status === 'accepted' ? 'bg-emerald-500/10 text-emerald-600' : 
+                                                    pact.status === 'pending' ? 'bg-amber-500/10 text-amber-600' : 'bg-slate-500/10 text-slate-600'
+                                                }`}>
+                                                    {pact.status}
+                                                </span>
+                                            </div>
+
+                                            <div className="space-y-4 mb-8">
+                                                <div className="p-4 bg-gray-50 dark:bg-stone-800/50 rounded-2xl border border-border-light/50 dark:border-border-dark/50">
+                                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">The Goal</p>
+                                                    <p className="text-sm font-bold text-slate-700 dark:text-stone-300">"{pact.goal_description}"</p>
+                                                </div>
+                                                <div className="p-4 bg-indigo-50/50 dark:bg-indigo-900/10 rounded-2xl border border-indigo-100 dark:border-indigo-900/30">
+                                                    <p className="text-[10px] font-black uppercase tracking-widest text-indigo-500 mb-1">The Stakes</p>
+                                                    <p className="text-sm font-bold text-indigo-600 dark:text-indigo-400">"{pact.stakes}"</p>
                                                 </div>
                                             </div>
-                                            <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest ${
-                                                pact.status === 'active' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-amber-500/10 text-amber-600'
-                                            }`}>
-                                                {pact.status}
-                                            </span>
-                                        </div>
 
-                                        <div className="space-y-4 mb-8">
-                                            <div className="p-4 bg-gray-50 dark:bg-stone-800/50 rounded-2xl border border-border-light/50 dark:border-border-dark/50">
-                                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">The Goal</p>
-                                                <p className="text-sm font-bold text-slate-700 dark:text-stone-300">"{pact.goal_description}"</p>
+                                            <div className="flex gap-3">
+                                                {pact.status === 'pending' && pact.target_id === user?.id && (
+                                                    <>
+                                                        <button 
+                                                            onClick={() => handlePactAction(pact.id, 'accepted')}
+                                                            className="flex-1 py-3 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest"
+                                                        >
+                                                            Accept Pact
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => handlePactAction(pact.id, 'rejected')}
+                                                            className="px-4 py-3 bg-red-50 text-red-500 rounded-xl hover:bg-red-100 transition-colors"
+                                                        >
+                                                            <Icon name="close" />
+                                                        </button>
+                                                    </>
+                                                )}
+                                                {pact.status === 'accepted' && (
+                                                    <button 
+                                                        onClick={() => handlePactAction(pact.id, 'completed')}
+                                                        className="flex-1 py-3 bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest"
+                                                    >
+                                                        Mark Completed
+                                                    </button>
+                                                )}
+                                                {pact.status === 'pending' && pact.creator_id === user?.id && (
+                                                    <button className="flex-1 py-3 bg-gray-100 dark:bg-stone-800 text-slate-400 rounded-xl text-[10px] font-black uppercase tracking-widest cursor-not-allowed">
+                                                        Awaiting Partner...
+                                                    </button>
+                                                )}
                                             </div>
-                                            <div className="p-4 bg-indigo-50/50 dark:bg-indigo-900/10 rounded-2xl border border-indigo-100 dark:border-indigo-900/30">
-                                                <p className="text-[10px] font-black uppercase tracking-widest text-indigo-500 mb-1">The Stakes</p>
-                                                <p className="text-sm font-bold text-indigo-600 dark:text-indigo-400">"{pact.stakes}"</p>
-                                            </div>
                                         </div>
+                                    ))}
 
-                                        <div className="flex gap-3">
-                                            <button className="flex-1 py-3 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-indigo-600/20">Update Progress</button>
-                                            <button className="px-4 py-3 bg-slate-100 dark:bg-stone-800 text-slate-400 rounded-xl hover:text-red-500 transition-colors">
-                                                <Icon name="cancel" />
-                                            </button>
+                                    {pacts.length === 0 && (
+                                        <div className="md:col-span-2 py-20 text-center bg-white dark:bg-stone-900 rounded-[2.5rem] border border-dashed border-border-light dark:border-border-dark">
+                                            <Icon name="handshake" className="text-5xl text-slate-200 mb-4 mx-auto" />
+                                            <h3 className="text-lg font-black text-slate-800 dark:text-white">No Active Pacts</h3>
+                                            <p className="text-sm font-bold text-slate-400 max-w-xs mx-auto mt-2">Challenge your friends to stay accountable. Propose your first pact above!</p>
                                         </div>
-                                    </div>
-                                ))}
-
-                                {pacts.length === 0 && !isLoading && (
-                                    <div className="md:col-span-2 py-20 text-center bg-white dark:bg-stone-900 rounded-[2.5rem] border border-dashed border-border-light dark:border-border-dark">
-                                        <Icon name="waving_hand" className="text-5xl text-slate-200 mb-4 mx-auto" />
-                                        <h3 className="text-lg font-black text-slate-800 dark:text-white">No Active Pacts</h3>
-                                        <p className="text-sm font-bold text-slate-400 max-w-xs mx-auto mt-2">Study with a friend to stay accountable. Propose your first pact above!</p>
-                                    </div>
-                                )}
-                            </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     )}
 
-                    {activeTab === 'challenges' && (
+                    {activeTab === 'marathons' && (
                         <div className="space-y-8">
-                            <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-[2.5rem] p-10 text-white relative overflow-hidden shadow-2xl shadow-indigo-600/20">
-                                <div className="relative z-10">
-                                    <span className="px-4 py-1.5 bg-white/20 backdrop-blur-md rounded-full text-[10px] font-black uppercase tracking-widest mb-4 inline-block">Featured Event</span>
-                                    <h2 className="text-4xl font-black tracking-tighter mb-4">Mastery Marathon 2026</h2>
-                                    <p className="text-lg font-medium text-white/80 max-w-xl mb-8 leading-relaxed">Complete 10 tasks in any subject this week to earn the exclusive "Marathon Finisher" badge and 5,000 XP.</p>
-                                    <div className="flex items-center gap-8">
-                                        <div>
-                                            <p className="text-3xl font-black">2.4k+</p>
-                                            <p className="text-[10px] font-black uppercase tracking-widest text-white/60">Participants</p>
-                                        </div>
-                                        <div className="h-10 w-px bg-white/20" />
-                                        <div>
-                                            <p className="text-3xl font-black">4 Days</p>
-                                            <p className="text-[10px] font-black uppercase tracking-widest text-white/60">Remaining</p>
-                                        </div>
-                                        <button className="ml-auto px-8 py-4 bg-white text-indigo-600 rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-black/20 hover:scale-105 transition-all">Join Marathon</button>
-                                    </div>
-                                </div>
-                                <div className="absolute -right-20 -bottom-20 w-80 h-80 bg-white/10 rounded-full blur-3xl" />
-                                <Icon name="auto_awesome" className="absolute right-12 top-12 text-8xl text-white/10" />
-                            </div>
+                            {marathons.map(marathon => {
+                                const participation = getMarathonProgress(marathon.id);
+                                const isJoined = !!participation;
+                                const progressPercent = isJoined ? (participation.progress / marathon.task_goal) * 100 : 0;
+                                const daysRemaining = Math.max(0, Math.ceil((new Date(marathon.end_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)));
 
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                {challenges.map(challenge => (
-                                    <div key={challenge.id} className="bg-white dark:bg-stone-900 rounded-[2rem] p-6 border border-border-light dark:border-border-dark shadow-xl flex flex-col">
-                                        <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 flex items-center justify-center mb-6">
-                                            <Icon name="emoji_events" />
-                                        </div>
-                                        <h3 className="font-black text-lg mb-2">{challenge.title}</h3>
-                                        <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-6 flex-1 line-clamp-2">{challenge.description}</p>
-                                        <div className="flex items-center justify-between pt-6 border-t border-border-light dark:border-border-dark mt-auto">
-                                            <div className="flex items-center gap-1 text-amber-500 font-black text-xs">
-                                                <Icon name="stars" className="text-sm" />
-                                                {challenge.xp_reward} XP
+                                return (
+                                    <div key={marathon.id} className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-[2.5rem] p-10 text-white relative overflow-hidden shadow-2xl shadow-indigo-600/20">
+                                        <div className="relative z-10">
+                                            <div className="flex justify-between items-start mb-6">
+                                                <span className="px-4 py-1.5 bg-white/20 backdrop-blur-md rounded-full text-[10px] font-black uppercase tracking-widest">
+                                                    {marathon.status === 'active' ? 'Ongoing Event' : 'Upcoming'}
+                                                </span>
+                                                <div className="flex items-center gap-2">
+                                                    <Icon name="groups" className="text-white/60" />
+                                                    <span className="text-xs font-black">{marathon.participant_count} Participating</span>
+                                                </div>
                                             </div>
-                                            <button 
-                                                onClick={() => { triggerHaptic('medium'); challengeService.joinChallenge(challenge.id, user?.id!) }}
-                                                className="text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:underline"
-                                            >
-                                                Join Now
-                                            </button>
+                                            
+                                            <h2 className="text-4xl font-black tracking-tighter mb-4">{marathon.title}</h2>
+                                            <p className="text-lg font-medium text-white/80 max-w-xl mb-8 leading-relaxed">{marathon.description}</p>
+                                            
+                                            <div className="flex flex-wrap items-center gap-8">
+                                                <div>
+                                                    <p className="text-3xl font-black">{marathon.xp_reward}</p>
+                                                    <p className="text-[10px] font-black uppercase tracking-widest text-white/60">XP Reward</p>
+                                                </div>
+                                                <div className="h-10 w-px bg-white/20 hidden sm:block" />
+                                                <div>
+                                                    <p className="text-3xl font-black">{daysRemaining} Days</p>
+                                                    <p className="text-[10px] font-black uppercase tracking-widest text-white/60">Remaining</p>
+                                                </div>
+                                                
+                                                {isJoined ? (
+                                                    <div className="flex-1 min-w-[200px]">
+                                                        <div className="flex justify-between items-end mb-2">
+                                                            <p className="text-[10px] font-black uppercase tracking-widest text-white/80">Your Progress: {participation.progress}/{marathon.task_goal} Tasks</p>
+                                                            <p className="text-xl font-black">{Math.round(progressPercent)}%</p>
+                                                        </div>
+                                                        <div className="h-3 w-full bg-white/20 rounded-full overflow-hidden">
+                                                            <motion.div 
+                                                                initial={{ width: 0 }}
+                                                                animate={{ width: `${progressPercent}%` }}
+                                                                className="h-full bg-white shadow-[0_0_20px_rgba(255,255,255,0.5)]"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <button 
+                                                        onClick={() => handleJoinMarathon(marathon.id)}
+                                                        className="ml-auto px-8 py-4 bg-white text-indigo-600 rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-black/20 hover:scale-105 transition-all"
+                                                    >
+                                                        Join Marathon
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
+                                        {marathon.banner_image && (
+                                            <img src={marathon.banner_image} className="absolute right-0 top-0 h-full w-1/3 object-cover opacity-20 pointer-events-none" />
+                                        )}
+                                        <Icon name="auto_awesome" className="absolute -right-8 -bottom-8 text-[15rem] text-white/5 rotate-12" />
                                     </div>
-                                ))}
-                            </div>
+                                );
+                            })}
+
+                            {marathons.length === 0 && !isLoading && (
+                                <div className="py-20 text-center bg-white dark:bg-stone-900 rounded-[2.5rem] border border-dashed border-border-light dark:border-border-dark">
+                                    <Icon name="event_available" className="text-5xl text-slate-200 mb-4 mx-auto" />
+                                    <h3 className="text-lg font-black text-slate-800 dark:text-white">No Active Marathons</h3>
+                                    <p className="text-sm font-bold text-slate-400 max-w-xs mx-auto mt-2">Check back later for community learning events!</p>
+                                </div>
+                            )}
                         </div>
                     )}
 
@@ -237,11 +387,13 @@ const CollaborationHub: React.FC = () => {
                                                     <h3 className="font-black text-sm">{plan.title}</h3>
                                                     <span className="text-[10px] font-black uppercase tracking-widest text-purple-600">{plan.teamMembers?.length || 0} Members</span>
                                                 </div>
-                                                <div className="flex -space-x-3 mb-4">
-                                                    {[1,2,3].map(i => (
-                                                        <div key={i} className="w-8 h-8 rounded-full border-2 border-white dark:border-stone-900 bg-slate-200" />
-                                                    ))}
-                                                    <div className="w-8 h-8 rounded-full border-2 border-white dark:border-stone-900 bg-purple-100 text-purple-600 flex items-center justify-center text-[10px] font-black">+{plan.teamMembers?.length ? plan.teamMembers.length - 3 : 0}</div>
+                                                <div className="flex items-center gap-2 mb-4">
+                                                    <div className="flex -space-x-2">
+                                                        <div className="w-7 h-7 rounded-full border-2 border-white dark:border-stone-900 bg-purple-100 flex items-center justify-center">
+                                                            <Icon name="person" className="text-[10px] text-purple-600" />
+                                                        </div>
+                                                    </div>
+                                                    <span className="text-[10px] font-black text-slate-400">Collaborative Session</span>
                                                 </div>
                                                 <div className="h-2 w-full bg-purple-100 dark:bg-purple-900/30 rounded-full overflow-hidden">
                                                     <div className="h-full bg-purple-600 rounded-full" style={{ width: `${plan.progress}%` }} />
@@ -260,25 +412,15 @@ const CollaborationHub: React.FC = () => {
 
                                 <div className="bg-white dark:bg-stone-900 rounded-[2.5rem] p-8 border border-border-light dark:border-border-dark shadow-xl">
                                     <h2 className="text-xl font-black mb-6 flex items-center gap-3">
-                                        <Icon name="forum" className="text-indigo-600" />
-                                        Community Feed
+                                        <Icon name="history" className="text-indigo-600" />
+                                        Activity Stream
                                     </h2>
                                     <div className="space-y-6">
-                                        {[
-                                            { user: 'Sarah L.', action: 'shared a new Cheat Sheet', subject: 'Organic Chemistry', time: '12m ago' },
-                                            { user: 'James W.', action: 'completed the Global Marathon', subject: 'Python Data Science', time: '1h ago' },
-                                            { user: 'Elena R.', action: 'unlocked "Master Architect"', subject: 'System Design', time: '3h ago' }
-                                        ].map((post, i) => (
-                                            <div key={i} className="flex gap-4">
-                                                <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-stone-800 flex-shrink-0" />
-                                                <div>
-                                                    <p className="text-sm font-bold text-slate-700 dark:text-stone-300">
-                                                        <span className="font-black text-slate-900 dark:text-white">{post.user}</span> {post.action}
-                                                    </p>
-                                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-0.5">{post.subject} · {post.time}</p>
-                                                </div>
-                                            </div>
-                                        ))}
+                                        <div className="py-12 text-center bg-gray-50/50 dark:bg-stone-800/30 rounded-[1.5rem] border border-dashed border-border-light dark:border-border-dark">
+                                            <Icon name="rss_feed" className="text-3xl text-slate-200 mb-3 mx-auto" />
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Stream Offline</p>
+                                            <p className="text-[9px] font-bold text-slate-400/60 mt-1 max-w-[150px] mx-auto">Friend activity will appear here soon!</p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -303,15 +445,50 @@ const CollaborationHub: React.FC = () => {
                                 <p className="text-sm font-bold text-slate-400 mb-8 uppercase tracking-widest">Select a friend and set the stakes.</p>
 
                                 <form onSubmit={handleCreatePact} className="space-y-6">
-                                    <div>
-                                        <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3 ml-1">Study Partner Name</label>
-                                        <input 
-                                            required
-                                            value={newPact.target_name}
-                                            onChange={e => setNewPact({...newPact, target_name: e.target.value})}
-                                            className="w-full bg-gray-50 dark:bg-stone-800/50 border-none rounded-2xl px-6 py-4 text-sm font-bold outline-none focus:ring-4 ring-indigo-500/10"
-                                            placeholder="Who are you challenging?"
-                                        />
+                                    <div className="relative">
+                                        <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3 ml-1">Who are you challenging?</label>
+                                        <div className="relative">
+                                            <Icon name="person_search" className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                                            <input 
+                                                required={!selectedUser}
+                                                value={selectedUser ? selectedUser.name : searchQuery}
+                                                onChange={e => { setSelectedUser(null); handleSearchUsers(e.target.value); }}
+                                                className="w-full bg-gray-50 dark:bg-stone-800/50 border-none rounded-2xl pl-12 pr-6 py-4 text-sm font-bold outline-none focus:ring-4 ring-indigo-500/10"
+                                                placeholder="Search by ID or Username"
+                                            />
+                                            {isSearching && (
+                                                <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                                                    <div className="w-4 h-4 border-2 border-indigo-500/30 border-t-indigo-600 rounded-full animate-spin"></div>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* User Search Dropdown */}
+                                        <AnimatePresence>
+                                            {searchResults.length > 0 && !selectedUser && (
+                                                <motion.div 
+                                                    initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
+                                                    className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-stone-800 rounded-2xl shadow-2xl z-20 border border-border-light dark:border-border-dark overflow-hidden"
+                                                >
+                                                    {searchResults.map(res => (
+                                                        <button
+                                                            key={res.id}
+                                                            type="button"
+                                                            onClick={() => { setSelectedUser(res); setSearchResults([]); }}
+                                                            className="w-full flex items-center gap-4 p-4 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors text-left"
+                                                        >
+                                                            <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center font-black text-indigo-600">
+                                                                {res.name.charAt(0)}
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-sm font-black">{res.name}</p>
+                                                                <p className="text-[10px] text-slate-400">@{res.username}</p>
+                                                            </div>
+                                                        </button>
+                                                    ))}
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
                                     </div>
 
                                     <div>

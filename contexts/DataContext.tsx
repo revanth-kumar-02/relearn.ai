@@ -534,6 +534,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           t => t.status === 'Completed' && t.completedAt?.startsWith(todayStr)
         ).length + 1;
 
+        const plan = planId ? plans.find(p => p.id === planId) : null;
         const masteryStats = plan?.subject 
           ? updateSubjectMastery(user?.stats ? ensureGamificationStats(user.stats) : {} as any, plan.subject, 2)
           : user?.stats;

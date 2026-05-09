@@ -1,4 +1,5 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { performSystemReset, generateErrorReport, downloadErrorReport } from '../utils/reset';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -62,28 +63,20 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   handleReload = (): void => {
     // If it's a chunk error, we need to be aggressive about clearing cache
     if (this.state.isChunkError) {
-      console.log('[ErrorBoundary] Version mismatch detected. Attempting hard recovery...');
-      
-      // 1. Unregister any service workers that might be serving stale content
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(registrations => {
-          for (let registration of registrations) {
-            registration.unregister();
-          }
-        }).catch(err => console.error('SW unregistration failed:', err));
-      }
-
-      // 2. Clear session storage as a precaution
-      try {
-        sessionStorage.clear();
-      } catch (e) {}
-
-      // 3. Force hard reload with cache busting query param
-      const url = new URL(window.location.href);
-      url.searchParams.set('v', Date.now().toString());
-      window.location.href = url.toString();
+      performSystemReset(false);
     } else {
       window.location.reload();
+    }
+  };
+
+  handleDownloadReport = (): void => {
+    const report = generateErrorReport(this.state.error, this.state.errorInfo);
+    downloadErrorReport(report);
+  };
+
+  handleSystemReset = (): void => {
+    if (window.confirm("This will clear your local application state and might log you out. Unsaved changes will be lost. Continue?")) {
+      performSystemReset(true);
     }
   };
 
@@ -136,13 +129,22 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
               </button>
               
               {!isChunkError && (
-                <button
-                  onClick={this.handleGoHome}
-                  className="w-full sm:w-auto px-8 py-4 bg-stone-200 dark:bg-stone-800 text-text-primary-light dark:text-text-primary-dark rounded-2xl font-bold text-base hover:bg-stone-300 dark:hover:bg-stone-700 transition-all active:scale-95 flex items-center justify-center gap-2"
-                >
-                  <span className="material-symbols-outlined">home</span>
-                  Dashboard
-                </button>
+                <div className="flex flex-col gap-3 w-full sm:w-auto">
+                    <button
+                        onClick={this.handleGoHome}
+                        className="px-8 py-4 bg-stone-200 dark:bg-stone-800 text-text-primary-light dark:text-text-primary-dark rounded-2xl font-bold text-base hover:bg-stone-300 dark:hover:bg-stone-700 transition-all active:scale-95 flex items-center justify-center gap-2"
+                    >
+                        <span className="material-symbols-outlined">home</span>
+                        Dashboard
+                    </button>
+                    <button
+                        onClick={this.handleDownloadReport}
+                        className="text-[10px] font-black text-stone-400 hover:text-primary transition-colors flex items-center justify-center gap-1 uppercase tracking-widest"
+                    >
+                        <span className="material-symbols-outlined text-xs">download</span>
+                        Download Diagnostic Report
+                    </button>
+                </div>
               )}
             </div>
 
@@ -182,6 +184,12 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
                         Reference: System Version Mismatch Detected
                     </p>
                 )}
+                <button 
+                    onClick={this.handleSystemReset}
+                    className="mt-4 text-[9px] font-bold text-red-400/50 hover:text-red-500 transition-colors uppercase tracking-[0.1em]"
+                >
+                    Advanced: Factory Reset Application
+                </button>
             </div>
           </div>
         </div>

@@ -10,28 +10,34 @@
  * (e.g., <user_input>{sanitized}</user_input>) and instruct the model to
  * treat everything inside those tags as data, not instructions.
  */
-export function sanitizeInput(input: string): string {
+export function sanitizeInput(input: string, maxLength: number = 2000): string {
   if (!input) return "";
 
-  // 1. Strip raw HTML tags to prevent UI-level breakage
-  let clean = input.replace(/<[^>]*>?/gm, "");
+  // 1. Truncate extreme lengths
+  let clean = input.substring(0, maxLength);
 
-  // 2. Neutralize common prompt injection techniques
-  // We don't want to over-strip legitimate educational terms, but we block 
-  // explicit "system override" phrases that are common in injection attacks.
+  // 2. Strip raw HTML tags to prevent UI-level breakage and XML confusion
+  clean = clean.replace(/<[^>]*>?/gm, "");
+
+  // 3. Neutralize common prompt injection techniques
   const injectionPatterns = [
     /\b(ignore (all )?previous instructions)\b/gi,
     /\b(system override)\b/gi,
     /\b(you are now a)\b/gi,
     /\b(forget what I said)\b/gi,
-    /\b(disregard (all )?safety)\b/gi
+    /\b(disregard (all )?safety)\b/gi,
+    /\b(your new personality is)\b/gi,
+    /([^\w\s])\1{10,}/g // Strip repeated non-alphanumeric (common in token-smuggling)
   ];
 
   injectionPatterns.forEach(pattern => {
     clean = clean.replace(pattern, "[FILTERED]");
   });
 
-  return clean.trim();
+  // 4. Normalize whitespace
+  clean = clean.replace(/\s+/g, ' ').trim();
+
+  return clean;
 }
 
 /**

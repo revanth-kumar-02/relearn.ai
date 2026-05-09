@@ -2,6 +2,7 @@ import { supabase } from './supabase';
 
 export interface SystemStatus {
   maintenance_mode: boolean;
+  ai_restricted: boolean;
   message: string;
   status: 'active' | 'completed' | 'none';
   version: string;
@@ -22,6 +23,7 @@ export const systemService = {
           // Table or record might not exist yet, return default
           return {
             maintenance_mode: false,
+            ai_restricted: false,
             message: '',
             status: 'none',
             version: '1.0.0',
@@ -44,6 +46,7 @@ export const systemService = {
       }
       return {
         maintenance_mode: false,
+        ai_restricted: false,
         message: '',
         status: 'none',
         version: '1.0.0',

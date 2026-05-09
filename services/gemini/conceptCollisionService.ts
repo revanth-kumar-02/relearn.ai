@@ -8,6 +8,7 @@
 import { AI_MODELS, isRetryableError } from './config';
 import { getProxyConfiguredGenAI } from './genai';
 import { sanitizeInput } from '../utils/sanitize';
+import { safeParseAIResponse } from '../utils/aiUtils';
 
 export interface ConceptCollision {
   topicA: string;
@@ -72,7 +73,7 @@ Return ONLY valid JSON: { "topicA": "...", "topicB": "...", "question": "...", "
 
       const text = response.text;
       if (text) {
-        const parsed = JSON.parse(text);
+        const parsed = safeParseAIResponse<Partial<ConceptCollision>>(text);
         return {
           topicA: parsed.topicA || topicA,
           topicB: parsed.topicB || topicB,

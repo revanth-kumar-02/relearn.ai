@@ -1,8 +1,8 @@
 import { Type } from "@google/genai";
 import { AI_MODELS, IS_GROQ_MODEL } from "./config";
 import { getProxyConfiguredGenAI } from "./genai";
-import { Plan } from "../../types";
 import { getAuthHeaders } from "../utils/auth";
+import { safeParseAIResponse } from "../utils/aiUtils";
 
 export interface QualityScore {
   overall: number;
@@ -17,9 +17,9 @@ export interface QualityScore {
 /**
  * Uses AI to analyze and score the quality of a generated learning plan.
  */
-export const scorePlanQuality = async (plan: Plan): Promise<QualityScore> => {
+export const scorePlanQuality = async (plan: any): Promise<QualityScore> => {
   try {
-    const ai = getProxyConfiguredGenAI('analysis');
+    const ai = getProxyConfiguredGenAI('plan');
 
     const systemInstruction = `You are an Educational Quality Auditor.
 Your task is to critically analyze the learning plan provided and score it across 4 dimensions:
@@ -51,7 +51,7 @@ Return ONLY a JSON object.`;
 Title: ${plan.title}
 Subject: ${plan.subject}
 Description: ${plan.description}
-Tasks: ${plan.tasks.map(t => t.title).join(', ')}
+Tasks: ${plan.tasks?.map((t: any) => t.title).join(', ') || 'No tasks'}
 
 Provide a detailed quality score.`;
 
@@ -77,7 +77,8 @@ Provide a detailed quality score.`;
 
       if (!response.ok) throw new Error(`Groq API error: ${response.status}`);
       const data = await response.json();
-      return JSON.parse(data.choices[0].message.content);
+      const content = data.choices[0].message.content;
+      return safeParseAIResponse<QualityScore>(content);
     } else {
       const result = await ai.models.generateContent({
         model: currentModel,
@@ -89,7 +90,7 @@ Provide a detailed quality score.`;
         }
       });
 
-      return JSON.parse(result.text);
+      return safeParseAIResponse<QualityScore>(result.text);
     }
   } catch (error) {
     console.error('[QualityScoring] Failed to score plan:', error);

@@ -143,7 +143,7 @@ const AppContent: React.FC = () => {
   const isDiary = location.pathname === '/diary';
 
   return (
-    <div className={`flex min-h-screen ${isDiary ? 'bg-cream dark:bg-dark-cream' : 'bg-background-light dark:bg-background-dark'} overflow-hidden transition-colors duration-500`}>
+    <div className={`flex min-h-screen ${isDiary ? 'bg-cream dark:bg-dark-cream' : 'bg-background-light dark:bg-background-dark'} overflow-hidden transition-colors duration-500 noise-overlay`}>
       <a 
         href="#main-content" 
         className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:bg-primary focus:text-white focus:px-4 focus:py-2 focus:rounded-lg focus:font-bold focus:shadow-xl"
@@ -176,21 +176,35 @@ const AppContent: React.FC = () => {
 
       {/* Desktop Sidebar */}
       {showSidebar && (
-        <aside 
-          className={`hidden md:flex flex-col h-screen bg-white dark:bg-surface-dark border-r border-border-light dark:border-border-dark fixed left-0 top-0 z-50 transition-all duration-300 ease-in-out ${
-            isSidebarExpanded ? 'w-64' : 'w-20'
-          }`}
+        <motion.aside 
+          initial={false}
+          animate={{ width: isSidebarExpanded ? 256 : 80 }}
+          className="hidden md:flex flex-col h-screen glass-card fixed left-0 top-0 z-50 overflow-hidden"
         >
-          <div className={`p-4 flex items-center border-b border-border-light dark:border-border-dark ${isSidebarExpanded ? 'gap-3 px-6' : 'justify-center'}`}>
-            <div className="w-10 h-10 min-w-[40px] rounded-xl bg-primary flex items-center justify-center text-white shadow-lg shadow-primary/20 cursor-pointer" onClick={toggleSidebar}>
+          <div className={`p-6 flex items-center border-b border-white/10 dark:border-white/5 ${isSidebarExpanded ? 'gap-4' : 'justify-center'}`}>
+            <motion.div 
+              whileHover={{ scale: 1.1, rotate: 5 }}
+              whileTap={{ scale: 0.95 }}
+              className="w-10 h-10 min-w-[40px] rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white shadow-xl shadow-primary/20 cursor-pointer" 
+              onClick={toggleSidebar}
+            >
               <Icon name="school" className="text-2xl" />
-            </div>
-            {isSidebarExpanded && (
-              <h1 className="text-xl font-bold text-text-primary-light dark:text-text-primary-dark tracking-tight truncate">ReLearn.ai</h1>
-            )}
+            </motion.div>
+            <AnimatePresence>
+              {isSidebarExpanded && (
+                <motion.h1 
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -10 }}
+                  className="text-xl font-black text-text-primary-light dark:text-text-primary-dark tracking-tighter truncate gradient-text"
+                >
+                  ReLearn.ai
+                </motion.h1>
+              )}
+            </AnimatePresence>
           </div>
 
-          <nav className="flex-1 p-4 pt-6 space-y-2 overflow-y-auto no-scrollbar">
+          <nav className="flex-1 p-4 space-y-2 overflow-y-auto no-scrollbar">
             <SidebarItem
               icon="home"
               label="Dashboard"
@@ -241,14 +255,6 @@ const AppContent: React.FC = () => {
               showLabel={isSidebarExpanded}
             />
             <SidebarItem
-              icon="notifications"
-              label="Notifications"
-              active={location.pathname === '/notifications'}
-              onClick={() => navigate('/notifications')}
-              ariaLabel="Navigate to Notifications"
-              showLabel={isSidebarExpanded}
-            />
-            <SidebarItem
               icon="settings"
               label="Settings"
               active={location.pathname === '/settings'}
@@ -259,7 +265,7 @@ const AppContent: React.FC = () => {
           </nav>
 
             {isAdmin && (
-              <div className="p-4 border-t border-border-light dark:border-border-dark">
+              <div className="p-4 border-t border-white/10">
                 <SidebarItem
                   icon="admin_panel_settings"
                   label="Admin Panel"
@@ -270,42 +276,41 @@ const AppContent: React.FC = () => {
                 />
               </div>
             )}
-            <div className="p-4 border-t border-border-light dark:border-border-dark">
-              <button
+            <div className="p-4 border-t border-white/10">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 id="tutorial-new-plan"
                 onClick={() => { triggerHaptic('medium'); navigate('/create-plan'); }}
-                className={`flex items-center justify-center bg-primary hover:opacity-90 text-white rounded-xl font-bold shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98] ${
+                className={`flex items-center justify-center bg-gradient-to-r from-primary to-secondary text-white rounded-xl font-black shadow-lg shadow-primary/30 transition-shadow hover:shadow-primary/50 ${
                   isSidebarExpanded ? 'w-full gap-2 py-3 px-4' : 'w-12 h-12 mx-auto'
                 }`}
                 aria-label="Create New AI Learning Plan"
               >
-                  <Icon name="auto_awesome" />
+                  <Icon name="auto_awesome" className="animate-pulse" />
                 {isSidebarExpanded && <span>New Plan</span>}
-              </button>
+              </motion.button>
             </div>
-            
-            
-            <div className="p-4 border-t border-border-light dark:border-border-dark" />
-        </aside>
+            <div className="h-6" />
+        </motion.aside>
       )}
 
       {/* Main Content Area */}
       <main 
         id="main-content" 
-        className={`flex-1 flex flex-col min-h-screen relative transition-all duration-300 ease-in-out ${
+        className={`flex-1 flex flex-col min-h-screen relative transition-all duration-500 ease-in-out ${
           showSidebar ? (isSidebarExpanded ? 'md:ml-64' : 'md:ml-20') : ''
         }`}
       >
         <div className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar scroll-smooth">
-          <div className={`mx-auto w-full ${isAuthPage || location.pathname.startsWith('/rooms/') ? '' : (isDiary ? 'pb-32 md:pb-8' : 'max-w-5xl pb-32 md:pb-8')}`}>
+          <div className={`mx-auto w-full ${isAuthPage || location.pathname.startsWith('/rooms/') ? '' : (isDiary ? 'pb-32 md:pb-8' : 'max-w-6xl px-4 md:px-8 pb-32 md:pb-12')}`}>
             <AnimatePresence mode="wait">
                 <motion.div
                     key={location.pathname}
-                    initial="initial"
-                    animate="animate"
-                    exit="exit"
-                    variants={pageVariants}
-                    transition={{ duration: 0.2, ease: "easeOut" }}
+                    initial={{ opacity: 0, y: 20, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -20, scale: 1.02 }}
+                    transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
                 >
                     <Suspense fallback={<PageLoader />}>
                     <Routes location={location}>
@@ -345,22 +350,25 @@ const AppContent: React.FC = () => {
         {/* ChatBot (Conditional Rendering) */}
         {['/dashboard', '/diary', '/learning-workspace', '/plan-details'].includes(location.pathname) && (
           <Suspense fallback={null}>
-            <button
+            <motion.button
+              whileHover={{ scale: 1.1, rotate: 5 }}
+              whileTap={{ scale: 0.9 }}
               id="tutorial-chatbot"
               onClick={() => { triggerHaptic('light'); setIsChatOpen(true); }}
-              className={`fixed right-6 h-14 w-14 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full shadow-lg flex items-center justify-center z-50 transition-all hover:scale-110 active:scale-90 ${showMobileNav ? 'bottom-[6.5rem]' : 'bottom-6'} md:bottom-6`}
+              className={`fixed right-6 h-14 w-14 bg-gradient-to-tr from-indigo-600 to-primary text-white rounded-full shadow-2xl shadow-indigo-500/30 flex items-center justify-center z-50 transition-all ${showMobileNav ? 'bottom-[6.5rem]' : 'bottom-6'} md:bottom-8`}
               aria-label="Open AI Learning Assistant"
             >
               <Icon name="psychology" className="text-3xl" />
-            </button>
-            <XPDropAnimation trigger={xpTrigger} />
+            </motion.button>
             <ChatBot isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
           </Suspense>
         )}
+        <XPDropAnimation trigger={xpTrigger} />
+
 
         {/* Mobile Bottom Navigation */}
         {showMobileNav && (
-          <nav className="md:hidden h-20 w-full bg-white dark:bg-surface-dark border-t border-border-light dark:border-border-dark z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] fixed bottom-0 left-0 safe-area-bottom" aria-label="Mobile Navigation">
+          <nav className="md:hidden h-20 w-full glass-card border-t border-white/10 z-50 fixed bottom-0 left-0 safe-area-bottom" aria-label="Mobile Navigation">
             <div className="flex justify-between items-center w-full max-w-md mx-auto px-6 h-full">
               <NavItem
                 icon="home"
@@ -379,14 +387,16 @@ const AppContent: React.FC = () => {
               />
 
               <div className="relative w-16 flex justify-center pointer-events-none">
-                <button
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
                   id="tutorial-new-plan"
                   onClick={() => { triggerHaptic('medium'); navigate('/create-plan'); }}
-                  className="bg-primary hover:bg-primary/90 text-white rounded-full w-14 h-14 flex items-center justify-center shadow-xl shadow-primary/30 transition-transform hover:scale-110 active:scale-95 relative -top-6 pointer-events-auto shrink-0"
+                  className="bg-gradient-to-br from-primary to-secondary text-white rounded-full w-14 h-14 flex items-center justify-center shadow-2xl shadow-primary/40 relative -top-6 pointer-events-auto shrink-0"
                   aria-label="Create New Plan"
                 >
                   <Icon name="add" className="text-3xl" />
-                </button>
+                </motion.button>
               </div>
 
               <NavItem
@@ -422,20 +432,22 @@ interface SidebarItemProps {
 }
 
 const SidebarItem: React.FC<SidebarItemProps> = ({ icon, label, active, onClick, id, ariaLabel, showLabel = true }) => (
-  <button
+  <motion.button
+    whileHover={{ x: 4, backgroundColor: 'rgba(19, 164, 236, 0.1)' }}
+    whileTap={{ scale: 0.98 }}
     id={id}
     onClick={() => { triggerHaptic('light'); onClick(); }}
     aria-label={ariaLabel}
     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
         showLabel ? '' : 'justify-center'
     } ${active
-        ? 'bg-primary/10 text-primary font-bold'
-        : 'text-text-secondary-light dark:text-text-secondary-dark hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-text-primary-light dark:hover:text-text-primary-dark'
+        ? 'bg-primary/20 text-primary font-black shadow-inner shadow-primary/5'
+        : 'text-text-secondary-light dark:text-text-secondary-dark hover:text-text-primary-light dark:hover:text-text-primary-dark'
       }`}
   >
     <Icon name={icon} className={`text-2xl min-w-[24px] ${active ? 'filled' : ''}`} />
-    {showLabel && <span className="text-sm truncate">{label}</span>}
-  </button>
+    {showLabel && <span className="text-sm font-bold truncate">{label}</span>}
+  </motion.button>
 );
 
 interface NavItemProps {
@@ -448,7 +460,8 @@ interface NavItemProps {
 }
 
 const NavItem: React.FC<NavItemProps> = ({ icon, label, active, onClick, id, ariaLabel }) => (
-  <button
+  <motion.button
+    whileTap={{ scale: 0.8 }}
     id={id}
     onClick={() => { triggerHaptic('light'); onClick(); }}
     aria-label={ariaLabel}
@@ -456,8 +469,8 @@ const NavItem: React.FC<NavItemProps> = ({ icon, label, active, onClick, id, ari
       }`}
   >
     <Icon name={icon} className={`text-2xl ${active ? 'filled' : ''}`} />
-    <span className="text-[10px] font-bold tracking-tight">{label}</span>
-  </button>
+    <span className="text-[10px] font-black tracking-tight uppercase">{label}</span>
+  </motion.button>
 );
 
 const HelpPromptOverlay: React.FC = () => {

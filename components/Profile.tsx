@@ -5,6 +5,7 @@ import { useData } from '../contexts/DataContext';
 import { useToast } from '../contexts/ToastContext';
 import { useTutorial } from '../contexts/TutorialContext';
 import { User } from '../types';
+import { friendService, FriendRequest } from '../services/friendService';
 
 const GRADIENT_THEMES = [
   { id: 'theme-1', name: 'Blue Purple', className: 'bg-gradient-to-r from-blue-500 to-purple-600' },
@@ -34,6 +35,13 @@ const Profile: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [isFlipped, setIsFlipped] = useState(false);
+  const [friends, setFriends] = useState<any[]>([]);
+  const [pendingRequests, setPendingRequests] = useState<FriendRequest[]>([]);
+  const [friendUsername, setFriendUsername] = useState('');
+  const [isAddingFriend, setIsAddingFriend] = useState(false);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     startTutorial('profile');
@@ -55,6 +63,73 @@ const Profile: React.FC = () => {
       });
     }
   }, [user]);
+
+  useEffect(() => {
+    if (user) {
+      loadFriends();
+      const subscription = friendService.subscribeToFriendships(user.id, () => {
+        loadFriends();
+      });
+      return () => {
+        subscription.unsubscribe();
+      };
+    }
+  }, [user]);
+
+  const loadFriends = async () => {
+    if (!user) return;
+    try {
+      const [friendsList, pending] = await Promise.all([
+        friendService.getFriends(user.id),
+        friendService.getPendingRequests(user.id)
+      ]);
+      setFriends(friendsList);
+      setPendingRequests(pending);
+    } catch (err) {
+      console.error('Failed to load friends:', err);
+    }
+  };
+
+  const handleAddFriend = async (e: React.FormEvent | string) => {
+    if (typeof e !== 'string') e.preventDefault();
+    const targetUsername = typeof e === 'string' ? e : friendUsername;
+    
+    if (!user || !targetUsername) return;
+    setIsAddingFriend(true);
+    try {
+      await friendService.sendFriendRequest(user.id, targetUsername);
+      showToast(`Request sent to ${targetUsername}`, "success");
+      setFriendUsername('');
+      setSearchResults([]);
+    } catch (err: any) {
+      showToast(err.message || "Failed to send request", "error");
+    } finally {
+      setIsAddingFriend(false);
+    }
+  };
+
+  const handleSearchChange = (val: string) => {
+    setFriendUsername(val);
+    
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    
+    if (!val || val.length < 1) {
+      setSearchResults([]);
+      return;
+    }
+
+    setIsSearching(true);
+    searchTimeoutRef.current = setTimeout(async () => {
+      try {
+        const results = await friendService.searchUsers(val, user!.id);
+        setSearchResults(results);
+      } catch (err) {
+        console.error('Search failed:', err);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 400);
+  };
 
   if (!user) return null;
 
@@ -289,7 +364,7 @@ const Profile: React.FC = () => {
                   <div>
                     <p className="text-[8px] text-zinc-600 uppercase tracking-[0.2em] mb-1">Identity Number</p>
                     <p className="font-mono text-sm tracking-widest text-zinc-400 shadow-black drop-shadow-sm">
-                      {user.id.split('-')[0].toUpperCase()} •••• {user.id.slice(-4).toUpperCase()}
+                      {user.username ? user.username.toUpperCase() : user.id.split('-')[0].toUpperCase()}
                     </p>
                   </div>
 
@@ -441,7 +516,144 @@ const Profile: React.FC = () => {
 
         {/* Bottom Section: Settings */}
         <section className="space-y-3">
-          <h3 className="px-1 text-[11px] font-black text-text-secondary-light/60 dark:text-text-secondary-dark/60 uppercase tracking-[0.15em]">Account Settings</h3>
+          <h3 className="px-1 text-[11px] font-black text-text-secondary-light/60 dark:text-text-secondary-dark/60 uppercase tracking-[0.15em]">Community & Settings</h3>
+          
+          {/* Friends Section */}
+          <div className="bg-white dark:bg-surface-dark rounded-3xl p-6 border border-border-light dark:border-border-dark shadow-sm space-y-6">
+            <h3 className="font-bold text-text-primary-light dark:text-text-primary-dark flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary">group</span>
+              Friends Network
+            </h3>
+
+            {/* Add Friend Form */}
+            <div className="relative">
+              <form onSubmit={handleAddFriend} className="flex gap-2">
+                <div className="relative flex-1">
+                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-sm text-text-secondary-light">tag</span>
+                  <input
+                    type="text"
+                    placeholder="Search by ID (e.g. revanth)"
+                    value={friendUsername}
+                    onChange={e => handleSearchChange(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-gray-50 dark:bg-background-dark border border-border-light dark:border-border-dark outline-none text-sm focus:border-primary transition-all"
+                  />
+                  {isSearching && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+                    </div>
+                  )}
+                </div>
+                <button
+                  type="submit"
+                  disabled={isAddingFriend || !friendUsername}
+                  className="px-4 py-2 bg-primary text-white rounded-xl font-bold text-sm disabled:opacity-50 transition-all hover:scale-105"
+                >
+                  {isAddingFriend ? '...' : 'Add'}
+                </button>
+              </form>
+
+              {/* Search Results Dropdown */}
+              {searchResults.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-2xl shadow-2xl z-30 overflow-hidden animate-scale-in origin-top">
+                  {searchResults.map(result => (
+                    <button
+                      key={result.id}
+                      onClick={() => handleAddFriend(result.username)}
+                      className="w-full flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors border-b last:border-0 border-border-light dark:border-border-dark"
+                    >
+                      <div className="flex items-center gap-3 text-left">
+                        <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-white/10 flex items-center justify-center overflow-hidden">
+                          {result.profilePicture ? (
+                            <img src={result.profilePicture} className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="text-xs font-bold text-text-secondary-light">{result.name.charAt(0)}</span>
+                          )}
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-text-primary-light dark:text-text-primary-dark">{result.name}</p>
+                          <p className="text-[10px] text-text-secondary-light">@{result.username}</p>
+                        </div>
+                      </div>
+                      <span className="material-symbols-outlined text-primary text-sm">person_add</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Pending Requests */}
+            {pendingRequests.length > 0 && (
+              <div className="space-y-3">
+                <p className="text-[10px] font-bold text-text-secondary-light uppercase tracking-widest">Pending Requests ({pendingRequests.length})</p>
+                <div className="space-y-2">
+                  {pendingRequests.map(req => (
+                    <div key={req.id} className="flex items-center justify-between p-3 rounded-2xl bg-primary/5 border border-primary/10">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden">
+                          {req.requester?.profilePicture ? (
+                            <img src={req.requester.profilePicture} className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="text-xs font-bold text-primary">{req.requester?.name.charAt(0)}</span>
+                          )}
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-text-primary-light dark:text-text-primary-dark">{req.requester?.name}</p>
+                          <p className="text-[10px] text-text-secondary-light">@{req.requester?.username}</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button onClick={() => friendService.rejectFriendRequest(req.id)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-100 dark:bg-white/5 text-text-secondary-light hover:text-red-500">
+                          <span className="material-symbols-outlined text-sm">close</span>
+                        </button>
+                        <button onClick={() => friendService.acceptFriendRequest(req.id)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-primary text-white hover:scale-110 transition-transform">
+                          <span className="material-symbols-outlined text-sm">check</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Friends List */}
+            <div className="space-y-3">
+              <p className="text-[10px] font-bold text-text-secondary-light uppercase tracking-widest">Your Friends ({friends.length})</p>
+              {friends.length === 0 ? (
+                <p className="text-center py-4 text-xs text-text-secondary-light italic">No friends added yet. Share your ID to get started!</p>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {friends.map(friend => (
+                    <div key={friend.id} className="flex items-center justify-between p-3 rounded-2xl bg-gray-50 dark:bg-white/5 border border-border-light dark:border-border-dark group">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-white/10 flex items-center justify-center overflow-hidden border border-white/10">
+                          {friend.profilePicture ? (
+                            <img src={friend.profilePicture} className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="text-sm font-bold text-text-secondary-light">{friend.name.charAt(0)}</span>
+                          )}
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-text-primary-light dark:text-text-primary-dark">{friend.name}</p>
+                          <p className="text-[10px] text-text-secondary-light">@{friend.username}</p>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => {
+                          if (confirm(`Remove ${friend.name} from friends?`)) {
+                            friendService.removeFriend(friend.friendshipId);
+                          }
+                        }}
+                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-500/0 text-red-500 opacity-0 group-hover:opacity-100 group-hover:bg-red-500/10 transition-all"
+                      >
+                        <span className="material-symbols-outlined text-sm">person_remove</span>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
           <div className="bg-white dark:bg-surface-dark rounded-2xl overflow-hidden border border-border-light dark:border-border-dark shadow-sm">
             <SettingItem icon="settings" label="System Settings" onClick={() => navigate('/settings')} />
             <SettingItem icon="lock" label="Change Password" onClick={() => setShowPasswordModal(true)} />

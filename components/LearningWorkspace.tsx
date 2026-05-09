@@ -1,9 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useData } from '../contexts/DataContext';
+import { progressionService } from '../services/progressionService';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { generateLessonContent } from '../services/gemini/learningWorkspaceService';
+import { safeParseAIResponse } from '../services/utils/aiUtils';
 import { extractTextFromPDF, validatePDFFile } from '../services/documentService';
 import { motion, AnimatePresence } from 'motion/react';
 import {
@@ -22,7 +24,8 @@ import {
   FileUp,
   AlertTriangle,
   Sparkles,
-  Loader2
+  Loader2,
+  Lightbulb
 } from 'lucide-react';
 import { getContentLanguageLabel } from '../services/youtubeService';
 import ReactMarkdown from 'react-markdown';
@@ -179,7 +182,7 @@ const LearningWorkspace: React.FC = () => {
         }
       );
       if (!result) throw new Error("No content generated");
-      const data = JSON.parse(result);
+      const data = safeParseAIResponse<any>(result);
 
       updateTask(task.id, {
         learningObjective: data.learningObjective,
@@ -196,6 +199,10 @@ const LearningWorkspace: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
+  }, [task, plan, contentLanguage, pdfContent, user, lessonMode, updateTask, showToast]);
+
+  const handleGenerateWithPdf = () => {
+    fetchSession();
   };
 
   const handleSkipPdf = (manualTrigger = false) => {
@@ -220,7 +227,7 @@ const LearningWorkspace: React.FC = () => {
     )
       .then(result => {
         if (!result) throw new Error("No content generated");
-        const data = JSON.parse(result);
+        const data = safeParseAIResponse<any>(result);
         updateTask(task!.id, {
           learningObjective: data.learningObjective,
           aiExplanation: data.aiExplanation,
@@ -260,9 +267,17 @@ const LearningWorkspace: React.FC = () => {
     }, 1000);
   };
 
-  const handleMarkComplete = () => {
+  const handleMarkComplete = async () => {
     if (task) {
       updateTask(task.id, { status: 'Completed', completedAt: new Date().toISOString() });
+      if (user) {
+        const { completedMarathons } = await progressionService.handleTaskCompletion(user.id);
+        if (completedMarathons && completedMarathons.length > 0) {
+          completedMarathons.forEach(m => {
+            showToast(`🏆 Marathon Completed: ${m.title}! +${m.xp_reward} XP rewarded`, "success");
+          });
+        }
+      }
       addActivity({
         id: crypto.randomUUID(),
         title: `Completed session: ${task.title}`,
@@ -772,27 +787,71 @@ const LearningWorkspace: React.FC = () => {
 
                 {/* Notes Area */}
                 <div className="space-y-6 pt-8 border-t border-stone-200 dark:border-stone-800">
-                  <div className="bg-white dark:bg-stone-900 p-6 rounded-2xl border border-stone-200 dark:border-stone-800 shadow-sm h-[600px] flex flex-col">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-2 text-stone-500">
-                        <FileText size={18} />
-                        <h2 className="text-xs font-black uppercase tracking-widest">My Notes</h2>
+                    <div className="bg-white dark:bg-stone-900 glass-card noise-overlay p-8 rounded-[2.5rem] border border-stone-200 dark:border-stone-800 shadow-2xl h-[700px] flex flex-col relative group transition-all hover:shadow-primary/5">
+                    <div className="flex items-center justify-between mb-6">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-stone-100 dark:bg-stone-800 flex items-center justify-center text-stone-500">
+                          <FileText size={20} />
+                        </div>
+                        <div>
+                          <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-stone-500">Neural Codex</h2>
+                          <p className="text-xs font-bold">Personal Study Insights</p>
+                        </div>
                       </div>
-                      {isSaving && <Loader2 size={14} className="animate-spin text-primary" />}
+                      <div className="flex items-center gap-3">
+                        <AnimatePresence>
+                          {isSaving && (
+                            <motion.div 
+                              initial={{ opacity: 0, scale: 0.8 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              exit={{ opacity: 0, scale: 0.8 }}
+                              className="flex items-center gap-2 px-3 py-1 bg-primary/10 text-primary rounded-full border border-primary/20"
+                            >
+                              <Loader2 size={12} className="animate-spin" />
+                              <span className="text-[9px] font-black uppercase tracking-widest">Syncing...</span>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                        {!isSaving && (
+                           <motion.div 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="flex items-center gap-1.5 text-emerald-500"
+                           >
+                             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                             <span className="text-[9px] font-black uppercase tracking-widest opacity-60">Secured</span>
+                           </motion.div>
+                        )}
+                      </div>
                     </div>
                     <textarea
                       value={notes}
                       onChange={handleNoteChange}
-                      placeholder="Start typing your thoughts, summaries, or questions here..."
-                      className="flex-1 w-full bg-transparent resize-none outline-none text-base leading-relaxed placeholder-stone-400 dark:placeholder-stone-600 font-serif"
+                      placeholder="Start capturing your insights, mental models, or key takeaways..."
+                      className="flex-1 w-full bg-transparent resize-none outline-none text-lg leading-relaxed placeholder-stone-300 dark:placeholder-stone-700 font-serif selection:bg-primary/20"
                     />
-                    <div className="pt-4 border-t border-stone-100 dark:border-stone-800 flex items-center justify-between">
-                      <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">
-                        {notes.split(/\s+/).filter(Boolean).length} Words
-                      </span>
-                      <div className="flex items-center gap-1 text-[10px] font-bold text-stone-400 uppercase tracking-widest">
-                        <Save size={10} />
-                        Autosaved
+                    <div className="pt-6 border-t border-stone-100 dark:border-stone-800 flex items-center justify-between mt-4">
+                      <div className="flex items-center gap-4">
+                        <div className="flex flex-col">
+                          <span className="text-lg font-black tracking-tighter tabular-nums">
+                            {notes.split(/\s+/).filter(Boolean).length}
+                          </span>
+                          <span className="text-[8px] font-black text-stone-400 uppercase tracking-widest">
+                            Words
+                          </span>
+                        </div>
+                        <div className="w-px h-6 bg-stone-200 dark:bg-stone-800" />
+                        <div className="flex flex-col">
+                          <span className="text-lg font-black tracking-tighter tabular-nums">
+                            {Math.ceil(notes.length / 500) || 1}
+                          </span>
+                          <span className="text-[8px] font-black text-stone-400 uppercase tracking-widest">
+                            Nodes
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 text-[9px] font-black text-stone-400 uppercase tracking-[0.2em] opacity-40">
+                        <Save size={12} /> Quantum Persistence Active
                       </div>
                     </div>
                   </div>

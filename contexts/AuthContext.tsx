@@ -226,9 +226,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
     }
 
+    const generatedUsername = `${name.toLowerCase().replace(/\s+/g, '_')}_${Math.random().toString(36).substring(2, 7)}`;
+
     const newUser: User = {
       id: finalUserId,
       name,
+      username: generatedUsername,
       email,
       preferences: defaultPreferences,
       isVerified: false,

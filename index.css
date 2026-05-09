@@ -10,8 +10,8 @@
    ============================================= */
 @layer base {
   :root {
-    --color-primary: #13a4ec;
-    --color-primary-dark: #0A4D68;
+    --color-primary: #0066FF;
+    --color-primary-dark: #0052CC;
     --color-secondary: #088395;
     --color-bg-light: #f6f7f8;
     --color-bg-dark: #101c22;
@@ -82,27 +82,98 @@
   }
 
   /* =============================================
-     UTILITY: GLASS CARD
+     UTILITY: PREMIUM GLASS CARD
      ============================================= */
   .glass-card {
-    background: rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    background: rgba(255, 255, 255, 0.4);
+    backdrop-filter: blur(24px) saturate(200%);
+    -webkit-backdrop-filter: blur(24px) saturate(200%);
     border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 
+      0 8px 32px 0 rgba(31, 38, 135, 0.07),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.2);
   }
   .dark .glass-card {
-    background: rgba(24, 38, 47, 0.8);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(24, 38, 47, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 
+      0 20px 40px rgba(0, 0, 0, 0.4),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  }
+
+  /* =============================================
+     UTILITY: NEON GLOWS
+     ============================================= */
+  .glow-primary {
+    box-shadow: 0 0 25px rgba(19, 164, 236, 0.3);
+  }
+  .glow-secondary {
+    box-shadow: 0 0 25px rgba(8, 131, 149, 0.3);
+  }
+
+  /* =============================================
+     UTILITY: NOISE TEXTURE OVERLAY
+     ============================================= */
+  .noise-overlay {
+    position: relative;
+    overflow: hidden;
+  }
+  .noise-overlay::before {
+    content: "";
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    opacity: 0.04;
+    pointer-events: none;
+    z-index: 1;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    animation: grain 8s steps(10) infinite;
+  }
+
+  @keyframes grain {
+    0%, 100% { transform:translate(0, 0); }
+    10% { transform:translate(-5%, -10%); }
+    20% { transform:translate(-15%, 5%); }
+    30% { transform:translate(7%, -25%); }
+    40% { transform:translate(-5%, 25%); }
+    50% { transform:translate(-15%, 10%); }
+    60% { transform:translate(15%, 0%); }
+    70% { transform:translate(0%, 15%); }
+    80% { transform:translate(3%, 35%); }
+    90% { transform:translate(-10%, 10%); }
   }
 
   /* =============================================
      UTILITY: GRADIENT TEXT
      ============================================= */
   .gradient-text {
-    background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+    background: linear-gradient(135deg, #13a4ec 0%, #088395 50%, #13a4ec 100%);
+    background-size: 200% auto;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    animation: shine 5s linear infinite;
+  }
+
+  @keyframes shine {
+    to { background-position: 200% center; }
+  }
+
+  .animate-gradient {
+    animation: shine 3s linear infinite;
+  }
+
+  /* =============================================
+     PERSPECTIVE & 3D
+     ============================================= */
+  .perspective-1000 {
+    perspective: 1000px;
+  }
+  .backface-hidden {
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
   }
 }
 

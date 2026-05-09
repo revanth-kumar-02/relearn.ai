@@ -120,6 +120,7 @@ export interface User {
   id: string;
   role?: 'user' | 'admin';
   name: string;
+  username?: string; // Short unique ID/handle
   email: string;
   password?: string;
   profilePicture?: string; // Base64 string or URL
@@ -202,6 +203,40 @@ export interface RoomMember {
   study_minutes_session: number;
 }
 
+export interface Marathon {
+  id: string;
+  title: string;
+  description: string;
+  task_goal: number;
+  xp_reward: number;
+  banner_image?: string;
+  participant_count: number;
+  start_date: string;
+  end_date: string;
+  created_by: string;
+  created_at: string;
+  status: 'upcoming' | 'active' | 'completed' | 'archived';
+}
+
+export interface MarathonParticipant {
+  id: string;
+  marathon_id: string;
+  user_id: string;
+  progress: number;
+  completed: boolean;
+  joined_at: string;
+  completed_at?: string;
+}
+
+export interface XPLog {
+  id: string;
+  user_id: string;
+  source_type: 'marathon' | 'pact' | 'streak' | 'task';
+  source_id?: string;
+  xp_amount: number;
+  created_at: string;
+}
+
 export interface StudyPact {
   id: string;
   creator_id: string;
@@ -209,10 +244,11 @@ export interface StudyPact {
   creator_name: string;
   target_name: string;
   goal_description: string;
+  stakes: string;
   deadline: string;
-  status: 'pending' | 'active' | 'completed' | 'failed';
-  stakes: string; // e.g. "Loser buys coffee"
+  status: 'pending' | 'accepted' | 'rejected' | 'completed' | 'expired';
   created_at: string;
+  completed_at?: string;
 }
 
 export interface PublicChallenge {

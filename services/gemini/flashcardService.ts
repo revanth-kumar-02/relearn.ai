@@ -3,6 +3,7 @@ import { AI_MODELS } from "./config";
 import { getProxyConfiguredGenAI } from "./genai";
 import { sanitizeInput } from "../utils/sanitize";
 import { getAuthHeaders } from "../utils/auth";
+import { safeParseAIResponse } from "../utils/aiUtils";
 
 export interface Flashcard {
   id: string;
@@ -86,7 +87,7 @@ export const generateFlashcards = async (
         text = response.text;
       }
 
-      const parsed = JSON.parse(text.replace(/```json|```/g, '').trim());
+      const parsed = safeParseAIResponse<any>(text);
       return (parsed.flashcards || []).map((f: any) => ({
         ...f,
         id: crypto.randomUUID()

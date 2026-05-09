@@ -103,7 +103,7 @@ const CreatePlan: React.FC = () => {
                 return;
             }
 
-            const immediateCover = `https://image.pollinations.ai/prompt/${encodeURIComponent(planTitle + ' abstract digital art')}?width=1280&height=720&nologo=true`;
+            const immediateCover = `https://pollinations.ai/p/${encodeURIComponent(planTitle + ' abstract digital art')}?width=1280&height=720&nologo=true`;
 
             const newPlan: Plan = {
                 id: planId,

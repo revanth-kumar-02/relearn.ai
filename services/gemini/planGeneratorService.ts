@@ -2,6 +2,7 @@ import { Type } from "@google/genai";
 import { AI_MODELS, isNetworkError, isRetryableError, IS_GROQ_MODEL } from "./config";
 import { getProxyConfiguredGenAI } from "./genai";
 import { sanitizeInput } from "../utils/sanitize";
+import { safeParseAIResponse } from "../utils/aiUtils";
 
 // Schema validation interface for runtime checks
 interface ValidatedPlan {
@@ -173,7 +174,7 @@ Guidance: ~20 words in ${language}.` },
           // A2: Robust JSON extraction (handles markdown backticks)
           const jsonMatch = text.match(/\{[\s\S]*\}/);
           const jsonText = jsonMatch ? jsonMatch[0] : text;
-          const rawData = JSON.parse(jsonText);
+          const rawData = safeParseAIResponse<any>(jsonText);
           const validated = validatePlanStructure(rawData);
           console.log(`Plan generated and validated with model: ${currentModel}`);
           return JSON.stringify(validated);

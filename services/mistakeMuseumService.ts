@@ -5,7 +5,7 @@
  * before each study session. Turns failures into focused review.
  */
 
-import { QuizQuestion } from '../gemini/quizService';
+import { QuizQuestion } from './gemini/quizService';
 
 export interface MistakeEntry {
   id: string;

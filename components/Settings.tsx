@@ -85,29 +85,6 @@ const Settings: React.FC = () => {
               <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark">{user?.email}</p>
           </div>
 
-          {/* Local Storage Status Card (Integrated Sync) */}
-          <div className="bg-white dark:bg-surface-dark rounded-2xl p-5 flex items-center justify-between border border-border-light dark:border-border-dark shadow-sm">
-               <div className="flex items-center gap-4">
-                   <div className="text-[#334155] dark:text-primary">
-                       <span className="material-symbols-outlined text-4xl">storage</span>
-                   </div>
-                   <div>
-                       <p className="font-bold text-text-primary-light dark:text-text-primary-dark">Local Storage</p>
-                       <p className="text-[10px] text-text-secondary-light dark:text-text-secondary-dark font-bold">Offline Resilience Active</p>
-                   </div>
-               </div>
-               <div className="flex items-center gap-4">
-                  <SyncIndicator />
-                  <div className="h-8 w-px bg-border-light dark:bg-border-dark" />
-                  <button 
-                    onClick={handleRefresh} 
-                    className={`text-primary transition-all p-2 rounded-full hover:bg-primary/5 ${isRefreshing ? 'animate-spin' : ''}`}
-                    aria-label="Force sync refresh"
-                  >
-                      <span className="material-symbols-outlined text-3xl">refresh</span>
-                  </button>
-               </div>
-          </div>
 
           {/* AI Tutor Customization */}
           <div className="space-y-3">

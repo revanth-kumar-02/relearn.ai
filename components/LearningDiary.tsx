@@ -59,7 +59,7 @@ const DiaryCard: React.FC<{ plan: Plan }> = ({ plan }) => {
 
     // Generate fallback URL synchronously for render
     const fallbackPrompt = `Super-premium 3D digital art for "${plan.subject || plan.title}" in Nano Banana design system. Bold chunky silhouette, glossy injection-molded plastic finish, soft-radius corners, volumetric isometric view, wax-plastic SSS textures, neon gradients on dark obsidian, studio lighting, Octane render finish, 8k, nologo`;
-    const fallbackImage = `https://image.pollinations.ai/prompt/${encodeURIComponent(fallbackPrompt)}?width=800&height=400&nologo=true`;
+    const fallbackImage = `https://pollinations.ai/p/${encodeURIComponent(fallbackPrompt)}?width=800&height=400&nologo=true`;
 
     return (
         <div

@@ -1,33 +1,63 @@
-# ReLearn.ai — AI-Powered Learning Platform (v7.0)
+# ReLearn.ai — AI-Powered Learning Platform (v8.1)
 
 ReLearn.ai is a premium, AI-native learning platform designed to help users organize their learning journey with personalized study plans, deep analytics, a collaborative study hub, and an intelligent AI tutor.
 
-## What's New in v7.1 (The Global & Stable Update)
-* **Decoupled Language Preferences**: Independent language selection for AI-generated text (lessons, plans, chat) and video resources. Learn in English while watching tutorials in your native language.
-* **Production Stability Fixes**: Resolved Netlify function routing issues ensuring consistent AI service performance in production environments.
-* **Educational Relevance Engine**: Upgraded YouTube query logic to handle general education topics (Social Skills, Psychology, etc.) without tech-bias.
-* **Hybrid AI Engine (Groq + Gemini)**: High-speed plan generation powered by **Groq (Llama 3.3)** for near-instant roadmaps, while retaining **Gemini** for deep contextual tutoring and YouTube optimization.
-* **Premium Image Pipeline (FLUX)**: High-fidelity, consistent cover images generated via the **FLUX model** through Pollinations.
+## What's New in v8.1 (The Live Social Update)
+* **Dynamic Collaboration Hub**: The Collaboration Hub has been completely refactored from a static demo into a production-ready, database-backed social ecosystem.
+* **Real-Time Study Pacts**: Propose accountability contracts to friends instantly using a real-time user search dropdown. Manage pact lifecycle (Pending → Accepted → Completed) with live Supabase subscriptions.
+* **Community Learning Marathons**: Replaced static challenges with a dynamic "Marathons" event system. Admins can create and schedule community events, and users can join to earn XP and special rewards.
+* **Automated Progression Engine**: A new centralized `progressionService` connects your daily task completions in the Learning Workspace directly to your marathon progress, seamlessly rewarding XP automatically.
+* **Admin Marathon Console**: A dedicated management portal inside the System Console for admins to create, track, and curate community events.
+* **Unique User Identity**: Introduced auto-generated, unique `@username` handles during the authentication flow, empowering the new social discovery engine.
 
 ## Core Features
 
-- **AI-Powered Plan Generation** — Near-instant roadmaps generated via Groq (Llama 3.3) with intelligent milestone expansion to avoid repetitive tasks.
+- **AI-Powered Plan Generation** — Near-instant roadmaps generated via Groq (Llama 3.3) with intelligent milestone expansion.
+- **Live Collaboration Hub** — Real-time social learning with StudyPacts and Community Marathons via Supabase Realtime and Row Level Security (RLS).
+- **Mistake Museum** — Turn failures into fuel by cataloging and analyzing learning mistakes.
+- **Deep Gamification System** — Earn XP via tasks, pacts, and marathons. Level up and unlock 30+ unique badges across 4 rarity tiers.
+- **AI-Guided Learning Workspace** — Contextual deep-dives, practice activities, and curated educational resources.
 - **Premium Cover Art** — Beautiful, topic-relevant 3D isometric images for every plan using the FLUX engine.
-- **Collaborative Study Hub** — Real-time social learning with live chat, member presence, and shared focus sessions via Supabase Realtime.
-- **Deep Gamification System** — Earn XP, level up, and unlock 30+ unique badges across 4 rarity tiers.
-- **AI-Guided Learning Workspace** — Contextual deep-dives, practice activities, and curated educational resources for every topic.
 - **Interactive Onboarding** — Smart tutorial guide that helps users master the platform in minutes.
-- **Comprehensive Help Center** — Full shortcut reference, system status tracking, and setup guides.
 
 ## Tech Stack
 
 - **Frontend**: React 19, TypeScript, Tailwind CSS
 - **AI Services**: Groq (Llama 3.3), Google Gemini (Pro & Flash), Pollinations (FLUX)
 - **Backend & Auth**: Supabase (Auth, PostgreSQL DB, Realtime, RLS Policies)
+- **State Management**: React Context + "Self-healing" DataService
 - **Video API**: YouTube Data API v3
-- **Build Tool**: Vite
 - **Animations**: Motion (Framer Motion)
 - **Charts**: Recharts
+
+## Project Structure
+
+```
+Relearn.ai/
+├── components/          # React UI components (45+ components)
+│   ├── CollaborationHub.tsx  # Social learning, Study Pacts, & Marathons
+│   ├── LearningWorkspace.tsx # AI-guided study session & task execution
+│   ├── AdminDashboard.tsx    # God-Mode analytics & system management
+│   ├── admin/                # Modular sub-panels for AdminDashboard
+│   │   ├── MarathonManager.tsx
+│   │   └── ...
+│   ├── ...
+├── contexts/            # React context providers
+│   ├── AuthContext.tsx   # Supabase Auth state & identity management
+│   ├── DataContext.tsx   # Core data & gamification logic
+│   └── ...
+├── services/            # API and external services
+│   ├── studyPactService.ts   # Peer-to-peer accountability logic & real-time sync
+│   ├── marathonService.ts    # Global community event management
+│   ├── xpService.ts          # Centralized XP and level progression logic
+│   ├── progressionService.ts # Automation connecting tasks to social goals
+│   ├── mistakeMuseumService.ts # Error-based learning tracker
+│   ├── dataService.ts   # "Self-healing" storage layer
+│   └── ...
+├── types.ts             # TypeScript type definitions
+├── App.tsx              # Main app routing & layout
+└── ...
+```
 
 ## Getting Started
 
@@ -36,48 +66,16 @@ ReLearn.ai is a premium, AI-native learning platform designed to help users orga
    ```bash
    npm install
    ```
-3. Copy `.env.example` to `.env` and fill in your API keys (Supabase, Gemini, YouTube).
-   ```bash
-   cp .env.example .env
-   ```
+3. Copy `.env.example` to `.env` and fill in your API keys (Supabase, Gemini, YouTube, Groq).
 4. Run the development server:
    ```bash
    npm run dev
    ```
-5. Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-## Project Structure
-
-```
-Relearn.ai/
-├── components/          # React UI components (40+ components)
-│   ├── admin/           # Admin God-Mode features & analytics
-│   ├── common/          # Reusable UI (Command Palette, Icons, etc.)
-│   ├── StudyRooms.tsx   # Real-time social learning hub
-│   ├── Dashboard.tsx    # Main dashboard with task management
-│   ├── LearningWorkspace.tsx  # AI-guided study session
-│   ├── HelpCenter.tsx   # Knowledge base & system status
-│   └── ...
-├── contexts/            # React context providers
-│   ├── AuthContext.tsx   # Supabase Auth state management
-│   ├── DataContext.tsx   # Core data & gamification logic
-│   └── ConnectionContext.tsx # Sync & network stability
-├── services/            # API and external services
-│   ├── supabase.ts      # Supabase configuration
-│   ├── adminService.ts  # Admin dashboard logic & RPC calls
-│   ├── gemini/          # Gemini AI configuration and prompt logic
-│   ├── dataService.ts   # "Self-healing" storage layer
-│   └── ...
-├── types.ts             # TypeScript type definitions
-├── App.tsx              # Main app routing & layout
-└── ...
-```
+5. Open [http://localhost:5173](http://localhost:5173) in your browser.
 
 ## Deployment
 
-Build for production:
+The project is optimized for **Netlify** with built-in Edge Functions for Groq proxying.
 ```bash
 npm run build
 ```
-
-The output is generated in the `dist/` directory, ready for deployment to Vercel, Netlify, or any static hosting provider.

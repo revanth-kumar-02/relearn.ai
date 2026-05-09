@@ -9,6 +9,7 @@ import { AI_MODELS, isRetryableError } from './config';
 import { getProxyConfiguredGenAI } from './genai';
 import { sanitizeInput } from '../utils/sanitize';
 import { getAuthHeaders } from '../utils/auth';
+import { safeParseAIResponse } from '../utils/aiUtils';
 
 export interface CheatSheet {
   title: string;
@@ -71,7 +72,7 @@ Return ONLY valid JSON with this structure:
 
       const text = response.text;
       if (text) {
-        return JSON.parse(text);
+        return safeParseAIResponse(text);
       }
     } catch (error: any) {
       lastError = error;

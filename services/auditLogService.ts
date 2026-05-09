@@ -75,7 +75,7 @@ export async function logAdminAction(
 
     // Try to persist to Supabase
     const { error } = await supabase
-      .from('admin_audit_log')
+      .from('admin_audit_logs')
       .insert({
         admin_id: entry.admin_id,
         admin_email: entry.admin_email,
@@ -100,7 +100,7 @@ export async function logAdminAction(
 }
 
 // Local persistence fallback
-const LS_KEY = 'relearn_admin_audit_log';
+const LS_KEY = 'relearn_admin_audit_logs';
 
 function persistLocally(entry: AuditLogEntry): void {
   try {
@@ -127,7 +127,7 @@ export async function getAuditLog(
 ): Promise<{ data: AuditLogEntry[]; count: number }> {
   try {
     let query = supabase
-      .from('admin_audit_log')
+      .from('admin_audit_logs')
       .select('*', { count: 'exact' })
       .order('created_at', { ascending: false })
       .range((page - 1) * limit, page * limit - 1);
@@ -156,4 +156,36 @@ export async function getAuditLog(
  */
 export function getActionLabel(action: AuditAction): string {
   return ACTION_LABELS[action] || action;
+}
+
+/**
+ * Migrate local logs to Supabase
+ */
+export async function migrateLocalAuditLogs(): Promise<void> {
+  const localLogs = getLocalEntries();
+  if (localLogs.length === 0) return;
+
+  try {
+    const { error } = await supabase
+      .from('admin_audit_logs')
+      .insert(localLogs.map(entry => ({
+        admin_id: entry.admin_id,
+        admin_email: entry.admin_email,
+        action: entry.action,
+        target_type: entry.target_type,
+        target_id: entry.target_id,
+        target_label: entry.target_label,
+        details: entry.details,
+        created_at: entry.created_at,
+      })));
+
+    if (!error) {
+      console.log('[AuditLog] Successfully migrated local logs to Supabase.');
+      localStorage.removeItem(LS_KEY); // Clear local logs once migrated
+    } else {
+      console.warn('[AuditLog] Failed to migrate local logs:', error.message);
+    }
+  } catch (err) {
+    console.error('[AuditLog] Error migrating local logs:', err);
+  }
 }

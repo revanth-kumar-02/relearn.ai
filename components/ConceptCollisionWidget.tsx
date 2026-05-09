@@ -11,7 +11,7 @@ const ConceptCollisionWidget: React.FC = () => {
   const [showAnswer, setShowAnswer] = useState(false);
   const [showHint, setShowHint] = useState(false);
 
-  const userTopics = Array.from(new Set(tasks.filter(t => t.completed).map(t => t.title))).slice(0, 20);
+  const userTopics = Array.from(new Set(tasks.filter(t => t.status === 'Completed').map(t => t.title))).slice(0, 20);
 
   const generateNew = async () => {
     setIsLoading(true);

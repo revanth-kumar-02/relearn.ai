@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'motion/react';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import Icon from './common/Icon';
@@ -21,30 +22,9 @@ const Dashboard: React.FC = () => {
     const [showWelcome, setShowWelcome] = useState(true);
     const [dismissedNudges, setDismissedNudges] = useState<Set<string>>(new Set());
 
-    const marqueeRef = useRef<HTMLDivElement>(null);
-    const [scrollDist, setScrollDist] = useState(0);
-
     const activePlans = useMemo(() => 
         (plans || []).filter(p => p.status === 'active'),
     [plans]);
-
-    useEffect(() => {
-        const calculateScroll = () => {
-            if (marqueeRef.current) {
-                const containerWidth = marqueeRef.current.parentElement?.offsetWidth || 0;
-                const contentWidth = marqueeRef.current.scrollWidth;
-                if (contentWidth > containerWidth) {
-                    setScrollDist(containerWidth - contentWidth);
-                } else {
-                    setScrollDist(0);
-                }
-            }
-        };
-
-        calculateScroll();
-        window.addEventListener('resize', calculateScroll);
-        return () => window.removeEventListener('resize', calculateScroll);
-    }, [activePlans]);
 
     // Smart Study Reminders
     const studyNudges = useMemo(() => {
@@ -52,7 +32,6 @@ const Dashboard: React.FC = () => {
         return generateStudyNudges(plans, tasks, user?.preferences, user?.stats);
     }, [plans, tasks, isLoading, user?.preferences, user?.stats]);
 
-    // Send browser notification on first load
     useEffect(() => {
         if (studyNudges.length > 0) {
             sendSmartReminder(studyNudges);
@@ -66,14 +45,9 @@ const Dashboard: React.FC = () => {
     const [warmUpQuestions, setWarmUpQuestions] = useState<any[]>([]);
     const [mentors, setMentors] = useState<User[]>([]);
 
-    const hasComebackBadge = useMemo(() => 
-        user?.stats?.badges?.includes('comeback_king') || user?.stats?.badges?.includes('comeback_queen'),
-    [user?.stats?.badges]);
-    const comebackBadgeId = user?.stats?.badges?.includes('comeback_queen') ? 'comeback_queen' : 'comeback_king';
-
     useEffect(() => {
         if (user?.id) {
-            setWarmUpQuestions(getWarmUpQuestions(user.id));
+            setWarmUpQuestions(getWarmUpQuestions(3));
         }
     }, [user?.id]);
 
@@ -86,29 +60,6 @@ const Dashboard: React.FC = () => {
     const activeLearningNudges = useMemo(() => 
         visibleNudges.filter(n => n.type === 'no_progress_today' || n.type === 'streak_at_risk'),
     [visibleNudges]);
-
-    const otherReminders = useMemo(() => 
-        visibleNudges.filter(n => n.type !== 'no_progress_today' && n.type !== 'streak_at_risk'),
-    [visibleNudges]);
-
-    // Move "Other Reminders" (orange/red ones) to the notification area automatically
-    useEffect(() => {
-        if (otherReminders.length > 0) {
-            otherReminders.forEach(nudge => {
-                // Check if we've already created a notification for this specific nudge recently
-                const alreadyNotified = notifications.some(notif => notif.title === nudge.title && notif.message === nudge.message);
-                if (!alreadyNotified) {
-                    addNotification({
-                        type: nudge.type === 'overdue_task' ? 'reminder' : 'system',
-                        title: nudge.title,
-                        message: nudge.message,
-                        time: new Date().toISOString(),
-                        read: false
-                    });
-                }
-            });
-        }
-    }, [otherReminders, notifications, addNotification]);
 
     const currentYear = currentViewDate.getFullYear();
     const currentMonthIdx = currentViewDate.getMonth();
@@ -125,9 +76,9 @@ const Dashboard: React.FC = () => {
 
     const greeting = useMemo(() => {
         const hour = new Date().getHours();
-        if (hour >= 5 && hour < 12) return 'Good morning';
-        if (hour >= 12 && hour < 17) return 'Good afternoon';
-        return 'Good evening';
+        if (hour >= 5 && hour < 12) return 'Good Morning';
+        if (hour >= 12 && hour < 17) return 'Good Afternoon';
+        return 'Good Evening';
     }, []);
 
     const handlePrevMonth = useCallback(() => {
@@ -161,358 +112,214 @@ const Dashboard: React.FC = () => {
 
     if (isLoading) {
         return (
-            <div className="pb-24 md:pb-8 animate-fade-in p-4 space-y-10">
-                <div className="flex justify-between items-center mb-8">
-                   <div className="flex gap-3">
-                       <Skeleton variant="circle" className="h-10 w-10" />
-                       <div className="space-y-1">
-                           <Skeleton variant="text" className="w-24" />
-                           <Skeleton variant="text" className="w-32" />
+            <div className="p-8 space-y-10">
+                <div className="flex justify-between items-center">
+                   <div className="flex gap-4">
+                       <Skeleton variant="circle" className="h-14 w-14" />
+                       <div className="space-y-2">
+                           <Skeleton variant="text" className="w-32 h-6" />
+                           <Skeleton variant="text" className="w-48 h-4" />
                        </div>
                    </div>
-                   <Skeleton variant="circle" className="h-10 w-10" />
+                   <Skeleton variant="circle" className="h-12 w-12" />
                 </div>
-                <section>
-                    <Skeleton variant="text" className="w-32 mb-4" />
-                    <div className="flex gap-4 overflow-hidden">
-                        <PlanCardSkeleton />
-                        <PlanCardSkeleton />
-                    </div>
-                </section>
-                <section>
-                    <Skeleton variant="text" className="w-32 mb-4" />
-                    <Skeleton className="h-[400px] w-full" />
-                </section>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <Skeleton className="h-64 w-full rounded-[2.5rem]" />
+                    <Skeleton className="h-64 w-full rounded-[2.5rem]" />
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="pb-24 md:pb-8 animate-fade-in">
-            <div className="px-4 pt-6 pb-4 bg-background-light dark:bg-background-dark sticky top-0 z-10 md:relative border-b border-border-light/20 dark:border-border-dark/20 md:border-none">
-                <div className="flex justify-between items-center mb-4">
-                    <button 
-                        onClick={() => navigate('/profile')} 
-                        className="flex items-center gap-3 group text-left"
-                        aria-label={`View your profile, ${firstName}`}
-                    >
-                        <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center border-2 border-white dark:border-surface-dark shadow-sm group-hover:border-primary transition-all">
-                            <span className="font-bold text-lg" aria-hidden="true">{firstInitial}</span>
+        <div className="pb-24 pt-8">
+            <div className="max-w-6xl mx-auto px-6 space-y-12">
+                {/* Quantum Header */}
+                <motion.header 
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex justify-between items-end"
+                >
+                    <div className="space-y-1">
+                        <div className="flex items-center gap-2 mb-2">
+                            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse glow-secondary" />
+                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-stone-500">Live Consciousness</span>
                         </div>
-                        <div>
-                            <h2 className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark leading-tight group-hover:text-primary transition-colors">{greeting}, {firstName}</h2>
-                            <p className="text-xs text-text-secondary-light font-medium">Ready to learn something new today?</p>
-                        </div>
-                    </button>
-                    <div className="flex items-center gap-3">
-                        <button 
-                            onClick={() => { /* triggerHaptic('light'); */ navigate('/rooms'); }} 
-                            className="w-10 h-10 flex items-center justify-center rounded-full bg-white dark:bg-surface-dark text-indigo-500 shadow-sm border border-border-light dark:border-border-dark hover:scale-110 active:scale-95 transition-all"
-                            aria-label="Study Rooms Hub"
+                        <h1 className="text-4xl font-black tracking-tighter text-stone-900 dark:text-white">
+                            {greeting}, <span className="text-primary">{firstName}</span>.
+                        </h1>
+                        <p className="text-sm font-bold text-stone-400 max-w-sm leading-relaxed">
+                            Your Knowledge Matrix is ready. Explore {activePlans.length} active learning paths today.
+                        </p>
+                    </div>
+                    
+                    <div className="flex items-center gap-4">
+                        <motion.button 
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => navigate('/notifications')}
+                            className="w-14 h-14 rounded-2xl glass-card noise-overlay flex items-center justify-center text-stone-600 dark:text-stone-300 relative shadow-xl"
                         >
-                            <span className="material-symbols-outlined font-bold">hub</span>
-                        </button>
-                        <button 
-                            onClick={() => navigate('/notifications')} 
-                            className="w-10 h-10 rounded-full bg-surface-light dark:bg-surface-dark flex items-center justify-center text-text-primary-light dark:text-text-primary-dark hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors relative"
-                            aria-label={`${notifications.length} notifications, ${hasUnreadNotifications ? 'new messages available' : 'no new messages'}`}
-                        >
-                            <Icon name="notifications" />
+                            <Icon name="notifications" className="text-2xl" />
                             {hasUnreadNotifications && (
-                                <span className="absolute top-2 right-2.5 w-2 h-2 bg-red-500 rounded-full border border-white dark:border-surface-dark"></span>
+                                <span className="absolute top-4 right-4 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-stone-900 shadow-glow-red" />
                             )}
-                        </button>
+                        </motion.button>
+                        
+                        <motion.button 
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => navigate('/profile')}
+                            className="w-14 h-14 rounded-2xl bg-primary text-white flex items-center justify-center shadow-xl shadow-primary/20 overflow-hidden relative"
+                        >
+                            <div className="absolute inset-0 bg-white/10 noise-overlay" />
+                            <span className="text-xl font-black relative z-10">{firstInitial}</span>
+                        </motion.button>
+                    </div>
+                </motion.header>
+
+                {/* Main Dashboard Grid */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    {/* Primary Focus Area */}
+                    <div className="lg:col-span-2 space-y-8">
+                        {/* Active Plans Spatial Carousel */}
+                        <section>
+                            <div className="flex items-center justify-between mb-6">
+                                <h2 className="text-xs font-black uppercase tracking-[0.2em] text-stone-500">Learning Pathways</h2>
+                                <button onClick={() => navigate('/diary')} className="text-[10px] font-black uppercase text-primary hover:tracking-widest transition-all">Expand View</button>
+                            </div>
+                            
+                            {activePlans.length > 0 ? (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                    {activePlans.slice(0, 4).map((plan, index) => (
+                                        <PlanCard key={plan.id} plan={plan} index={index} navigate={navigate} />
+                                    ))}
+                                </div>
+                            ) : (
+                                <motion.div 
+                                    whileHover={{ y: -4 }}
+                                    onClick={() => navigate('/create-plan')}
+                                    className="glass-card noise-overlay rounded-[2.5rem] p-12 border-dashed border-2 border-stone-200 dark:border-stone-800 flex flex-col items-center text-center cursor-pointer group"
+                                >
+                                    <div className="w-16 h-16 rounded-3xl bg-primary/10 flex items-center justify-center mb-6 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 shadow-lg shadow-primary/5">
+                                        <Icon name="auto_awesome" className="text-3xl text-primary" />
+                                    </div>
+                                    <h3 className="text-xl font-black tracking-tight mb-2">Initiate First Plan</h3>
+                                    <p className="text-sm text-stone-400 font-bold max-w-xs mb-8">Let the AI engine construct a personalized learning trajectory for your goals.</p>
+                                    <div className="px-8 py-3 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-primary/20">Generate Plan</div>
+                                </motion.div>
+                            )}
+                        </section>
+
+                        <ConceptCollisionWidget />
+                    </div>
+
+                    {/* Secondary Context Area */}
+                    <div className="space-y-8">
+                        {/* Mistake Museum Warmup */}
+                        {warmUpQuestions.length > 0 && (
+                            <motion.section 
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                className="glass-card noise-overlay rounded-[2.5rem] p-8 border border-red-500/10 relative overflow-hidden group"
+                            >
+                                <div className="absolute -right-8 -top-8 w-32 h-32 bg-red-500/5 rounded-full blur-3xl" />
+                                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-red-500 mb-4 flex items-center gap-2">
+                                    <Icon name="history_edu" className="text-sm" />
+                                    Cognitive Recalibration
+                                </h3>
+                                <p className="text-sm font-bold text-stone-600 dark:text-stone-300 mb-6 leading-relaxed">
+                                    Your AI Engine detected <span className="text-red-500">{warmUpQuestions.length} anomalies</span> in past sessions. Resolve them now?
+                                </p>
+                                <button 
+                                    onClick={() => navigate('/learning-workspace', { state: { warmUpMode: true } })}
+                                    className="w-full py-4 bg-red-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-red-500/20 hover:scale-[1.02] active:scale-95 transition-all"
+                                >
+                                    Initiate Warmup
+                                </button>
+                            </motion.section>
+                        )}
+
+                        {/* Calendar / Schedule Module */}
+                        <ScheduleSection
+                            currentMonthName={currentMonthName}
+                            currentYear={currentYear}
+                            handlePrevMonth={handlePrevMonth}
+                            handleNextMonth={handleNextMonth}
+                            firstDayOfMonth={firstDayOfMonth}
+                            daysInMonth={daysInMonth}
+                            today={today}
+                            currentMonthIdx={currentMonthIdx}
+                            selectedDay={selectedDay}
+                            setSelectedDay={setSelectedDay}
+                            dayHasEvents={dayHasEvents}
+                            currentEvents={currentEvents}
+                            navigate={navigate}
+                        />
+
+                        {/* Activity Pulse */}
+                        <ActivitySection
+                            recentActivity={recentActivity}
+                            clearAllActivity={clearAllActivity}
+                        />
                     </div>
                 </div>
-            </div>
-
-            <div className="max-w-4xl mx-auto px-4 space-y-10">
-                {hasComebackBadge && (
-                    <div className="bg-gradient-to-r from-amber-400/20 to-orange-500/20 rounded-2xl p-6 border border-amber-400/30 flex items-center gap-4 animate-fade-in relative overflow-hidden">
-                        <div className="absolute top-0 right-0 p-4 opacity-10">
-                            <span className="material-symbols-outlined text-6xl">military_tech</span>
-                        </div>
-                        <div className="text-4xl">
-                            {comebackBadgeId === 'comeback_queen' ? '👸' : '👑'}
-                        </div>
-                        <div>
-                            <h3 className="font-bold text-lg text-amber-800 dark:text-amber-400">Welcome Back, {firstName}!</h3>
-                            <p className="text-sm text-amber-700/80 dark:text-amber-300/80">The {comebackBadgeId === 'comeback_queen' ? 'Queen' : 'King'} has returned. We missed your brilliance! Ready to reclaim your streak?</p>
-                        </div>
-                    </div>
-                )}
-
-                {warmUpQuestions.length > 0 && (
-                    <section aria-labelledby="warmup-heading">
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 id="warmup-heading" className="text-xl font-bold text-text-primary-light dark:text-text-primary-dark">Mistake Museum Warm-up</h3>
-                            <span className="text-xs font-bold px-2 py-1 bg-red-100 text-red-600 rounded-lg uppercase tracking-wider">Targeted Review</span>
-                        </div>
-                        <div className="bg-white dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-2xl p-5 shadow-sm">
-                            <p className="text-sm text-text-secondary-light mb-4">You have {warmUpQuestions.length} pending mistakes to master. Start a quick warm-up session?</p>
-                            <button 
-                                onClick={() => navigate('/learning-workspace', { state: { warmUpMode: true } })}
-                                className="w-full py-3 bg-red-50 text-red-600 dark:bg-red-900/10 dark:text-red-400 rounded-xl font-bold text-sm hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors flex items-center justify-center gap-2"
-                            >
-                                <Icon name="history_edu" />
-                                Review Mistake Museum
-                            </button>
-                        </div>
-                    </section>
-                )}
-
-                {isNewUser && showWelcome && (
-                    <div className="mb-6">
-                        <div className="bg-primary/10 rounded-2xl p-6 flex items-start gap-4 border border-primary/20 relative overflow-hidden">
-                            <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl"></div>
-                            <span className="mt-1"><Icon name="celebration" className="text-primary text-4xl" /></span>
-                            <div className="relative z-10">
-                                <h3 className="font-bold text-primary text-xl">Welcome to your Learning Hub!</h3>
-                                <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark mt-2 leading-relaxed">
-                                    ReLearn.ai helps you structure your learning with AI. Create your first personalized plan to get started on your journey.
-                                </p>
-                                <button
-                                    id="tutorial-new-plan"
-                                    onClick={() => navigate('/create-plan')}
-                                    className="mt-4 px-6 py-2.5 bg-primary text-white font-bold text-sm rounded-xl hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 active:scale-95"
-                                >
-                                    Create Your First Plan
-                                </button>
-                            </div>
-                            <button 
-                                onClick={() => setShowWelcome(false)} 
-                                className="absolute top-4 right-4 p-1 text-primary/50 hover:text-primary transition-colors"
-                                aria-label="Close welcome message"
-                            >
-                                <Icon name="close" className="text-xl" />
-                            </button>
-                        </div>
-                    </div>
-                )}
-
-                {/* Active Learning Prompts (Prioritized) */}
-                {activeLearningNudges.length > 0 && (
-                    <div className="space-y-3">
-                        {activeLearningNudges.map(nudge => (
-                            <div
-                                key={nudge.id}
-                                className={`${nudge.bg} rounded-xl p-4 flex items-start gap-3 border border-black/5 dark:border-white/5 relative group animate-fade-in shadow-sm`}
-                            >
-                                <div className={`w-10 h-10 rounded-full ${nudge.bg} ${nudge.color} flex items-center justify-center shrink-0`}>
-                                    <Icon name={nudge.icon} className="text-xl" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <h4 className={`font-bold text-sm ${nudge.color}`}>{nudge.title}</h4>
-                                    <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark mt-0.5 leading-relaxed">
-                                        {nudge.message}
-                                    </p>
-                                    {nudge.actionLabel && nudge.planId && (
-                                        <button
-                                            onClick={() => navigate('/plan-details', { state: { planId: nudge.planId } })}
-                                            className={`mt-2 text-xs font-bold ${nudge.color} hover:underline`}
-                                        >
-                                            {nudge.actionLabel} →
-                                        </button>
-                                    )}
-                                </div>
-                                <button
-                                    onClick={() => setDismissedNudges(prev => new Set([...prev, nudge.id]))}
-                                    className="p-1 rounded-full opacity-0 group-hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/5 transition-all text-text-secondary-light"
-                                    aria-label="Dismiss reminder"
-                                >
-                                    <Icon name="close" className="text-sm" />
-                                </button>
-                            </div>
-                        ))}
-                    </div>
-                )}
-
-                <section className="overflow-hidden" id="tutorial-active-plans" aria-labelledby="active-plans-heading">
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 id="active-plans-heading" className="text-xl font-bold text-text-primary-light dark:text-text-primary-dark">Active Plans</h3>
-                        <button onClick={() => navigate('/diary')} className="text-sm font-bold text-primary hover:underline" aria-label="View all active and archived plans">View All</button>
-                    </div>
-
-                    {activePlans.length > 0 ? (
-                        <div className="marquee-container w-full overflow-hidden">
-                            <div
-                                ref={marqueeRef}
-                                className={`marquee-content py-4 flex gap-6 items-start ${scrollDist < 0 ? 'animating' : 'justify-start w-full'}`}
-                                style={{ '--scroll-dist': `${scrollDist}px` } as React.CSSProperties}
-                            >
-                                {activePlans.map((plan, index) => (
-                                    <PlanCard key={plan.id} plan={plan} index={index} navigate={navigate} />
-                                ))}
-                            </div>
-                        </div>
-                    ) : (
-                        <button 
-                            onClick={() => navigate('/create-plan')} 
-                            className="w-full flex flex-col items-center justify-center p-12 bg-white dark:bg-stone-900 rounded-2xl border-2 border-dashed border-stone-200 dark:border-stone-800 cursor-pointer hover:border-primary/50 hover:bg-primary/[0.02] transition-all group overflow-hidden relative" 
-                            aria-label="Start a New Journey by creating a new plan"
-                        >
-                            <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                            <div className="h-16 w-16 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-6 group-hover:scale-110 group-hover:rotate-12 transition-all duration-500 shadow-sm border border-primary/5">
-                                <Icon name="auto_awesome" className="text-3xl" />
-                            </div>
-                            <h4 className="font-bold text-text-primary-light dark:text-text-primary-dark text-xl">Start Your Journey</h4>
-                            <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark text-center mt-3 max-w-xs relative z-10 leading-relaxed">
-                                You don't have any active learning plans. Create one now and let AI guide your success.
-                            </p>
-                            <div 
-                                className="mt-8 px-10 py-3.5 bg-primary text-white rounded-xl font-bold text-sm shadow-xl shadow-primary/20 group-hover:shadow-primary/30 group-hover:-translate-y-1 transition-all"
-                            >
-                                Generate New Plan
-                            </div>
-                        </button>
-                    )}
-                </section>
-
-                <ConceptCollisionWidget />
-
-                {mentors.length > 0 && (
-                    <section aria-labelledby="mentors-heading">
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 id="mentors-heading" className="text-xl font-bold text-text-primary-light dark:text-text-primary-dark">Peer Mentor Matching</h3>
-                            <span className="text-[10px] font-black px-2 py-1 bg-primary/10 text-primary rounded-lg uppercase tracking-widest">Recommended for You</span>
-                        </div>
-                        <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar">
-                            {mentors.map(mentor => (
-                                <div 
-                                    key={mentor.id} 
-                                    className="min-w-[240px] p-5 bg-white dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-2xl shadow-sm hover:border-primary/30 transition-all group"
-                                >
-                                    <div className="flex items-center gap-3 mb-4">
-                                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 text-white flex items-center justify-center font-black text-lg shadow-inner">
-                                            {mentor.name.charAt(0)}
-                                        </div>
-                                        <div className="min-w-0">
-                                            <h4 className="font-bold text-sm truncate">{mentor.name}</h4>
-                                            <p className="text-[10px] text-text-secondary-light uppercase tracking-wider">{mentor.academicLevel || 'Expert'}</p>
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="space-y-3">
-                                        <div className="flex flex-wrap gap-1.5">
-                                            {mentor.strongSubjects?.slice(0, 3).map(subject => (
-                                                <span key={subject} className="px-2 py-0.5 bg-gray-50 dark:bg-background-dark border border-border-light dark:border-border-dark rounded-md text-[9px] font-bold text-text-secondary-light">
-                                                    {subject}
-                                                </span>
-                                            ))}
-                                        </div>
-                                        <button 
-                                            onClick={() => navigate('/rooms')}
-                                            className="w-full py-2.5 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary/90 transition-all flex items-center justify-center gap-2"
-                                        >
-                                            <Icon name="chat" className="text-sm" />
-                                            Collaborate
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </section>
-                )}
-
-                <ScheduleSection
-                    currentMonthName={currentMonthName}
-                    currentYear={currentYear}
-                    handlePrevMonth={handlePrevMonth}
-                    handleNextMonth={handleNextMonth}
-                    firstDayOfMonth={firstDayOfMonth}
-                    daysInMonth={daysInMonth}
-                    today={today}
-                    currentMonthIdx={currentMonthIdx}
-                    selectedDay={selectedDay}
-                    setSelectedDay={setSelectedDay}
-                    dayHasEvents={dayHasEvents}
-                    currentEvents={currentEvents}
-                    navigate={navigate}
-                />
-
-                {/* Study Rooms Hub (New Section) */}
-                <section aria-labelledby="rooms-heading">
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 id="rooms-heading" className="text-xl font-bold text-text-primary-light dark:text-text-primary-dark">Study Hub</h3>
-                        <button onClick={() => navigate('/rooms')} className="text-sm font-bold text-primary hover:underline">Explore Rooms</button>
-                    </div>
-                    <div 
-                        onClick={() => navigate('/rooms')}
-                        className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-6 text-white shadow-lg shadow-indigo-200 dark:shadow-none cursor-pointer hover:scale-[1.01] transition-transform relative overflow-hidden group"
-                    >
-                        <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform">
-                            <span className="material-symbols-outlined text-8xl">hub</span>
-                        </div>
-                        <div className="relative z-10">
-
-                            <h4 className="text-lg font-bold">Collaborative Study Rooms</h4>
-                            <p className="text-sm text-white/80 max-w-xs mt-1">Join fellow learners in real-time rooms. Study together, share resources, and stay motivated.</p>
-                            <div className="mt-4 flex items-center gap-2 text-xs font-bold uppercase tracking-widest">
-                                <span>Join Now</span>
-                                <span className="material-symbols-outlined text-sm">arrow_forward</span>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <ActivitySection
-                    recentActivity={recentActivity}
-                    clearAllActivity={clearAllActivity}
-                />
             </div>
         </div>
     );
 };
 
-// --- MEMOIZED SUB-COMPONENTS ---
+// --- PREMIUM SUB-COMPONENTS ---
 
 const PlanCard = React.memo(({ plan, index, navigate }: any) => (
-    <button
-        id={index === 0 ? "tutorial-plan-card" : undefined}
+    <motion.button
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: index * 0.1 }}
         onClick={() => navigate('/plan-details', { state: { planId: plan.id } })}
-        className="w-[280px] md:w-[320px] h-32 text-left bg-surface-light dark:bg-surface-dark rounded-2xl border border-border-light dark:border-border-dark shadow-sm cursor-pointer hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1 hover:scale-[1.02] hover:border-primary/30 transition-all duration-300 ease-in-out overflow-hidden flex shrink-0 group"
-        aria-label={`Learning plan: ${plan.title}. ${Math.round(plan.progress)}% completed.`}
+        className="glass-card noise-overlay rounded-[2.5rem] p-6 text-left border border-white/40 shadow-xl group relative overflow-hidden transition-all hover:shadow-2xl hover:-translate-y-1"
     >
-        <div className="w-28 h-full bg-gray-200 dark:bg-gray-700 relative overflow-hidden shrink-0">
-            <img
-                src={plan.coverImage || `https://image.pollinations.ai/prompt/${encodeURIComponent(plan.title + ' abstract digital art')}?width=640&height=640&nologo=true`}
-                alt=""
-                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-in-out"
-                referrerPolicy="no-referrer"
-                aria-hidden="true"
-                onError={(e) => { (e.target as HTMLImageElement).src = `https://picsum.photos/seed/${plan.id}/640/640`; }}
-            />
-            <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors duration-300"></div>
+        <div className="absolute top-0 right-0 p-6 opacity-0 group-hover:opacity-10 transition-opacity">
+            <Icon name="rocket_launch" className="text-6xl" />
         </div>
-
-        <div className="p-4 flex flex-col flex-1 min-w-0">
-            <h4 className="font-bold text-sm text-text-primary-light dark:text-text-primary-dark truncate mb-1 group-hover:text-primary transition-colors duration-300">{plan.title}</h4>
-            <div className="flex items-center gap-2 mb-auto">
-                <p className="text-[10px] text-text-secondary-light dark:text-text-secondary-dark">{plan.completedDays} / {plan.totalDays} Tasks</p>
-                {plan.difficulty && (
-                    <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider ${plan.difficulty === 'Beginner' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                        plan.difficulty === 'Intermediate' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
-                            'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                        }`}>
-                        {plan.difficulty}
-                    </span>
-                )}
+        
+        <div className="flex items-start gap-4 mb-6">
+            <div className="w-16 h-16 rounded-[1.5rem] overflow-hidden bg-stone-100 dark:bg-stone-800 shadow-inner">
+                <img
+                    src={plan.coverImage || `https://pollinations.ai/p/${encodeURIComponent(plan.title + ' abstract neural art')}?width=400&height=400&nologo=true`}
+                    alt=""
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                    referrerPolicy="no-referrer"
+                    onError={(e) => { (e.target as HTMLImageElement).src = `https://picsum.photos/seed/${plan.id}/400/400`; }}
+                />
             </div>
-
-            <div className="mt-2 space-y-1.5">
-                <div className="flex justify-between text-[10px] font-bold">
-                    <span className="text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-wider">Progress</span>
-                    <span className="text-primary">{Math.round(plan.progress)}%</span>
-                </div>
-                <div className="h-1.5 w-full bg-background-light dark:bg-background-dark rounded-full overflow-hidden border border-black/5 dark:border-white/5">
-                    <div
-                        className="h-full bg-secondary rounded-full transition-all duration-1000 ease-out group-hover:brightness-110"
-                        style={{ width: `${plan.progress}%` }}
-                    ></div>
+            <div className="flex-1 min-w-0">
+                <h4 className="text-lg font-black tracking-tight truncate group-hover:text-primary transition-colors">{plan.title}</h4>
+                <div className="flex items-center gap-2 mt-1">
+                    <span className="text-[9px] font-black uppercase tracking-widest text-stone-400">{plan.difficulty || 'Cognitive'}</span>
+                    <div className="w-1 h-1 rounded-full bg-stone-300" />
+                    <span className="text-[9px] font-black uppercase tracking-widest text-stone-400">{plan.totalDays} Stages</span>
                 </div>
             </div>
         </div>
-    </button>
+
+        <div className="space-y-3">
+            <div className="flex justify-between items-end">
+                <span className="text-[10px] font-black uppercase tracking-widest text-stone-500">Resonance Level</span>
+                <span className="text-xl font-black tracking-tighter tabular-nums">{Math.round(plan.progress)}%</span>
+            </div>
+            <div className="h-3 w-full bg-stone-100 dark:bg-stone-800/50 rounded-full p-0.5 border border-stone-200/50 dark:border-stone-700/50 overflow-hidden">
+                <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${plan.progress}%` }}
+                    className="h-full bg-primary rounded-full relative shadow-glow-primary"
+                    transition={{ duration: 1.5, ease: "circOut" }}
+                >
+                    <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent animate-shimmer" />
+                </motion.div>
+            </div>
+        </div>
+    </motion.button>
 ));
 
 const ScheduleSection = React.memo(({
@@ -521,146 +328,128 @@ const ScheduleSection = React.memo(({
     selectedDay, setSelectedDay, dayHasEvents, currentEvents,
     navigate
 }: any) => {
-    const getPriorityColor = (priority?: 'Low' | 'Medium' | 'High') => {
-        switch (priority) {
-            case 'High': return 'bg-red-500';
-            case 'Medium': return 'bg-amber-500';
-            case 'Low': return 'bg-blue-500';
-            default: return 'bg-gray-300';
-        }
-    };
-
     return (
-        <section aria-labelledby="schedule-heading">
-            <h3 id="schedule-heading" className="text-xl font-bold mb-4 text-text-primary-light dark:text-text-primary-dark">Schedule</h3>
-            <div className="bg-surface-light dark:bg-surface-dark rounded-2xl p-2 sm:p-5 shadow-sm border border-border-light dark:border-border-dark w-full overflow-hidden">
-                <div className="w-full md:max-w-[90%] mx-auto">
-                    <div className="flex justify-between items-center mb-4 px-2">
-                        <span className="font-bold text-text-primary-light dark:text-text-primary-dark" aria-live="polite">{currentMonthName} {currentYear}</span>
-                        <div className="flex gap-2">
-                            <button onClick={handlePrevMonth} className="text-text-secondary-light hover:text-primary p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors" aria-label="Previous Month">
-                                <Icon name="chevron_left" />
-                            </button>
-                            <button onClick={handleNextMonth} className="text-text-secondary-light hover:text-primary p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors" aria-label="Next Month">
-                                <Icon name="chevron_right" />
-                            </button>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-7 gap-1 text-center text-xs mb-4 w-full" role="grid" aria-label="Calendar">
-                        {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => <span key={d} className="text-text-secondary-light font-bold opacity-60 uppercase text-[10px] py-1" role="columnheader">{d}</span>)}
-                        {Array.from({ length: firstDayOfMonth }).map((_, i) => (
-                            <div key={`empty-${i}`} className="aspect-square w-full" role="gridcell"></div>
-                        ))}
-
-                        {Array.from({ length: daysInMonth }).map((_, i) => {
-                            const day = i + 1;
-                            const isToday = day === today.getDate() && currentMonthIdx === today.getMonth() && currentYear === today.getFullYear();
-                            const isSelected = day === selectedDay;
-                            const hasEvent = dayHasEvents(day);
-
-                            return (
-                                <button
-                                    key={i}
-                                    role="gridcell"
-                                    onClick={() => setSelectedDay(day)}
-                                    className="aspect-square w-full flex items-center justify-center relative group"
-                                    aria-label={`${day} ${currentMonthName} ${currentYear}${isToday ? ', Today' : ''}${hasEvent ? ', has tasks' : ''}`}
-                                    aria-selected={isSelected}
-                                >
-                                    <div className={`
-                                        w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-xl text-sm transition-all duration-200
-                                        ${isSelected ? 'bg-primary text-white shadow-lg shadow-primary/30 scale-110 z-10 font-bold' : 
-                                          isToday ? 'bg-primary/10 dark:bg-primary/20 text-primary font-bold ring-1 ring-primary/30 ring-inset' : 
-                                          'text-text-primary-light dark:text-text-primary-dark hover:bg-black/5 dark:hover:bg-white/5'}
-                                        ${!isSelected && hasEvent ? 'font-bold' : ''}
-                                    `}>
-                                        {day}
-                                    </div>
-                                    {hasEvent && !isSelected && (
-                                        <div className="absolute bottom-1.5 w-1 h-1 bg-secondary rounded-full" aria-hidden="true"></div>
-                                    )}
-                                </button>
-                            )
-                        })}
-                    </div>
+        <section className="glass-card noise-overlay rounded-[2.5rem] p-8 shadow-xl">
+            <div className="flex items-center justify-between mb-8">
+                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-stone-500">Timeline</h3>
+                <div className="flex gap-2">
+                    <button onClick={handlePrevMonth} className="w-8 h-8 rounded-full hover:bg-stone-100 dark:hover:bg-stone-800 flex items-center justify-center transition-colors">
+                        <Icon name="chevron_left" className="text-sm" />
+                    </button>
+                    <button onClick={handleNextMonth} className="w-8 h-8 rounded-full hover:bg-stone-100 dark:hover:bg-stone-800 flex items-center justify-center transition-colors">
+                        <Icon name="chevron_right" className="text-sm" />
+                    </button>
                 </div>
+            </div>
 
-                <div className="pt-4 border-t border-border-light dark:border-border-dark min-h-[100px] px-2" aria-live="polite">
-                    <h4 className="text-xs font-bold text-text-secondary-light uppercase tracking-wider mb-3">Tasks for {currentMonthName.slice(0, 3)} {selectedDay}</h4>
+            <div className="text-center mb-6">
+                <p className="text-sm font-black uppercase tracking-widest">{currentMonthName} {currentYear}</p>
+            </div>
 
+            <div className="grid grid-cols-7 gap-1 mb-8">
+                {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
+                    <span key={`${d}-${i}`} className="text-[9px] font-black text-stone-400 text-center py-2">{d}</span>
+                ))}
+                {Array.from({ length: firstDayOfMonth }).map((_, i) => (
+                    <div key={`empty-${i}`} className="aspect-square" />
+                ))}
+                {Array.from({ length: daysInMonth }).map((_, i) => {
+                    const day = i + 1;
+                    const isToday = day === today.getDate() && currentMonthIdx === today.getMonth() && currentYear === today.getFullYear();
+                    const isSelected = day === selectedDay;
+                    const hasEvent = dayHasEvents(day);
+
+                    return (
+                        <button
+                            key={i}
+                            onClick={() => setSelectedDay(day)}
+                            className="aspect-square flex items-center justify-center relative group"
+                        >
+                            <div className={`
+                                w-8 h-8 flex items-center justify-center rounded-xl text-xs transition-all duration-300
+                                ${isSelected ? 'bg-primary text-white shadow-xl shadow-primary/30 scale-110 font-black' : 
+                                  isToday ? 'bg-primary/10 text-primary font-black ring-1 ring-primary/30' : 
+                                  'text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800'}
+                            `}>
+                                {day}
+                            </div>
+                            {hasEvent && !isSelected && (
+                                <div className="absolute bottom-1 w-1 h-1 bg-primary rounded-full glow-primary" />
+                            )}
+                        </button>
+                    )
+                })}
+            </div>
+
+            <div className="space-y-4">
+                <AnimatePresence mode="wait">
                     {currentEvents.length > 0 ? (
-                        <div className="space-y-3">
+                        <motion.div 
+                            key={`events-${selectedDay}`}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="space-y-3"
+                        >
                             {currentEvents.map((event: any) => (
                                 <button 
                                     key={event.id} 
                                     onClick={() => navigate('/edit-task', { state: { taskId: event.id } })} 
-                                    className="w-full text-left flex gap-3 items-center group cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 p-2 rounded-lg -mx-2 transition-colors relative"
-                                    aria-label={`Task: ${event.title}. Status: ${event.status}. Click to edit.`}
+                                    className="w-full text-left p-4 bg-stone-50 dark:bg-stone-800/50 rounded-[1.5rem] flex items-center gap-4 group hover:bg-white dark:hover:bg-stone-800 transition-all border border-transparent hover:border-stone-200 dark:hover:border-stone-700"
                                 >
-                                    <div className={`absolute top-0 left-0 h-full w-1 ${getPriorityColor(event.priority)} rounded-l-lg`} aria-hidden="true"></div>
-                                    <div className={`h-10 w-10 rounded-lg ${event.bgColor || 'bg-primary/10'} flex items-center justify-center overflow-hidden ${event.color || 'text-primary'} shrink-0 ml-2`}>
-                                        <span className="mt-0.5"><Icon name={event.type || 'task'} /></span>
-                                    </div>
+                                    <div className={`w-2 h-8 rounded-full ${event.priority === 'High' ? 'bg-red-500 shadow-glow-red' : 'bg-primary shadow-glow-primary'}`} />
                                     <div className="flex-1 min-w-0">
-                                        <h5 className="font-semibold text-text-primary-light dark:text-text-primary-dark text-sm truncate">{event.title}</h5>
-                                        <p className="text-xs text-text-secondary-light truncate">{event.subtitle || event.description || 'No details'}</p>
+                                        <h5 className="text-sm font-black tracking-tight truncate">{event.title}</h5>
+                                        <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">{event.status}</p>
                                     </div>
-                                    <span className="text-xs font-bold text-text-secondary-light whitespace-nowrap group-hover:text-primary transition-colors">
-                                        {event.status === 'Completed' ? 'Done' : 'Pending'}
-                                    </span>
+                                    <Icon name="chevron_right" className="text-stone-300 group-hover:text-primary transition-colors" />
                                 </button>
                             ))}
-                        </div>
+                        </motion.div>
                     ) : (
-                        <div className="flex flex-col items-center justify-center py-4 text-text-secondary-light">
-                            <Icon name="event_busy" className="text-4xl mb-2 opacity-20" />
-                            <p className="text-sm">No tasks scheduled.</p>
-                            <button className="mt-2 text-primary text-xs font-bold hover:underline" onClick={() => navigate('/add-task')}>+ Add Task</button>
-                        </div>
+                        <motion.div 
+                            key="no-events"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="text-center py-6"
+                        >
+                            <p className="text-[10px] font-black uppercase tracking-widest text-stone-400">Clear Horizon</p>
+                        </motion.div>
                     )}
-                </div>
+                </AnimatePresence>
             </div>
         </section>
     );
 });
 
 const ActivitySection = React.memo(({ recentActivity, clearAllActivity }: any) => (
-    <section aria-labelledby="activity-heading">
-        <div className="flex items-center justify-between mb-4">
-            <h3 id="activity-heading" className="text-xl font-bold text-text-primary-light dark:text-text-primary-dark">Recent Activity</h3>
+    <section className="glass-card noise-overlay rounded-[2.5rem] p-8 shadow-xl">
+        <div className="flex items-center justify-between mb-8">
+            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-stone-500">Neural Log</h3>
             {(recentActivity || []).length > 0 && (
-                <button 
-                    onClick={clearAllActivity} 
-                    className="text-xs font-bold text-primary hover:bg-primary/10 px-3 py-1.5 rounded-lg transition-colors"
-                    aria-label="Clear all activity history"
-                >
-                    Clear All
-                </button>
+                <button onClick={clearAllActivity} className="text-[9px] font-black uppercase tracking-widest text-primary opacity-60 hover:opacity-100 transition-opacity">Purge Log</button>
             )}
         </div>
-        <div className="max-h-[400px] overflow-y-auto no-scrollbar pr-2">
+        
+        <div className="space-y-6">
             {(recentActivity || []).length > 0 ? (
-                <div className="space-y-3">
-                    {recentActivity.map((item: any, idx: number) => (
-                        <div key={idx} className="flex gap-4 items-center p-3 bg-surface-light dark:bg-surface-dark rounded-xl border border-border-light dark:border-border-dark shadow-sm hover:border-primary/20 transition-colors">
-                            <div className={`h-10 w-10 rounded-full ${item.bg} flex items-center justify-center ${item.color} shrink-0 overflow-hidden`}>
-                                <Icon name={item.icon} />
-                            </div>
-                            <div>
-                                <h5 className="font-semibold text-text-primary-light dark:text-text-primary-dark text-sm">{item.title}</h5>
-                                <p className="text-xs text-text-secondary-light">{item.time}</p>
-                            </div>
+                recentActivity.slice(0, 5).map((item: any, idx: number) => (
+                    <div key={idx} className="flex gap-4 items-start">
+                        <div className={`w-10 h-10 rounded-2xl ${item.bg} flex items-center justify-center ${item.color} shadow-lg shrink-0`}>
+                            <Icon name={item.icon} className="text-lg" />
                         </div>
-                    ))}
-                </div>
+                        <div className="flex-1 min-w-0">
+                            <h5 className="text-xs font-black tracking-tight text-stone-800 dark:text-stone-200">{item.title}</h5>
+                            <p className="text-[9px] font-bold text-stone-400 uppercase tracking-widest mt-0.5">{item.time}</p>
+                        </div>
+                    </div>
+                ))
             ) : (
-                <div className="flex flex-col items-center justify-center p-8 bg-surface-light/50 dark:bg-surface-dark/50 rounded-xl border border-border-light dark:border-border-dark">
-                    <Icon name="history" className="text-3xl text-text-secondary-light mb-2 opacity-40" />
-                    <p className="text-sm text-text-secondary-light">No recent activity.</p>
+                <div className="text-center py-8">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 opacity-40">Stasis State</p>
                 </div>
             )}
         </div>
     </section>
 ));
+
 export default Dashboard;

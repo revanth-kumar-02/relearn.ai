@@ -60,8 +60,7 @@ export const BADGES: Badge[] = [
   { id: 'quiz_novice', name: 'Quiz Novice', description: 'Complete your first quiz', icon: '📝', color: 'from-slate-300 to-gray-400', rarity: 'common' },
   
   // Comeback badges
-  { id: 'comeback_king', name: 'Comeback King', description: 'Return after 7+ days away', icon: '👑', color: 'from-amber-400 to-orange-600', rarity: 'rare' },
-  { id: 'comeback_queen', name: 'Comeback Queen', description: 'Return after 7+ days away', icon: '👸', color: 'from-pink-400 to-rose-600', rarity: 'rare' },
+  { id: 'comeback_legend', name: 'Comeback Legend', description: 'Return after 7+ days away', icon: '👑', color: 'from-amber-400 to-orange-600', rarity: 'rare' },
 ];
 
 // ─── Level Calculation ───────────────────────────────────────────────
@@ -219,13 +218,7 @@ export function awardXP(stats: UserStats, amount: number, context?: {
   // Comeback logic
   const daysAbsent = (stats as any)._daysAbsent || 0;
   if (daysAbsent >= 7) {
-    const firstName = context?.userName?.split(' ')[0].toLowerCase() || '';
-    const isQueen = firstName.endsWith('a') || firstName.endsWith('i') || firstName.endsWith('e');
-    if (isQueen) {
-      checkBadge('comeback_queen', true);
-    } else {
-      checkBadge('comeback_king', true);
-    }
+    checkBadge('comeback_legend', true);
   }
 
   updatedStats.badges = Array.from(currentBadges);
