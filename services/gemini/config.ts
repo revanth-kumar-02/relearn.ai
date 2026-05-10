@@ -10,22 +10,22 @@
 
 export const AI_MODELS = {
   /** Primary stable model — fastest Groq production model */
-  PRIMARY: import.meta.env.VITE_LLM_MODEL_PRIMARY || 'llama-3.3-70b-versatile',
+  PRIMARY: import.meta.env.VITE_LLM_MODEL_PRIMARY || 'llama-3-70b-v',
 
   /** Ultra-high efficiency model for lightweight tasks */
   FAST_LITE: 'gemini-1.5-flash',
 
   /** Flagship reasoning model for chat and complex tutoring */
-  CHAT: import.meta.env.VITE_LLM_MODEL_CHAT || 'gemini-1.5-pro',
+  CHAT: import.meta.env.VITE_LLM_MODEL_CHAT || 'gemini-pro',
 
   /** Premium image generation model */
   IMAGE: 'imagen-3.0-generate-001',
 
   /** Ordered fallback chain for peak demand */
   FALLBACK_CHAIN: [
-    'llama-3.3-70b-versatile',
+    import.meta.env.VITE_LLM_MODEL_PRIMARY || 'llama-3-70b-v',
     'gemini-2.0-flash',
-    'gemini-1.5-pro',
+    import.meta.env.VITE_LLM_MODEL_CHAT || 'gemini-pro',
     'gemini-1.5-flash',
   ],
 } as const;
