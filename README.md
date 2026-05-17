@@ -14,10 +14,13 @@ ReLearn.ai is a premium, AI-native learning platform designed to help users orga
 
 - **AI-Powered Plan Generation** — Near-instant roadmaps generated via Groq (Llama 3.3) with intelligent milestone expansion.
 - **Live Collaboration Hub** — Real-time social learning with StudyPacts and Community Marathons via Supabase Realtime and Row Level Security (RLS).
-- **Mistake Museum** — Turn failures into fuel by cataloging and analyzing learning mistakes.
+- **Interactive Quiz Module** — AI-generated multiple-choice assessments that test genuine understanding, complete with detailed explanations.
+- **Mistake Museum & Concept Collision** — Turn failures into fuel by cataloging learning mistakes, and connect distinct ideas for deeper mastery.
 - **Deep Gamification System** — Earn XP via tasks, pacts, and marathons. Level up and unlock 30+ unique badges across 4 rarity tiers.
 - **AI-Guided Learning Workspace** — Contextual deep-dives, practice activities, and curated educational resources.
-- **Premium Cover Art** — Beautiful, topic-relevant 3D isometric images for every plan using the FLUX engine.
+- **Mentor Matching & AI Personas** — Experience personalized learning with specialized AI tutors featuring distinct teaching styles.
+- **Admin Console & Quality Scoring** — God-mode dashboard for system management, featuring automated AI-driven quality analysis of learning plans.
+- **Premium Cover Art & PDF Exports** — Beautiful 3D isometric images generated via FLUX, and the ability to export complete learning plans to PDF.
 - **Interactive Onboarding** — Smart tutorial guide that helps users master the platform in minutes.
 
 ## Tech Stack
