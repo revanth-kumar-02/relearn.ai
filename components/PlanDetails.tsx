@@ -12,6 +12,8 @@ import { progressionService } from '../services/progressionService';
 import SharePlanModal from './SharePlanModal';
 import { useAuth } from '../contexts/AuthContext';
 import { translatePlan } from '../services/gemini/translationService';
+import InvitePeerModal from './InvitePeerModal';
+import { getUserProfile } from '../services/dataService';
 
 const ConfirmationModal: React.FC<{
   title: string;
@@ -67,9 +69,11 @@ const PlanDetails: React.FC = () => {
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showRestartConfirm, setShowRestartConfirm] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
   const [isRegeneratingImage, setIsRegeneratingImage] = useState(false);
   const [isExportingPDF, setIsExportingPDF] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
+  const [teamMemberNames, setTeamMemberNames] = useState<Record<string, string>>({});
 
   // Image preloading with fallback chain
   const [resolvedImage, setResolvedImage] = useState<string>('');
@@ -243,18 +247,19 @@ const PlanDetails: React.FC = () => {
   };
 
   const handleInvitePeer = () => {
+      setShowInviteModal(true);
+  };
+
+  const executeInvite = (identifier: string) => {
       if (!currentPlan) return;
-      const peer = prompt("Enter peer's email or name to invite:");
-      if (peer && peer.trim()) {
-          const currentMembers = currentPlan.teamMembers || [];
-          if (currentMembers.includes(peer.trim())) {
-              showToast("They are already in the team!", "info");
-              return;
-          }
-          const updatedMembers = [...currentMembers, peer.trim()];
-          updatePlan(currentPlan.id, { teamMembers: updatedMembers });
-          showToast(`Invite sent to ${peer.trim()}!`, "success");
+      const currentMembers = currentPlan.teamMembers || [];
+      if (currentMembers.includes(identifier)) {
+          showToast("They are already in the team!", "info");
+          return;
       }
+      const updatedMembers = [...currentMembers, identifier];
+      updatePlan(currentPlan.id, { teamMembers: updatedMembers });
+      showToast(`Invite sent to ${identifier}!`, "success");
   };
 
   const handleExportPDF = async () => {
@@ -273,6 +278,33 @@ const PlanDetails: React.FC = () => {
           setIsExportingPDF(false);
       }
   };
+
+  useEffect(() => {
+    if (currentPlan?.teamMembers) {
+      const fetchNames = async () => {
+        const namesMap: Record<string, string> = {};
+        for (const id of currentPlan.teamMembers) {
+          if (id === user?.id || id === 'me') continue;
+          if (id.includes('@')) {
+            namesMap[id] = id.split('@')[0];
+          } else {
+            try {
+              const profile = await getUserProfile(id);
+              if (profile && profile.name) {
+                namesMap[id] = profile.name;
+              } else {
+                namesMap[id] = id;
+              }
+            } catch (e) {
+              namesMap[id] = id;
+            }
+          }
+        }
+        setTeamMemberNames(namesMap);
+      };
+      fetchNames();
+    }
+  }, [currentPlan?.teamMembers, user?.id]);
 
   if (!currentPlan) {
       return (
@@ -433,20 +465,21 @@ const PlanDetails: React.FC = () => {
                         <p className="text-xs font-black uppercase tracking-widest text-slate-400">Team Progress</p>
                         <div className="space-y-3">
                             {[
-                                { name: user?.name || 'You', progress: progressPercentage, isMe: true },
+                                { name: user?.name || 'You', progress: progressPercentage, isMe: true, rawId: user?.id || 'me' },
                                 ...(currentPlan.teamMembers || []).filter((id: string) => id !== user?.id && id !== 'me').map((id: string) => ({
-                                    name: id.includes('@') ? id.split('@')[0] : id,
+                                    name: teamMemberNames[id] || (id.includes('@') ? id.split('@')[0] : id),
                                     progress: 0,
-                                    isMe: false
+                                    isMe: false,
+                                    rawId: id
                                 }))
                             ].map((member, i) => (
                                 <div key={i} className="flex items-center gap-4">
                                     <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black ${member.isMe ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-600'}`}>
-                                        {member.name.charAt(0)}
+                                        {member.name.charAt(0).toUpperCase()}
                                     </div>
-                                    <div className="flex-1">
+                                    <div className="flex-1 min-w-0">
                                         <div className="flex justify-between items-center mb-1">
-                                            <p className="text-xs font-bold">{member.name}</p>
+                                            <p className="text-xs font-bold truncate pr-2">{member.name}</p>
                                             <p className="text-[10px] font-black text-slate-400">{Math.round(member.progress)}%</p>
                                         </div>
                                         <div className="h-1.5 w-full bg-slate-100 dark:bg-stone-800 rounded-full overflow-hidden">
@@ -463,7 +496,11 @@ const PlanDetails: React.FC = () => {
                         <p className="text-xs font-black uppercase tracking-widest text-slate-400">Recent Activity</p>
                         <div className="space-y-4 overflow-y-auto max-h-[160px] pr-2 no-scrollbar">
                             {((currentPlan.teamMembers || []).length > 1) ? [
-                                { user: (currentPlan.teamMembers || []).filter((id: string) => id !== user?.id && id !== 'me')[0] || 'Peer', action: 'joined the plan', time: 'Just now' },
+                                ...((currentPlan.teamMembers || []).filter((id: string) => id !== user?.id && id !== 'me').map((id: string) => ({
+                                    user: teamMemberNames[id] || (id.includes('@') ? id.split('@')[0] : 'Peer'),
+                                    action: 'joined the plan',
+                                    time: 'Just now'
+                                }))),
                                 { user: 'You', action: 'started the plan', time: '1d ago' }
                             ].map((act, i) => (
                                 <div key={i} className="flex gap-3 text-[11px]">
@@ -695,6 +732,13 @@ const PlanDetails: React.FC = () => {
         onClose={() => setIsShareModalOpen(false)} 
         plan={currentPlan} 
         tasks={planTasks} 
+      />
+
+      <InvitePeerModal
+        isOpen={showInviteModal}
+        onClose={() => setShowInviteModal(false)}
+        plan={currentPlan}
+        onInvite={executeInvite}
       />
     </div>
   );

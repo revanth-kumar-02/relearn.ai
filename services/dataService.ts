@@ -557,5 +557,48 @@ export async function discoverMentors(userId: string, weakSubjects: string[]): P
   } catch { return []; }
 }
 
+export async function searchUsers(query: string): Promise<User[]> {
+  if (!query) return [];
+  
+  const results: User[] = [];
+  const lowerQuery = query.toLowerCase();
+
+  // 1. Search local storage first
+  try {
+    const raw = localStorage.getItem('relearn_users');
+    if (raw) {
+      const localUsers = JSON.parse(raw);
+      Object.values(localUsers).forEach((u: any) => {
+        if (u.name?.toLowerCase().includes(lowerQuery) || u.email?.toLowerCase().includes(lowerQuery)) {
+          results.push(u as User);
+        }
+      });
+    }
+  } catch (e) {}
+
+  // 2. Search Supabase
+  if (canUseSupabase()) {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, name, email, profileSettings')
+        .or(`name.ilike.%${query}%,email.ilike.%${query}%`)
+        .limit(10);
+        
+      if (!error && data) {
+        data.forEach(su => {
+          if (!results.find(ru => ru.id === su.id)) {
+            results.push(su as User);
+          }
+        });
+      }
+    } catch (err) {
+      console.warn('[DataService] Supabase searchUsers failed:', err);
+    }
+  }
+
+  return results.slice(0, 10);
+}
+
 export type { UnsyncedChange, SyncResult };
 export { syncOfflineData };

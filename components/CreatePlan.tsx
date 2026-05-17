@@ -3,10 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { generateLearningPlan } from '../services/gemini/planGeneratorService';
 import { generatePlanCoverImage } from '../services/gemini/imageService';
 import { useData } from '../contexts/DataContext';
+import { searchUsers } from '../services/dataService';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { triggerHaptic } from '../utils/haptics';
-import { Plan, Task } from '../types';
+import { Plan, Task, User } from '../types';
 import Icon from './common/Icon';
 import ActivePlanModal from './common/ActivePlanModal';
 import { getContentLanguageLabel } from '../services/youtubeService';
@@ -28,7 +29,27 @@ const CreatePlan: React.FC = () => {
     const [dailyGoalMins, setDailyGoalMins] = useState(45);
     const [difficulty, setDifficulty] = useState<'Beginner' | 'Intermediate' | 'Advanced'>('Beginner');
     const [isTeamPlan, setIsTeamPlan] = useState(false);
-    const [teamInvites, setTeamInvites] = useState('');
+    const [teamInvites, setTeamInvites] = useState<User[]>([]);
+    const [inviteQuery, setInviteQuery] = useState('');
+    const [searchResults, setSearchResults] = useState<User[]>([]);
+    const [isSearching, setIsSearching] = useState(false);
+
+    useEffect(() => {
+        if (!inviteQuery.trim() || inviteQuery.length < 2) {
+            setSearchResults([]);
+            return;
+        }
+        const timer = setTimeout(async () => {
+            setIsSearching(true);
+            try {
+                const users = await searchUsers(inviteQuery.trim());
+                setSearchResults(users);
+            } catch(e) {} finally {
+                setIsSearching(false);
+            }
+        }, 400);
+        return () => clearTimeout(timer);
+    }, [inviteQuery]);
 
     useEffect(() => {
         // Cleanup on unmount - cancel any pending AI request
@@ -119,7 +140,7 @@ const CreatePlan: React.FC = () => {
                 coverImage: immediateCover,
                 status: 'active',
                 isTeamPlan: isTeamPlan,
-                teamMembers: isTeamPlan ? [user?.id || 'me', ...teamInvites.split(',').map(s => s.trim()).filter(Boolean)] : [],
+                teamMembers: isTeamPlan ? [user?.id || 'me', ...teamInvites.map(u => u.id)] : [],
                 updatedAt: new Date().toISOString()
             };
 
@@ -338,16 +359,61 @@ const CreatePlan: React.FC = () => {
                                     </button>
                                 </div>
                                 {isTeamPlan && (
-                                    <div className="animate-fade-in mt-2">
-                                        <label htmlFor="team-invites" className="text-xs font-bold text-indigo-500 uppercase tracking-widest block mb-2 px-1">Invite Peers</label>
-                                        <input
-                                            id="team-invites"
-                                            type="text"
-                                            value={teamInvites}
-                                            onChange={e => setTeamInvites(e.target.value)}
-                                            placeholder="Enter emails or names, separated by commas"
-                                            className="w-full p-3 rounded-xl bg-white dark:bg-surface-dark border border-indigo-500/30 outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all font-medium text-sm"
-                                        />
+                                    <div className="animate-fade-in mt-2 relative">
+                                        <label className="text-xs font-bold text-indigo-500 uppercase tracking-widest block mb-2 px-1">Invite Peers</label>
+                                        
+                                        <div className="flex flex-wrap gap-2 mb-2">
+                                            {teamInvites.map(u => (
+                                                <div key={u.id} className="bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 animate-scale-in">
+                                                    {u.name}
+                                                    <button onClick={() => setTeamInvites(prev => prev.filter(x => x.id !== u.id))} className="hover:text-indigo-900 dark:hover:text-white transition-colors">
+                                                        <Icon name="close" className="text-[14px]" />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        <div className="relative">
+                                            <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-500/50 text-sm" />
+                                            <input
+                                                type="text"
+                                                value={inviteQuery}
+                                                onChange={e => setInviteQuery(e.target.value)}
+                                                placeholder="Search by name or email..."
+                                                className="w-full pl-9 pr-3 py-3 rounded-xl bg-white dark:bg-surface-dark border border-indigo-500/30 outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all font-medium text-sm"
+                                            />
+                                            {isSearching && (
+                                                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                                    <div className="w-4 h-4 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin"></div>
+                                                </div>
+                                            )}
+                                            
+                                            {searchResults.length > 0 && (
+                                                <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-xl shadow-xl z-50 overflow-hidden max-h-48 overflow-y-auto animate-fade-in">
+                                                    {searchResults.map(u => (
+                                                        <button
+                                                            key={u.id}
+                                                            onClick={() => {
+                                                                if (!teamInvites.find(x => x.id === u.id)) {
+                                                                    setTeamInvites(prev => [...prev, u]);
+                                                                }
+                                                                setInviteQuery('');
+                                                                setSearchResults([]);
+                                                            }}
+                                                            className="w-full text-left px-4 py-3 hover:bg-black/5 dark:hover:bg-white/5 flex items-center gap-3 transition-colors"
+                                                        >
+                                                            <div className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shrink-0">
+                                                                {u.name.charAt(0).toUpperCase()}
+                                                            </div>
+                                                            <div className="overflow-hidden">
+                                                                <p className="font-bold text-sm text-text-primary-light dark:text-text-primary-dark truncate">{u.name}</p>
+                                                                <p className="text-[10px] text-text-secondary-light truncate">{u.email}</p>
+                                                            </div>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 )}
                             </div>

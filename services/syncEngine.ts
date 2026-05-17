@@ -141,6 +141,19 @@ export async function syncOfflineData(): Promise<SyncResult> {
   let failed = 0;
   const failedItems: Array<{ id: string; collection: string; error: string }> = [];
 
+  // Sort retryable to ensure parent records (plans) sync before child records (tasks)
+  const collectionPriority: Record<string, number> = {
+    'users': 1,
+    'plans': 2,
+    'tasks': 3,
+    'activity': 4,
+    'notifications': 5
+  };
+  
+  retryable.sort((a, b) => {
+    return (collectionPriority[a.collection] || 99) - (collectionPriority[b.collection] || 99);
+  });
+
   for (const change of retryable) {
     try {
       // Exponential backoff if we've failed before
@@ -201,6 +214,37 @@ export async function syncOfflineData(): Promise<SyncResult> {
       synced++;
     } catch (err: any) {
       const errorMsg = err?.message || 'Unknown error';
+      
+      // Automatic FK constraint resolution: Re-queue missing parent plan
+      if (errorMsg.includes('foreign key constraint') && change.collection === 'tasks' && change.data?.planId) {
+        try {
+           const localPlans = lsGet('plans', []) as Array<Record<string, unknown>>;
+           const parentPlan = localPlans.find((p: any) => p.id === change.data!.planId);
+           if (parentPlan) {
+              // Re-queue the plan silently
+              addUnsyncedChange({
+                  id: parentPlan.id as string,
+                  collection: 'plans',
+                  type: 'update',
+                  data: parentPlan,
+                  userId: change.userId
+              });
+              
+              // Reset the task's retry count so it silently waits for the plan without showing an error
+              const currentChanges = getUnsyncedChanges();
+              lsSet('unsynced_changes', currentChanges.map(c => 
+                 c.id === change.id ? { ...c, retryCount: 0, permanentlyFailed: false } : c
+              ));
+              continue; // Skip markUnsyncedFailed to hide the error from the UI
+           } else {
+              // If the plan doesn't even exist locally, this task is permanently orphaned.
+              // Silently delete the unsynced task to stop it from failing forever.
+              removeUnsyncedChange(change.id, change.collection);
+              continue; // Skip markUnsyncedFailed
+           }
+        } catch { /* ignore recovery errors */ }
+      }
+
       markUnsyncedFailed(change.id, change.collection, errorMsg);
       failed++;
       failedItems.push({ id: change.id, collection: change.collection, error: errorMsg });
