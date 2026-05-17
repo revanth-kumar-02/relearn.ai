@@ -124,8 +124,8 @@ const Dashboard: React.FC = () => {
                    <Skeleton variant="circle" className="h-12 w-12" />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <Skeleton className="h-64 w-full rounded-[2.5rem]" />
-                    <Skeleton className="h-64 w-full rounded-[2.5rem]" />
+                    <Skeleton className="h-64 w-full rounded-2xl" />
+                    <Skeleton className="h-64 w-full rounded-2xl" />
                 </div>
             </div>
         );
@@ -199,7 +199,7 @@ const Dashboard: React.FC = () => {
                                 <motion.div 
                                     whileHover={{ y: -4 }}
                                     onClick={() => navigate('/create-plan')}
-                                    className="glass-card noise-overlay rounded-[2.5rem] p-12 border-dashed border-2 border-stone-200 dark:border-stone-800 flex flex-col items-center text-center cursor-pointer group"
+                                    className="glass-card noise-overlay rounded-2xl p-12 border-dashed border-2 border-stone-200 dark:border-stone-800 flex flex-col items-center text-center cursor-pointer group"
                                 >
                                     <div className="w-16 h-16 rounded-3xl bg-primary/10 flex items-center justify-center mb-6 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 shadow-lg shadow-primary/5">
                                         <Icon name="auto_awesome" className="text-3xl text-primary" />
@@ -221,7 +221,7 @@ const Dashboard: React.FC = () => {
                             <motion.section 
                                 initial={{ opacity: 0, x: 20 }}
                                 animate={{ opacity: 1, x: 0 }}
-                                className="glass-card noise-overlay rounded-[2.5rem] p-8 border border-red-500/10 relative overflow-hidden group"
+                                className="glass-card noise-overlay rounded-2xl p-8 border border-red-500/10 relative overflow-hidden group"
                             >
                                 <div className="absolute -right-8 -top-8 w-32 h-32 bg-red-500/5 rounded-full blur-3xl" />
                                 <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-red-500 mb-4 flex items-center gap-2">
@@ -277,7 +277,7 @@ const PlanCard = React.memo(({ plan, index, navigate }: any) => (
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: index * 0.1 }}
         onClick={() => navigate('/plan-details', { state: { planId: plan.id } })}
-        className="glass-card noise-overlay rounded-[2.5rem] p-6 text-left border border-white/40 shadow-xl group relative overflow-hidden transition-all hover:shadow-2xl hover:-translate-y-1"
+        className="glass-card noise-overlay rounded-2xl p-6 text-left border border-white/40 shadow-xl group relative overflow-hidden transition-all hover:shadow-2xl hover:-translate-y-1"
     >
         <div className="absolute top-0 right-0 p-6 opacity-0 group-hover:opacity-10 transition-opacity">
             <Icon name="rocket_launch" className="text-6xl" />
@@ -329,7 +329,7 @@ const ScheduleSection = React.memo(({
     navigate
 }: any) => {
     return (
-        <section className="glass-card noise-overlay rounded-[2.5rem] p-8 shadow-xl">
+        <section className="glass-card noise-overlay rounded-2xl p-8 shadow-xl">
             <div className="flex items-center justify-between mb-8">
                 <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-stone-500">Timeline</h3>
                 <div className="flex gap-2">
@@ -422,7 +422,7 @@ const ScheduleSection = React.memo(({
 });
 
 const ActivitySection = React.memo(({ recentActivity, clearAllActivity }: any) => (
-    <section className="glass-card noise-overlay rounded-[2.5rem] p-8 shadow-xl">
+    <section className="glass-card noise-overlay rounded-2xl p-8 shadow-xl">
         <div className="flex items-center justify-between mb-8">
             <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-stone-500">Neural Log</h3>
             {(recentActivity || []).length > 0 && (

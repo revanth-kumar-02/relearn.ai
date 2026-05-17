@@ -239,11 +239,11 @@ const Profile: React.FC = () => {
 
       <div className="max-w-4xl mx-auto p-4 md:p-8 space-y-8">
         {/* Luxury Identity Flip Card */}
-        <div id="tutorial-profile-header" className="relative w-full max-w-[500px] mx-auto aspect-[1.586/1] [perspective:1000px] group cursor-pointer" onClick={() => setIsFlipped(!isFlipped)}>
+        <div id="tutorial-profile-header" className="relative w-full max-w-[500px] mx-auto aspect-[1.3/1] sm:aspect-[1.586/1] [perspective:1000px] group cursor-pointer" onClick={() => setIsFlipped(!isFlipped)}>
           <div className={`relative w-full h-full transition-all duration-700 ease-[cubic-bezier(0.4,0,0.2,1)] [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateY(180deg)]' : ''}`}>
 
             {/* FRONT SIDE */}
-            <div className="absolute inset-0 w-full h-full rounded-2xl bg-[#0f0f12] bg-gradient-to-br from-[#1a1a1e] to-[#050507] p-6 shadow-2xl border border-[#ffffff05] flex flex-col items-center justify-center text-center overflow-hidden [backface-visibility:hidden]">
+            <div className="absolute inset-0 w-full h-full rounded-2xl bg-[#0f0f12] bg-gradient-to-br from-[#1a1a1e] to-[#050507] p-4 sm:p-6 shadow-2xl border border-[#ffffff05] flex flex-col items-center justify-center text-center overflow-hidden [backface-visibility:hidden]">
               {/* Subtle Texture */}
               <div className="absolute inset-0 opacity-5 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white via-transparent to-transparent"></div>
 
@@ -264,7 +264,7 @@ const Profile: React.FC = () => {
                   accept="image/*" 
                   className="hidden" 
                 />
-                <div className={`w-20 h-20 rounded-full p-[2px] bg-gradient-to-b from-[#D4AF37] to-[#8A6E2F] shadow-lg shadow-black/50 ${isEditing ? 'cursor-pointer hover:scale-105 transition-transform' : ''}`}>
+                <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full p-[2px] bg-gradient-to-b from-[#D4AF37] to-[#8A6E2F] shadow-lg shadow-black/50 ${isEditing ? 'cursor-pointer hover:scale-105 transition-transform' : ''}`}>
                   <div className="w-full h-full rounded-full bg-[#0f0f12] border-2 border-[#0f0f12] flex items-center justify-center overflow-hidden">
                     {formData.profilePicture ? (
                       <img 
@@ -303,7 +303,7 @@ const Profile: React.FC = () => {
               </div>
 
               {/* Metadata */}
-              <div className="mt-6 flex items-center justify-center gap-4 text-[10px] tracking-widest text-zinc-400">
+              <div className="mt-3 sm:mt-6 flex items-center justify-center gap-2 sm:gap-4 text-[8px] sm:text-[10px] tracking-widest text-zinc-400">
                 <div className="flex items-center gap-1.5">
                   <span className="w-1 h-1 rounded-full bg-[#D4AF37]"></span>
                   <span>SINCE {user.createdAt ? new Date(user.createdAt).getFullYear() : '2025'}</span>
@@ -318,9 +318,9 @@ const Profile: React.FC = () => {
             {/* BACK SIDE */}
             <div className="absolute inset-0 w-full h-full rounded-2xl bg-[#0f0f12] bg-gradient-to-bl from-[#1a1a1e] to-[#050507] shadow-2xl border border-[#ffffff05] overflow-hidden [backface-visibility:hidden] [transform:rotateY(180deg)]">
               {/* Magnetic Strip */}
-              <div className="absolute top-6 left-0 w-full h-10 bg-[#050505] border-y border-[#ffffff05]"></div>
+              <div className="absolute top-4 sm:top-6 left-0 w-full h-8 sm:h-10 bg-[#050505] border-y border-[#ffffff05]"></div>
 
-              <div className="relative h-full flex flex-col p-6 pt-24 justify-between">
+              <div className="relative h-full flex flex-col p-4 sm:p-6 pt-16 sm:pt-24 justify-between">
 
                 <div className="flex justify-between items-start">
                   {/* Premium Smart Chip */}
