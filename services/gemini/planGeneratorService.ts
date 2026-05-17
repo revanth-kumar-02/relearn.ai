@@ -139,9 +139,7 @@ Guidance: ~20 words in ${language}.` },
               { role: 'user', content: `Generate a ${days}-day learning plan for: ${sanitizeInput(goal)}. Difficulty: ${difficulty}. ${userContext ? `Context: ${sanitizeInput(userContext)}` : ''}` }
             ],
             response_format: { type: "json_object" },
-            temperature: 0.9,
-            frequency_penalty: 1.0,
-            presence_penalty: 0.5
+            temperature: 0.7
           })
         });
 

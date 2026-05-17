@@ -11,6 +11,7 @@ import { triggerHaptic } from '../utils/haptics';
 import { progressionService } from '../services/progressionService';
 import SharePlanModal from './SharePlanModal';
 import { useAuth } from '../contexts/AuthContext';
+import { translatePlan } from '../services/gemini/translationService';
 
 const ConfirmationModal: React.FC<{
   title: string;
@@ -39,7 +40,7 @@ const ConfirmationModal: React.FC<{
 const PlanDetails: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { plans, tasks, updateTask, updateTasksBatch, updatePlan, deletePlan, addTask } = useData();
+  const { plans, tasks, updateTask, updateTasksBatch, updatePlan, deletePlan, addTask, contentLanguage } = useData();
   const { showToast } = useToast();
   const { user } = useAuth();
   
@@ -68,6 +69,7 @@ const PlanDetails: React.FC = () => {
   const [showRestartConfirm, setShowRestartConfirm] = useState(false);
   const [isRegeneratingImage, setIsRegeneratingImage] = useState(false);
   const [isExportingPDF, setIsExportingPDF] = useState(false);
+  const [isTranslating, setIsTranslating] = useState(false);
 
   // Image preloading with fallback chain
   const [resolvedImage, setResolvedImage] = useState<string>('');
@@ -191,6 +193,34 @@ const PlanDetails: React.FC = () => {
       }
   };
 
+  const handleTranslate = async () => {
+      if (!currentPlan) return;
+      setIsTranslating(true);
+      try {
+          const result = await translatePlan(currentPlan, planTasks, contentLanguage);
+          
+          await updatePlan(currentPlan.id, { 
+              title: result.title, 
+              description: result.description 
+          });
+
+          const batchUpdates = result.tasks.map(t => ({
+              id: t.id,
+              updates: { title: t.title, description: t.description }
+          }));
+          await updateTasksBatch(currentPlan.id, batchUpdates);
+          
+          showToast(`Plan translated to ${contentLanguage}!`, "success");
+          triggerHaptic('success');
+      } catch (e) {
+          console.error(e);
+          showToast("Failed to translate plan", "error");
+      } finally {
+          setIsTranslating(false);
+          setShowMenu(false);
+      }
+  };
+
   const handleShare = async () => {
       setIsShareModalOpen(true);
       triggerHaptic('light');
@@ -209,6 +239,21 @@ const PlanDetails: React.FC = () => {
           updatePlan(currentPlan.id, { status: 'cancelled' });
           showToast("Plan has been cancelled", "info");
           navigate('/dashboard');
+      }
+  };
+
+  const handleInvitePeer = () => {
+      if (!currentPlan) return;
+      const peer = prompt("Enter peer's email or name to invite:");
+      if (peer && peer.trim()) {
+          const currentMembers = currentPlan.teamMembers || [];
+          if (currentMembers.includes(peer.trim())) {
+              showToast("They are already in the team!", "info");
+              return;
+          }
+          const updatedMembers = [...currentMembers, peer.trim()];
+          updatePlan(currentPlan.id, { teamMembers: updatedMembers });
+          showToast(`Invite sent to ${peer.trim()}!`, "success");
       }
   };
 
@@ -257,6 +302,14 @@ const PlanDetails: React.FC = () => {
                 <>
                     <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)}></div>
                     <div className="absolute right-0 top-full mt-2 w-56 bg-surface-light dark:bg-surface-dark rounded-xl shadow-xl border border-border-light dark:border-border-dark py-1 z-50 overflow-hidden animate-scale-in origin-top-right">
+                        <button 
+                            onClick={handleTranslate}
+                            disabled={isTranslating}
+                            className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-gray-100 dark:hover:bg-gray-800 text-text-primary-light dark:text-text-primary-dark transition-colors"
+                        >
+                            <Icon name="translate" className={isTranslating ? 'animate-pulse text-primary' : ''} />
+                            {isTranslating ? 'Translating...' : `Translate to ${contentLanguage}`}
+                        </button>
                         <button 
                             onClick={handleRegenerateImage}
                             disabled={isRegeneratingImage}
@@ -371,7 +424,7 @@ const PlanDetails: React.FC = () => {
                             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Collective Mastery</p>
                         </div>
                     </div>
-                    <button className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-indigo-600/20">Invite Peer</button>
+                    <button onClick={handleInvitePeer} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 transition-colors text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-indigo-600/20 active:scale-95">Invite Peer</button>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -381,8 +434,11 @@ const PlanDetails: React.FC = () => {
                         <div className="space-y-3">
                             {[
                                 { name: user?.name || 'You', progress: progressPercentage, isMe: true },
-                                { name: 'Alex M.', progress: 45, isMe: false },
-                                { name: 'Jordan K.', progress: 12, isMe: false }
+                                ...(currentPlan.teamMembers || []).filter((id: string) => id !== user?.id && id !== 'me').map((id: string) => ({
+                                    name: id.includes('@') ? id.split('@')[0] : id,
+                                    progress: 0,
+                                    isMe: false
+                                }))
                             ].map((member, i) => (
                                 <div key={i} className="flex items-center gap-4">
                                     <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black ${member.isMe ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-600'}`}>
@@ -406,18 +462,19 @@ const PlanDetails: React.FC = () => {
                     <div className="space-y-4">
                         <p className="text-xs font-black uppercase tracking-widest text-slate-400">Recent Activity</p>
                         <div className="space-y-4 overflow-y-auto max-h-[160px] pr-2 no-scrollbar">
-                            {[
-                                { user: 'Alex M.', action: 'completed Day 4', time: '2h ago' },
-                                { user: 'Jordan K.', action: 'started the plan', time: '5h ago' },
-                                { user: 'You', action: 'completed Day 3', time: '1d ago' }
+                            {((currentPlan.teamMembers || []).length > 1) ? [
+                                { user: (currentPlan.teamMembers || []).filter((id: string) => id !== user?.id && id !== 'me')[0] || 'Peer', action: 'joined the plan', time: 'Just now' },
+                                { user: 'You', action: 'started the plan', time: '1d ago' }
                             ].map((act, i) => (
                                 <div key={i} className="flex gap-3 text-[11px]">
                                     <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 mt-1" />
                                     <p className="text-slate-600 dark:text-stone-400">
-                                        <span className="font-black text-slate-900 dark:text-white">{act.user}</span> {act.action} · <span className="opacity-60">{act.time}</span>
+                                        <span className="font-black text-slate-900 dark:text-white">{act.user}</span> {act.action} <span className="opacity-60">· {act.time}</span>
                                     </p>
                                 </div>
-                            ))}
+                            )) : (
+                                <div className="text-xs text-slate-500 italic">No recent peer activity yet. Invite some peers!</div>
+                            )}
                         </div>
                     </div>
                 </div>

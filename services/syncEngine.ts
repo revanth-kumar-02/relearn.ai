@@ -183,7 +183,7 @@ export async function syncOfflineData(): Promise<SyncResult> {
 
       switch (change.type) {
         case 'create':
-          const { error: insErr } = await supabase.from(change.collection).upsert(payload);
+          const { error: insErr } = await supabase.from(change.collection).upsert(payload, { onConflict: 'id' });
           error = insErr;
           break;
         case 'update':

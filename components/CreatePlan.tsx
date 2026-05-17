@@ -28,6 +28,7 @@ const CreatePlan: React.FC = () => {
     const [dailyGoalMins, setDailyGoalMins] = useState(45);
     const [difficulty, setDifficulty] = useState<'Beginner' | 'Intermediate' | 'Advanced'>('Beginner');
     const [isTeamPlan, setIsTeamPlan] = useState(false);
+    const [teamInvites, setTeamInvites] = useState('');
 
     useEffect(() => {
         // Cleanup on unmount - cancel any pending AI request
@@ -118,7 +119,7 @@ const CreatePlan: React.FC = () => {
                 coverImage: immediateCover,
                 status: 'active',
                 isTeamPlan: isTeamPlan,
-                teamMembers: isTeamPlan ? [user?.id!] : [],
+                teamMembers: isTeamPlan ? [user?.id || 'me', ...teamInvites.split(',').map(s => s.trim()).filter(Boolean)] : [],
                 updatedAt: new Date().toISOString()
             };
 
@@ -318,22 +319,37 @@ const CreatePlan: React.FC = () => {
                                 </div>
                             </div>
 
-                            <div className="flex items-center justify-between p-4 bg-indigo-500/5 rounded-xl border border-indigo-500/10">
-                                <div className="flex items-center gap-3">
-                                    <div className="h-10 w-10 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center">
-                                        <Icon name="groups" />
+                            <div className="flex flex-col gap-3 p-4 bg-indigo-500/5 rounded-xl border border-indigo-500/10">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="h-10 w-10 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center">
+                                            <Icon name="groups" />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-bold text-text-primary-light dark:text-text-primary-dark">Team Plan</p>
+                                            <p className="text-[10px] text-text-secondary-light uppercase tracking-tight font-black">Enable collaborative learning</p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <p className="text-sm font-bold text-text-primary-light dark:text-text-primary-dark">Team Plan</p>
-                                        <p className="text-[10px] text-text-secondary-light uppercase tracking-tight font-black">Enable collaborative learning</p>
-                                    </div>
+                                    <button 
+                                        onClick={() => { setIsTeamPlan(!isTeamPlan); triggerHaptic('light'); }}
+                                        className={`w-12 h-6 rounded-full relative transition-all ${isTeamPlan ? 'bg-indigo-600' : 'bg-gray-300'}`}
+                                    >
+                                        <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${isTeamPlan ? 'left-7' : 'left-1'}`} />
+                                    </button>
                                 </div>
-                                <button 
-                                    onClick={() => { setIsTeamPlan(!isTeamPlan); triggerHaptic('light'); }}
-                                    className={`w-12 h-6 rounded-full relative transition-all ${isTeamPlan ? 'bg-indigo-600' : 'bg-gray-300'}`}
-                                >
-                                    <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${isTeamPlan ? 'left-7' : 'left-1'}`} />
-                                </button>
+                                {isTeamPlan && (
+                                    <div className="animate-fade-in mt-2">
+                                        <label htmlFor="team-invites" className="text-xs font-bold text-indigo-500 uppercase tracking-widest block mb-2 px-1">Invite Peers</label>
+                                        <input
+                                            id="team-invites"
+                                            type="text"
+                                            value={teamInvites}
+                                            onChange={e => setTeamInvites(e.target.value)}
+                                            placeholder="Enter emails or names, separated by commas"
+                                            className="w-full p-3 rounded-xl bg-white dark:bg-surface-dark border border-indigo-500/30 outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all font-medium text-sm"
+                                        />
+                                    </div>
+                                )}
                             </div>
                         </div>
 
