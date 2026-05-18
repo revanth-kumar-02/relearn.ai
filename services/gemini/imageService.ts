@@ -2,6 +2,7 @@ import { AI_MODELS } from "./config";
 import { createFallbackSVG } from "../utils/createFallbackImage";
 import { getProxyConfiguredGenAI } from "./genai";
 import { sanitizeInput } from "../utils/sanitize";
+import { getAuthHeaders } from "../utils/auth";
 
 /**
  * ─── SECTION 1: NANO BANANA INTEGRATION ────────────────────────────
@@ -83,7 +84,10 @@ const generateWithOpenAI = async (topic: string, signal?: AbortSignal): Promise<
 
     const response = await fetch('/api/openai/v1/images/generations', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        ...getAuthHeaders()
+      },
       signal: signal,
       body: JSON.stringify({
         model: "dall-e-3",

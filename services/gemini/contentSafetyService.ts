@@ -2,6 +2,7 @@ import { Type } from "@google/genai";
 import { getProxyConfiguredGenAI } from "./genai";
 import { AI_MODELS } from "./config";
 import { sanitizeInput } from "../utils/sanitize";
+import { getAuthHeaders } from "../utils/auth";
 
 export interface SafetyValidationResult {
   isSafe: boolean;
@@ -75,7 +76,10 @@ export const validateTopicSafety = async (
           // Groq Integration
           const response = await fetch('/api/groq/chat/completions', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+              'Content-Type': 'application/json',
+              ...getAuthHeaders()
+            },
             body: JSON.stringify({
               model: currentModel,
               messages: [

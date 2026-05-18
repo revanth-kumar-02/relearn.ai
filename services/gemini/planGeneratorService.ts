@@ -3,6 +3,7 @@ import { AI_MODELS, isNetworkError, isRetryableError, IS_GROQ_MODEL } from "./co
 import { getProxyConfiguredGenAI } from "./genai";
 import { sanitizeInput } from "../utils/sanitize";
 import { safeParseAIResponse } from "../utils/aiUtils";
+import { getAuthHeaders } from "../utils/auth";
 
 // Schema validation interface for runtime checks
 interface ValidatedPlan {
@@ -125,7 +126,10 @@ export const generateLearningPlan = async (
         // Groq Integration (OpenAI-compatible)
         const response = await fetch('/api/groq/chat/completions', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            ...getAuthHeaders()
+          },
           signal: signal,
           body: JSON.stringify({
             model: currentModel,

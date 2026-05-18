@@ -579,10 +579,11 @@ export async function searchUsers(query: string): Promise<User[]> {
   // 2. Search Supabase
   if (canUseSupabase()) {
     try {
+      const cleanQuery = query.trim().replace(/"/g, '');
       const { data, error } = await supabase
         .from('users')
         .select('id, name, email, profileSettings')
-        .or(`name.ilike.%${query}%,email.ilike.%${query}%`)
+        .or(`name.ilike."%${cleanQuery}%",email.ilike."%${cleanQuery}%"`)
         .limit(10);
         
       if (!error && data) {
