@@ -1,9 +1,21 @@
 import { Context } from "@netlify/functions";
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.SUPABASE_URL || "";
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || "";
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+let supabaseClient: any = null;
+
+function getSupabase() {
+  if (supabaseClient) return supabaseClient;
+  
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "";
+  const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || "";
+  
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error("Supabase environment variables (SUPABASE_URL / VITE_SUPABASE_URL and SUPABASE_ANON_KEY / VITE_SUPABASE_ANON_KEY) are missing in the Netlify environment.");
+  }
+  
+  supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+  return supabaseClient;
+}
 
 const ALLOWED_ORIGINS = [
   "https://relearn-ai.netlify.app",
@@ -33,6 +45,17 @@ export default async (req: Request, context: Context) => {
   if (!authHeader) {
     return new Response(JSON.stringify({ error: "Unauthorized: Missing token" }), {
       status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  let supabase;
+  try {
+    supabase = getSupabase();
+  } catch (err: any) {
+    console.error("[gemini-proxy] Configuration Error:", err.message);
+    return new Response(JSON.stringify({ error: err.message }), {
+      status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
