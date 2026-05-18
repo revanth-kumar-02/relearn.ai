@@ -133,12 +133,12 @@ const Dashboard: React.FC = () => {
 
     return (
         <div className="pb-24 pt-8">
-            <div className="max-w-6xl mx-auto px-6 space-y-12">
+            <div className="max-w-6xl mx-auto px-4 sm:px-6 space-y-12">
                 {/* Quantum Header */}
                 <motion.header 
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="flex justify-between items-end"
+                    className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6"
                 >
                     <div className="space-y-1">
                         <div className="flex items-center gap-2 mb-2">

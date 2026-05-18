@@ -1,33 +1,65 @@
-/**
- * Extracts and parses a JSON object from a string that might contain markdown fences or other text.
- */
 export function safeParseAIResponse<T>(text: string, fallback?: T): T {
   try {
     if (!text) throw new Error("Empty response");
 
-    // 1. Try to find content between ```json and ```
-    const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+    // 1. Try parsing the whole thing first (handles native JSON responses from APIs like Groq)
+    try {
+      return JSON.parse(text.trim()) as T;
+    } catch (e) {
+      // Not plain JSON, continue to extraction
+    }
+
+    // 2. Find the outermost '{' and '}' OR '[' and ']'
+    const startObj = text.indexOf('{');
+    const endObj = text.lastIndexOf('}');
+    const startArr = text.indexOf('[');
+    const endArr = text.lastIndexOf(']');
+    
+    let start = -1;
+    let end = -1;
+    
+    // Choose the outermost structure
+    if (startObj !== -1 && endObj !== -1 && (startArr === -1 || startObj < startArr)) {
+        start = startObj;
+        end = endObj;
+    } else if (startArr !== -1 && endArr !== -1) {
+        start = startArr;
+        end = endArr;
+    }
+
+    if (start !== -1 && end !== -1 && end > start) {
+      const extracted = text.substring(start, end + 1).trim();
+      try {
+        return JSON.parse(extracted) as T;
+      } catch (e) {
+        // Fall through
+      }
+    }
+
+    // 3. Try to find content between ```json and ``` as a last resort
+    // Specifically require 'json' to prevent matching generic code blocks (like ```python)
+    const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/i);
     const potentialJson = jsonMatch && jsonMatch[1] ? jsonMatch[1].trim() : "";
 
     if (potentialJson) {
       try {
         return JSON.parse(potentialJson) as T;
       } catch (e) {
-        // Fall through to other methods if fenced content is invalid
+        // Fall through
+      }
+    }
+    
+    // 4. Try generic code fences just in case
+    const genericMatch = text.match(/```\s*([\s\S]*?)\s*```/);
+    if (genericMatch && genericMatch[1]) {
+      try {
+        return JSON.parse(genericMatch[1].trim()) as T;
+      } catch (e) {
+        // Fall through
       }
     }
 
-    // 2. Find the first '{' and last '}'
-    const start = text.indexOf('{');
-    const end = text.lastIndexOf('}');
-
-    if (start !== -1 && end !== -1 && end > start) {
-      const extracted = text.substring(start, end + 1).trim();
-      return JSON.parse(extracted) as T;
-    }
-
-    // 3. Try parsing the whole thing
-    return JSON.parse(text) as T;
+    throw new Error("Could not parse AI response as JSON");
   } catch (error) {
     console.warn("[SafeParseAI] Failed to parse AI response:", error, text);
     if (fallback !== undefined) return fallback;

@@ -4,26 +4,7 @@ import { getProxyConfiguredGenAI } from "./genai";
 import { sanitizeInput } from "../utils/sanitize";
 import { getAuthHeaders } from "../utils/auth";
 
-/**
- * Extracts a JSON object from a string that might contain markdown fences or other text.
- */
-const extractJson = (text: string): string => {
-  // Try to find content between ```json and ```
-  const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-  if (jsonMatch && jsonMatch[1]) {
-    return jsonMatch[1].trim();
-  }
-  
-  // If no fences, find the first '{' and last '}'
-  const start = text.indexOf('{');
-  const end = text.lastIndexOf('}');
-  
-  if (start !== -1 && end !== -1 && end > start) {
-    return text.substring(start, end + 1).trim();
-  }
-  
-  return text.trim();
-};
+
 
 /**
  * Generates a guided learning session.
@@ -174,9 +155,8 @@ Do not include markdown code fences (like \`\`\`json) outside the JSON structure
           const data = await response.json();
           const content = data.choices[0]?.message?.content;
           if (content) {
-            const extracted = extractJson(content);
             console.log(`[LearningWorkspace] Session generated successfully with Groq model: ${currentModel}`);
-            return extracted;
+            return content;
           }
         } else {
           const response = await ai.models.generateContent({
@@ -194,9 +174,8 @@ Do not include markdown code fences (like \`\`\`json) outside the JSON structure
 
           const text = response.text;
           if (text) {
-            const extracted = extractJson(text);
             console.log(`[LearningWorkspace] Session generated successfully with model: ${currentModel}`);
-            return extracted;
+            return text;
           }
         }
       } catch (error: any) {
