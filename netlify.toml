@@ -25,10 +25,10 @@
   status = 200
 
 # Fix: Ensure assets return 404 instead of index.html if missing
-# This avoids the "MIME type text/html" error
+# This avoids the "MIME type text/html" error and circular redirect loop
 [[redirects]]
   from = "/assets/*"
-  to = "/assets/:splat"
+  to = "/404"
   status = 404
 
 # Redirect all navigation routes to index.html for SPA (HashRouter compatible)
