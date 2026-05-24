@@ -54,8 +54,8 @@ const CheatSheetModule: React.FC<CheatSheetModuleProps> = ({ topic, content }) =
 
   if (!cheatSheet) {
     return (
-      <div className="bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-950/20 dark:to-blue-950/20 p-6 rounded-2xl border border-indigo-200/50 dark:border-indigo-800/40">
-        <div className="flex items-center gap-3 mb-4">
+      <div className="bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-950/20 dark:to-blue-950/20 p-6 rounded-2xl border border-indigo-200/50 dark:border-indigo-800/40 space-y-4">
+        <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center">
             <FileText className="text-indigo-500" size={20} />
           </div>
@@ -64,11 +64,22 @@ const CheatSheetModule: React.FC<CheatSheetModuleProps> = ({ topic, content }) =
             <p className="text-xs text-stone-500">Generate a printable master reference for this topic</p>
           </div>
         </div>
+        
+        {error && (
+          <div className="p-4 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 rounded-xl border border-red-200 dark:border-red-900/30 flex items-start gap-2.5 text-xs font-semibold leading-relaxed animate-fade-in">
+            <AlertTriangle className="shrink-0 text-red-500" size={16} />
+            <div className="space-y-1">
+              <p className="font-bold">Generation Failed</p>
+              <p className="opacity-90">{error}</p>
+            </div>
+          </div>
+        )}
+
         <button
           onClick={handleGenerate}
           className="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 transition-all flex items-center justify-center gap-2"
         >
-          <Sparkles size={16} /> Generate Cheat Sheet
+          <Sparkles size={16} /> {error ? 'Try Again' : 'Generate Cheat Sheet'}
         </button>
       </div>
     );

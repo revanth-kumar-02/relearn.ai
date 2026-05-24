@@ -247,7 +247,7 @@ const FlashcardModule: React.FC<FlashcardModuleProps> = ({ topic, content }) => 
           }}
           whileHover={{ scale: 1.02 }}
           transition={{ duration: 0.7, type: 'spring', stiffness: 200, damping: 25 }}
-          style={{ transformStyle: 'preserve-3d' }}
+          style={{ transformStyle: 'preserve-3d', willChange: 'transform' }}
         >
           {/* Front */}
           <div 

@@ -5,7 +5,7 @@
  * Output is structured Markdown optimized for PDF rendering.
  */
 
-import { AI_MODELS, isRetryableError } from './config';
+import { AI_MODELS, IS_GROQ_MODEL, isRetryableError } from './config';
 import { getProxyConfiguredGenAI } from './genai';
 import { sanitizeInput } from '../utils/sanitize';
 import { getAuthHeaders } from '../utils/auth';
@@ -39,11 +39,66 @@ export const generateCheatSheet = async (
 
   for (const currentModel of modelsToTry) {
     try {
-      const response = await ai.models.generateContent({
-        model: currentModel,
-        contents: [{
-          role: 'user',
-          parts: [{ text: `Generate a comprehensive, printable cheat sheet for: <topic_input>${sanitizeInput(topic)}</topic_input>${contentSection}
+      let text = "";
+
+      if (IS_GROQ_MODEL(currentModel)) {
+        // Groq Integration for Cheat Sheets
+        const response = await fetch('/api/groq/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...getAuthHeaders()
+          },
+          body: JSON.stringify({
+            model: currentModel,
+            messages: [
+              {
+                role: 'system',
+                content: `You are an expert educational content creator specializing in concise, high-density reference materials. Create cheat sheets that students can print and stick on their walls.
+              
+                Return ONLY valid JSON with this structure:
+                {
+                  "title": "Cheat Sheet: [Topic Name]",
+                  "sections": [
+                    { "heading": "Section Title", "content": "Markdown content with code blocks, tables, bold terms" }
+                  ],
+                  "quickReference": ["Key formula/pattern 1", "Key formula/pattern 2"],
+                  "commonMistakes": ["Mistake 1 and how to avoid it", "Mistake 2"]
+                }`
+              },
+              {
+                role: 'user',
+                content: `Generate a comprehensive, printable cheat sheet for: <topic_input>${sanitizeInput(topic)}</topic_input>${contentSection}
+
+Write in ${language}. Keep technical terms in English.
+
+The cheat sheet should be:
+- Dense with information but scannable
+- Include code examples where relevant (in fenced code blocks)
+- Use tables for comparisons
+- Include formulas, syntax patterns, or key commands
+- List common mistakes and how to avoid them`
+              }
+            ],
+            response_format: { type: "json_object" },
+            temperature: 0.7
+          })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error?.message || `Groq API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        text = data.choices?.[0]?.message?.content || "";
+      } else {
+        // Gemini Integration for Cheat Sheets
+        const response = await ai.models.generateContent({
+          model: currentModel,
+          contents: [{
+            role: 'user',
+            parts: [{ text: `Generate a comprehensive, printable cheat sheet for: <topic_input>${sanitizeInput(topic)}</topic_input>${contentSection}
 
 Write in ${language}. Keep technical terms in English.
 
@@ -53,9 +108,9 @@ The cheat sheet should be:
 - Use tables for comparisons
 - Include formulas, syntax patterns, or key commands
 - List common mistakes and how to avoid them` }]
-        }],
-        config: {
-          systemInstruction: `You are an expert educational content creator specializing in concise, high-density reference materials. Create cheat sheets that students can print and stick on their walls.
+          }],
+          config: {
+            systemInstruction: `You are an expert educational content creator specializing in concise, high-density reference materials. Create cheat sheets that students can print and stick on their walls.
 
 Return ONLY valid JSON with this structure:
 {
@@ -66,18 +121,26 @@ Return ONLY valid JSON with this structure:
   "quickReference": ["Key formula/pattern 1", "Key formula/pattern 2"],
   "commonMistakes": ["Mistake 1 and how to avoid it", "Mistake 2"]
 }`,
-          responseMimeType: "application/json",
-        }
-      });
+            responseMimeType: "application/json",
+          }
+        });
 
-      const text = response.text;
+        text = response.text || "";
+      }
+
       if (text) {
         return safeParseAIResponse(text);
       }
     } catch (error: any) {
       lastError = error;
-      if (!isRetryableError(error)) break;
-      continue;
+      console.warn(`[CheatSheetGenerator] Model ${currentModel} failed:`, error?.message || error);
+      
+      const isLastModel = modelsToTry.indexOf(currentModel) === modelsToTry.length - 1;
+      if (!isLastModel) {
+        console.log(`[CheatSheetGenerator] Attempting fallback to next model...`);
+        continue;
+      }
+      break;
     }
   }
 

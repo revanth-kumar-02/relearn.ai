@@ -16,6 +16,7 @@ interface AuthContextType {
   checkVerification: () => Promise<boolean>;
   resendVerification: () => Promise<{ success: boolean; message?: string }>;
   forgotPassword: (email: string) => Promise<{ success: boolean; message?: string }>;
+  loginWithGoogle: () => Promise<{ success: boolean; message?: string }>;
   loading: boolean;
 }
 
@@ -128,14 +129,52 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       // 1. Get auth status from Supabase to check verification
       let isVerified = true;
+      let currentAuthUser = authUser;
       if (supabaseAvailable) {
         // If we don't have the authUser, fetch it (rarely needed now)
-        const currentAuthUser = authUser || (await supabase.auth.getUser()).data.user;
+        currentAuthUser = authUser || (await supabase.auth.getUser()).data.user;
         isVerified = !!currentAuthUser?.email_confirmed_at;
       }
 
       // 2. Fetch deeper profile from our `users` table
-      const profile = await getUserProfile(authId);
+      let profile = await getUserProfile(authId);
+      
+      // Auto-provision a new profile for Google/OAuth signups
+      if (!profile && currentAuthUser) {
+        const name = currentAuthUser?.user_metadata?.full_name || currentAuthUser?.user_metadata?.name || 'Scholar';
+        const email = currentAuthUser?.email || '';
+        const generatedUsername = `${name.toLowerCase().replace(/\s+/g, '_')}_${Math.random().toString(36).substring(2, 7)}`;
+        
+        const newUser: User = {
+          id: authId,
+          name,
+          username: generatedUsername,
+          email,
+          preferences: defaultPreferences,
+          isVerified: isVerified,
+          createdAt: new Date().toISOString(),
+          stats: {
+            studyStreak: 0,
+            longestStreak: 0,
+            totalStudyHours: 0,
+            plansCreated: 0,
+            plansCompleted: 0,
+            totalXP: 0,
+            level: 1,
+            badges: [],
+            lastStudyDate: undefined,
+            streakFreezes: 1,
+          },
+          profileSettings: {
+            gradientTheme: 'theme-1'
+          }
+        };
+
+        // Save using dataService
+        await saveUserProfile(authId, newUser as unknown as Record<string, unknown>);
+        profile = newUser;
+      }
+
       if (profile) {
         const updatedProfile = { ...profile, isVerified };
         setUser(updatedProfile);
@@ -370,6 +409,27 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return { success: true };
   };
 
+  const loginWithGoogle = async () => {
+    if (supabaseAvailable && navigator.onLine) {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/#/dashboard`,
+        }
+      });
+
+      if (error) {
+        return { success: false, message: error.message };
+      }
+      return { success: true };
+    }
+
+    return { 
+      success: false, 
+      message: 'Network connection required for Google Authentication.' 
+    };
+  };
+
   return (
     <AuthContext.Provider value={{
       user,
@@ -382,6 +442,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       checkVerification,
       resendVerification,
       forgotPassword,
+      loginWithGoogle,
       loading
     }}>
       {!loading && children}
