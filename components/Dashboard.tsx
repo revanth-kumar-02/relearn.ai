@@ -132,8 +132,8 @@ const Dashboard: React.FC = () => {
     }
 
     return (
-        <div className="pb-24 pt-8">
-            <div className="max-w-6xl mx-auto px-4 sm:px-6 space-y-12">
+        <div className="pb-24 pt-5">
+            <div className="max-w-6xl mx-auto px-4 sm:px-6 space-y-6">
                 {/* Quantum Header */}
                 <motion.header 
                     initial={{ opacity: 0, y: -20 }}
@@ -179,9 +179,9 @@ const Dashboard: React.FC = () => {
                 </motion.header>
 
                 {/* Main Dashboard Grid */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Primary Focus Area */}
-                    <div className="lg:col-span-2 space-y-8">
+                    <div className="lg:col-span-2 space-y-6">
                         {/* Active Plans Spatial Carousel */}
                         <section>
                             <div className="flex items-center justify-between mb-6">
@@ -277,13 +277,13 @@ const PlanCard = React.memo(({ plan, index, navigate }: any) => (
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: index * 0.1 }}
         onClick={() => navigate('/plan-details', { state: { planId: plan.id } })}
-        className="glass-card noise-overlay rounded-2xl p-6 text-left border border-white/40 shadow-xl group relative overflow-hidden transition-all hover:shadow-2xl hover:-translate-y-1"
+        className="glass-card noise-overlay rounded-2xl p-5 text-left border border-white/40 shadow-xl group relative overflow-hidden transition-all hover:shadow-2xl hover:-translate-y-1"
     >
-        <div className="absolute top-0 right-0 p-6 opacity-0 group-hover:opacity-10 transition-opacity">
+        <div className="absolute top-0 right-0 p-5 opacity-0 group-hover:opacity-10 transition-opacity">
             <Icon name="rocket_launch" className="text-6xl" />
         </div>
         
-        <div className="flex items-start gap-4 mb-6">
+        <div className="flex items-start gap-4 mb-4">
             <div className="w-16 h-16 rounded-xl overflow-hidden bg-stone-100 dark:bg-stone-800 shadow-inner">
                 <img
                     src={plan.coverImage || `https://pollinations.ai/p/${encodeURIComponent(plan.title + ' abstract neural art')}?width=400&height=400&nologo=true`}
@@ -329,8 +329,8 @@ const ScheduleSection = React.memo(({
     navigate
 }: any) => {
     return (
-        <section className="glass-card noise-overlay rounded-2xl p-8 shadow-xl">
-            <div className="flex items-center justify-between mb-8">
+        <section className="glass-card noise-overlay rounded-2xl p-6 shadow-xl">
+            <div className="flex items-center justify-between mb-5">
                 <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-stone-500">Timeline</h3>
                 <div className="flex gap-2">
                     <button onClick={handlePrevMonth} className="w-8 h-8 rounded-full hover:bg-stone-100 dark:hover:bg-stone-800 flex items-center justify-center transition-colors">
@@ -342,11 +342,11 @@ const ScheduleSection = React.memo(({
                 </div>
             </div>
 
-            <div className="text-center mb-6">
+            <div className="text-center mb-5">
                 <p className="text-sm font-black uppercase tracking-widest">{currentMonthName} {currentYear}</p>
             </div>
 
-            <div className="grid grid-cols-7 gap-1 mb-8">
+            <div className="grid grid-cols-7 gap-1 mb-5">
                 {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
                     <span key={`${d}-${i}`} className="text-[9px] font-black text-stone-400 text-center py-2">{d}</span>
                 ))}
@@ -422,15 +422,15 @@ const ScheduleSection = React.memo(({
 });
 
 const ActivitySection = React.memo(({ recentActivity, clearAllActivity }: any) => (
-    <section className="glass-card noise-overlay rounded-2xl p-8 shadow-xl">
-        <div className="flex items-center justify-between mb-8">
+    <section className="glass-card noise-overlay rounded-2xl p-6 shadow-xl">
+        <div className="flex items-center justify-between mb-5">
             <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-stone-500">Neural Log</h3>
             {(recentActivity || []).length > 0 && (
                 <button onClick={clearAllActivity} className="text-[9px] font-black uppercase tracking-widest text-primary opacity-60 hover:opacity-100 transition-opacity">Purge Log</button>
             )}
         </div>
         
-        <div className="space-y-6">
+        <div className="space-y-4 font-medium">
             {(recentActivity || []).length > 0 ? (
                 recentActivity.slice(0, 5).map((item: any, idx: number) => (
                     <div key={idx} className="flex gap-4 items-start">
