@@ -24,7 +24,7 @@ const ConfirmationModal: React.FC<{
   icon: string;
   isDanger?: boolean;
 }> = ({ title, message, actionLabel, onConfirm, onCancel, icon, isDanger }) => (
-    <div className="fixed inset-0 bg-black/60 z-[70] flex items-center justify-center p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 bg-black/60 z-[70] flex items-center justify-center p-4 md:backdrop-blur-sm">
         <div className="bg-surface-light dark:bg-surface-dark rounded-3xl w-full max-w-[340px] p-8 shadow-2xl animate-scale-in border border-border-light dark:border-border-dark">
             <div className={`h-12 w-12 rounded-full ${isDanger ? 'bg-red-100 text-red-600' : 'bg-primary/10 text-primary'} flex items-center justify-center mb-4 mx-auto`}>
                 <Icon name={icon} className="text-2xl" />
@@ -319,7 +319,7 @@ const PlanDetails: React.FC = () => {
   return (
     <div className="pb-24 md:pb-8 relative bg-background-light dark:bg-background-dark min-h-screen animate-fade-in">
       {/* Header */}
-      <div className="p-4 flex items-center justify-between sticky top-0 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-sm z-10 md:relative md:bg-transparent border-b border-border-light/10 dark:border-border-dark/10 md:border-none">
+      <div className="p-4 flex items-center justify-between sticky top-0 bg-background-light/95 dark:bg-background-dark/95 md:bg-background-light/80 md:dark:bg-background-dark/80 md:backdrop-blur-sm z-10 md:relative md:bg-transparent border-b border-border-light/10 dark:border-border-dark/10 md:border-none">
         <button onClick={() => navigate('/dashboard')} className="text-text-primary-light dark:text-text-primary-dark hover:bg-black/5 dark:hover:bg-white/5 p-2 rounded-full transition-colors" aria-label="Go back to dashboard">
             <Icon name="arrow_back" />
         </button>

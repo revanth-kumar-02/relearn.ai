@@ -209,4 +209,4 @@ const CheatSheetModule: React.FC<CheatSheetModuleProps> = ({ topic, content }) =
   );
 };
 
-export default CheatSheetModule;
+export default React.memo(CheatSheetModule);

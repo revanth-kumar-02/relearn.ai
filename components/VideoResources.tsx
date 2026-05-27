@@ -224,4 +224,4 @@ const VideoResources: React.FC<VideoResourcesProps> = ({ topic, subject }) => {
   );
 };
 
-export default VideoResources;
+export default React.memo(VideoResources);

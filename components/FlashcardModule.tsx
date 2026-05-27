@@ -376,4 +376,4 @@ const FlashcardModule: React.FC<FlashcardModuleProps> = ({ topic, content }) => 
   );
 };
 
-export default FlashcardModule;
+export default React.memo(FlashcardModule);

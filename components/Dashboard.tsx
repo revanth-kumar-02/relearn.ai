@@ -132,8 +132,8 @@ const Dashboard: React.FC = () => {
     }
 
     return (
-        <div className="pb-24 pt-5">
-            <div className="max-w-6xl mx-auto px-4 sm:px-6 space-y-6">
+        <div className="pb-24 pt-8">
+            <div className="w-full px-4 sm:px-6 space-y-10">
                 {/* Quantum Header */}
                 <motion.header 
                     initial={{ opacity: 0, y: -20 }}
@@ -145,10 +145,10 @@ const Dashboard: React.FC = () => {
                             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse glow-secondary" />
                             <span className="text-[10px] font-black uppercase tracking-[0.3em] text-stone-500">Live Consciousness</span>
                         </div>
-                        <h1 className="text-4xl font-black tracking-tighter text-stone-900 dark:text-white">
+                        <h1 className="text-3xl md:text-[2.25rem] font-bold tracking-tight text-stone-900 dark:text-white leading-tight">
                             {greeting}, <span className="text-primary">{firstName}</span>.
                         </h1>
-                        <p className="text-sm font-bold text-stone-400 max-w-sm leading-relaxed">
+                        <p className="text-xs sm:text-sm font-medium text-stone-500 dark:text-stone-400 leading-relaxed mt-1">
                             Your Knowledge Matrix is ready. Explore {activePlans.length} active learning paths today.
                         </p>
                     </div>
@@ -179,9 +179,9 @@ const Dashboard: React.FC = () => {
                 </motion.header>
 
                 {/* Main Dashboard Grid */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-10 gap-8">
                     {/* Primary Focus Area */}
-                    <div className="lg:col-span-2 space-y-6">
+                    <div className="lg:col-span-7 space-y-10">
                         {/* Active Plans Spatial Carousel */}
                         <section>
                             <div className="flex items-center justify-between mb-6">
@@ -215,7 +215,7 @@ const Dashboard: React.FC = () => {
                     </div>
 
                     {/* Secondary Context Area */}
-                    <div className="space-y-8">
+                    <div className="lg:col-span-3 space-y-10">
                         {/* Mistake Museum Warmup */}
                         {warmUpQuestions.length > 0 && (
                             <motion.section 
@@ -277,14 +277,14 @@ const PlanCard = React.memo(({ plan, index, navigate }: any) => (
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: index * 0.1 }}
         onClick={() => navigate('/plan-details', { state: { planId: plan.id } })}
-        className="glass-card noise-overlay rounded-2xl p-5 text-left border border-white/40 shadow-xl group relative overflow-hidden transition-all hover:shadow-2xl hover:-translate-y-1"
+        className="glass-card noise-overlay rounded-[2rem] p-7 text-left border border-white/40 shadow-xl group relative overflow-hidden transition-all duration-300 hover:shadow-2xl hover:shadow-primary/5 hover:-translate-y-1.5"
     >
-        <div className="absolute top-0 right-0 p-5 opacity-0 group-hover:opacity-10 transition-opacity">
+        <div className="absolute top-0 right-0 p-7 opacity-0 group-hover:opacity-10 transition-opacity duration-300">
             <Icon name="rocket_launch" className="text-6xl" />
         </div>
         
-        <div className="flex items-start gap-4 mb-4">
-            <div className="w-16 h-16 rounded-xl overflow-hidden bg-stone-100 dark:bg-stone-800 shadow-inner">
+        <div className="flex items-start gap-5 mb-5">
+            <div className="w-20 h-20 rounded-[1.25rem] overflow-hidden bg-stone-100 dark:bg-stone-800 shadow-inner">
                 <img
                     src={plan.coverImage || `https://pollinations.ai/p/${encodeURIComponent(plan.title + ' abstract neural art')}?width=400&height=400&nologo=true`}
                     alt=""
@@ -294,11 +294,11 @@ const PlanCard = React.memo(({ plan, index, navigate }: any) => (
                 />
             </div>
             <div className="flex-1 min-w-0">
-                <h4 className="text-lg font-black tracking-tight truncate group-hover:text-primary transition-colors">{plan.title}</h4>
-                <div className="flex items-center gap-2 mt-1">
-                    <span className="text-[9px] font-black uppercase tracking-widest text-stone-400">{plan.difficulty || 'Cognitive'}</span>
-                    <div className="w-1 h-1 rounded-full bg-stone-300" />
-                    <span className="text-[9px] font-black uppercase tracking-widest text-stone-400">{plan.totalDays} Stages</span>
+                <h4 className="text-xl font-bold tracking-tight text-stone-800 dark:text-white leading-tight group-hover:text-primary transition-colors duration-300">{plan.title}</h4>
+                <div className="flex items-center gap-2 mt-2">
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-stone-400 dark:text-stone-500">{plan.difficulty || 'Cognitive'}</span>
+                    <div className="w-1 h-1 rounded-full bg-stone-300 dark:bg-stone-700" />
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-stone-400 dark:text-stone-500">{plan.totalDays} Stages</span>
                 </div>
             </div>
         </div>

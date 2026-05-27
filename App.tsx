@@ -181,7 +181,7 @@ const AppContent: React.FC = () => {
           animate={{ width: isSidebarExpanded ? 256 : 80 }}
           className="hidden md:flex flex-col h-screen glass-card fixed left-0 top-0 z-50 overflow-hidden"
         >
-          <div className={`p-4 flex items-center border-b border-white/10 dark:border-white/5 ${isSidebarExpanded ? 'gap-4.5' : 'justify-center'}`}>
+          <div className={`p-6 flex items-center border-b border-white/10 dark:border-white/5 ${isSidebarExpanded ? 'gap-4' : 'justify-center'}`}>
             <motion.div 
               whileHover={{ scale: 1.1, rotate: 5 }}
               whileTap={{ scale: 0.95 }}
@@ -276,19 +276,19 @@ const AppContent: React.FC = () => {
                 />
               </div>
             )}
-            <div className="p-3 border-t border-white/10">
+            <div className="p-4 border-t border-white/10">
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 id="tutorial-new-plan"
                 onClick={() => { triggerHaptic('medium'); navigate('/create-plan'); }}
-                className={`flex items-center justify-center bg-gradient-to-r from-primary to-secondary text-white rounded-xl font-black shadow-lg shadow-primary/30 transition-shadow hover:shadow-primary/50 ${
-                  isSidebarExpanded ? 'w-full gap-2 py-2.5 px-3' : 'w-10 h-10 mx-auto'
+                className={`flex items-center justify-center bg-gradient-to-r from-primary to-secondary text-white rounded-xl font-bold shadow-lg shadow-primary/30 transition-shadow hover:shadow-primary/50 ${
+                  isSidebarExpanded ? 'w-full gap-2 py-3 px-4' : 'w-12 h-12 mx-auto'
                 }`}
                 aria-label="Create New AI Learning Plan"
               >
-                  <Icon name="auto_awesome" className="animate-pulse text-lg" />
-                {isSidebarExpanded && <span className="text-xs uppercase tracking-wider">New Plan</span>}
+                  <Icon name="auto_awesome" className="animate-pulse" />
+                {isSidebarExpanded && <span>New Plan</span>}
               </motion.button>
             </div>
             <div className="h-6" />
@@ -303,7 +303,7 @@ const AppContent: React.FC = () => {
         }`}
       >
         <div className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar scroll-smooth">
-          <div className={`mx-auto w-full ${isAuthPage || location.pathname.startsWith('/rooms/') ? '' : (isDiary ? 'pb-32 md:pb-8' : 'max-w-6xl px-4 md:px-8 pb-32 md:pb-12')}`}>
+          <div className={`mx-auto w-full ${isAuthPage || location.pathname.startsWith('/rooms/') ? '' : (isDiary ? 'pb-32 md:pb-8' : 'max-w-[1440px] px-4 md:px-8 pb-32 md:pb-12')}`}>
             <AnimatePresence mode="wait">
                 <motion.div
                     key={location.pathname}
@@ -438,15 +438,15 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ icon, label, active, onClick,
     id={id}
     onClick={() => { triggerHaptic('light'); onClick(); }}
     aria-label={ariaLabel}
-    className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition-all ${
+    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
         showLabel ? '' : 'justify-center'
     } ${active
         ? 'bg-primary/20 text-primary font-black shadow-inner shadow-primary/5'
         : 'text-text-secondary-light dark:text-text-secondary-dark hover:text-text-primary-light dark:hover:text-text-primary-dark'
       }`}
   >
-    <Icon name={icon} className={`text-xl min-w-[20px] ${active ? 'filled' : ''}`} />
-    {showLabel && <span className="text-xs font-bold truncate">{label}</span>}
+    <Icon name={icon} className={`text-2xl min-w-[24px] ${active ? 'filled' : ''}`} />
+    {showLabel && <span className="text-sm font-bold truncate">{label}</span>}
   </motion.button>
 );
 

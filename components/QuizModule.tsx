@@ -383,4 +383,4 @@ const QuizModule: React.FC<QuizModuleProps> = ({
   return null;
 };
 
-export default QuizModule;
+export default React.memo(QuizModule);

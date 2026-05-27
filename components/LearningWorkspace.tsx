@@ -411,7 +411,7 @@ const LearningWorkspace: React.FC = () => {
   return (
     <div className="min-h-screen bg-stone-50 dark:bg-stone-950 text-stone-900 dark:text-stone-100 flex flex-col">
       {/* Header */}
-      <header className="sticky top-0 z-30 bg-white/80 dark:bg-stone-900/80 backdrop-blur-md border-b border-stone-200 dark:border-stone-800 p-4 flex items-center justify-between print:hidden">
+      <header className="sticky top-0 z-30 bg-white/95 dark:bg-stone-900/95 md:bg-white/80 md:dark:bg-stone-900/80 md:backdrop-blur-md border-b border-stone-200 dark:border-stone-800 p-4 flex items-center justify-between print:hidden">
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate(-1)}
@@ -556,7 +556,7 @@ const LearningWorkspace: React.FC = () => {
                     exit={{ opacity: 0, y: -5 }}
                     className="flex flex-col items-center gap-4"
                   >
-                    <div className="flex items-center gap-3 px-4 py-2 bg-stone-100/50 dark:bg-stone-800/50 backdrop-blur-md rounded-full border border-stone-200/50 dark:border-stone-700/50 shadow-inner">
+                    <div className="flex items-center gap-3 px-4 py-2 bg-stone-100/80 dark:bg-stone-800/80 md:backdrop-blur-md rounded-full border border-stone-200/50 dark:border-stone-700/50 shadow-inner">
                       <div className="relative w-4 h-4">
                         <svg className="w-full h-full -rotate-90">
                           <circle
@@ -939,7 +939,7 @@ const LearningWorkspace: React.FC = () => {
 
       {/* Mobile Action Bar */}
       {!isLoading && task.aiExplanation && (
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/80 dark:bg-stone-900/80 backdrop-blur-md border-t border-stone-200 dark:border-stone-800 md:hidden print:hidden z-40">
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/95 dark:bg-stone-900/95 border-t border-stone-200 dark:border-stone-800 md:hidden print:hidden z-40">
           <button
             onClick={handleMarkComplete}
             className="w-full py-4 bg-primary text-white font-bold rounded-2xl shadow-lg shadow-primary/20 flex items-center justify-center gap-2"
