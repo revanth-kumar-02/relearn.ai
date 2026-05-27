@@ -16,6 +16,7 @@ import { useData } from '../contexts/DataContext';
 import { getContentLanguageLabel } from '../services/youtubeService';
 import { XP_REWARDS } from '../services/gamificationService';
 import { useAuth } from '../contexts/AuthContext';
+import { addMistake } from '../services/mistakeMuseumService';
 
 interface QuizModuleProps {
   topic: string;
@@ -67,9 +68,7 @@ const QuizModule: React.FC<QuizModuleProps> = ({
 
     // If incorrect, add to mistake museum
     if (!isCorrect && user?.id) {
-      import('../services/mistakeMuseumService').then(({ addMistake }) => {
-        addMistake(question, optionIndex, topic);
-      });
+      addMistake(question, optionIndex, topic);
     }
   };
 
@@ -244,13 +243,13 @@ const QuizModule: React.FC<QuizModuleProps> = ({
 
               return (
                 <motion.button
-                  key={idx}
+                  key={`${currentIndex}-${idx}`}
                   onClick={() => handleSelectAnswer(idx)}
                   disabled={showExplanation}
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: idx * 0.05 }}
-                  className={`w-full p-4 rounded-xl border text-left text-sm font-medium transition-all flex items-center gap-3 ${optionStyles}`}
+                  className={`w-full p-4 rounded-xl border text-left text-sm font-medium transition-colors duration-200 flex items-center gap-3 ${optionStyles}`}
                 >
                   <span className="w-7 h-7 rounded-full border-2 border-current flex items-center justify-center text-xs font-bold shrink-0 opacity-60">
                     {String.fromCharCode(65 + idx)}

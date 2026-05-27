@@ -215,7 +215,7 @@ const FlashcardModule: React.FC<FlashcardModuleProps> = ({ topic, content }) => 
                   width: i === currentIndex ? 24 : 8,
                   backgroundColor: i === currentIndex ? '#13a4ec' : c.confidence ? '#10b981' : 'rgba(148, 163, 184, 0.2)'
                 }}
-                className="h-2 rounded-full border border-white/10 dark:border-white/5 transition-colors"
+                className="h-2 rounded-full border border-white/10 dark:border-white/5"
               />
             ))}
           </div>
@@ -251,7 +251,7 @@ const FlashcardModule: React.FC<FlashcardModuleProps> = ({ topic, content }) => 
         >
           {/* Front */}
           <div 
-            className="absolute inset-0 w-full h-full glass-card noise-overlay rounded-[3rem] p-12 flex flex-col items-center justify-center text-center backface-hidden"
+            className="absolute inset-0 w-full h-full bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 noise-overlay rounded-[3rem] p-12 flex flex-col items-center justify-center text-center backface-hidden shadow-xl"
           >
             <div className="absolute top-10 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-1.5 bg-primary/10 rounded-full border border-primary/20">
               <Brain size={12} className="text-primary" />
@@ -269,7 +269,7 @@ const FlashcardModule: React.FC<FlashcardModuleProps> = ({ topic, content }) => 
 
           {/* Back */}
           <div 
-            className="absolute inset-0 w-full h-full glass-card noise-overlay bg-gradient-to-br from-primary/5 to-secondary/5 border-primary/20 rounded-[3rem] p-12 flex flex-col items-center justify-center text-center backface-hidden shadow-inner overflow-hidden"
+            className="absolute inset-0 w-full h-full bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 noise-overlay bg-gradient-to-br from-primary/5 to-secondary/5 rounded-[3rem] p-12 flex flex-col items-center justify-center text-center backface-hidden shadow-inner overflow-hidden"
             style={{ transform: 'rotateY(180deg)' }}
           >
             <div className="absolute top-10 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-1.5 bg-emerald-500/10 rounded-full border border-emerald-500/20">
@@ -318,7 +318,7 @@ const FlashcardModule: React.FC<FlashcardModuleProps> = ({ topic, content }) => 
                 whileTap={{ scale: 0.9 }}
                 onClick={() => { setCurrentIndex(prev => Math.max(0, prev - 1)); setIsFlipped(false); }}
                 disabled={currentIndex === 0}
-                className="flex-1 py-5 glass-card text-slate-400 rounded-2xl font-black text-xs uppercase tracking-widest disabled:opacity-20 transition-all"
+                className="flex-1 py-5 glass-card text-slate-400 rounded-2xl font-black text-xs uppercase tracking-widest disabled:opacity-20 transition-colors duration-200"
               >
                 <ChevronLeft size={20} className="mx-auto" />
               </motion.button>
@@ -335,7 +335,7 @@ const FlashcardModule: React.FC<FlashcardModuleProps> = ({ topic, content }) => 
                 whileTap={{ scale: 0.9 }}
                 onClick={() => { setCurrentIndex(prev => Math.min(cards.length - 1, prev + 1)); setIsFlipped(false); }}
                 disabled={currentIndex === cards.length - 1}
-                className="flex-1 py-5 glass-card text-slate-400 rounded-2xl font-black text-xs uppercase tracking-widest disabled:opacity-20 transition-all"
+                className="flex-1 py-5 glass-card text-slate-400 rounded-2xl font-black text-xs uppercase tracking-widest disabled:opacity-20 transition-colors duration-200"
               >
                 <ChevronRight size={20} className="mx-auto" />
               </motion.button>
@@ -358,7 +358,7 @@ const FlashcardModule: React.FC<FlashcardModuleProps> = ({ topic, content }) => 
                   whileHover={{ y: -5 }}
                   whileTap={{ scale: 0.9 }}
                   onClick={() => handleGrade(grade.type as Confidence)}
-                  className={`group flex flex-col items-center gap-3 p-6 bg-${grade.color}-500/10 border border-${grade.color}-500/20 rounded-[2rem] transition-all hover:bg-${grade.color}-500/20`}
+                  className={`group flex flex-col items-center gap-3 p-6 bg-${grade.color}-500/10 border border-${grade.color}-500/20 rounded-[2rem] transition-colors duration-200 hover:bg-${grade.color}-500/20`}
                 >
                   <div className={`w-12 h-12 rounded-full bg-${grade.color}-500 text-white flex items-center justify-center shadow-2xl shadow-${grade.color}-500/40`}>
                     <grade.icon size={20} />
