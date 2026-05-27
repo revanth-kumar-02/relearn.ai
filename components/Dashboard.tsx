@@ -284,7 +284,7 @@ const PlanCard = React.memo(({ plan, index, navigate }: any) => (
         </div>
         
         <div className="flex items-start gap-4 mb-6">
-            <div className="w-16 h-16 rounded-[1.5rem] overflow-hidden bg-stone-100 dark:bg-stone-800 shadow-inner">
+            <div className="w-16 h-16 rounded-xl overflow-hidden bg-stone-100 dark:bg-stone-800 shadow-inner">
                 <img
                     src={plan.coverImage || `https://pollinations.ai/p/${encodeURIComponent(plan.title + ' abstract neural art')}?width=400&height=400&nologo=true`}
                     alt=""
