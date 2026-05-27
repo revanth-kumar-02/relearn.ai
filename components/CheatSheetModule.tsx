@@ -14,6 +14,7 @@ import {
 import ReactMarkdown from 'react-markdown';
 import { useData } from '../contexts/DataContext';
 import { getContentLanguageLabel } from '../services/youtubeService';
+import { exportCheatSheetAsPDF } from '../services/documentService';
 
 interface CheatSheetModuleProps {
   topic: string;
@@ -25,6 +26,7 @@ const CheatSheetModule: React.FC<CheatSheetModuleProps> = ({ topic, content }) =
   const [cheatSheet, setCheatSheet] = useState<CheatSheet | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const handleGenerate = async () => {
     setLoading(true);
@@ -39,8 +41,16 @@ const CheatSheetModule: React.FC<CheatSheetModuleProps> = ({ topic, content }) =
     }
   };
 
-  const handlePrint = () => {
-    window.print();
+  const handleDownload = async () => {
+    if (!cheatSheet) return;
+    setIsDownloading(true);
+    try {
+      await exportCheatSheetAsPDF(cheatSheet);
+    } catch (err) {
+      console.error('Failed to export PDF:', err);
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   if (loading) {
@@ -100,11 +110,12 @@ const CheatSheetModule: React.FC<CheatSheetModuleProps> = ({ topic, content }) =
         </div>
         <div className="flex gap-2">
             <button 
-                onClick={handlePrint}
-                className="p-2 rounded-lg bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 hover:bg-stone-200 transition-all"
-                title="Print Cheat Sheet"
+                onClick={handleDownload}
+                disabled={isDownloading}
+                className="p-2 rounded-lg bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 hover:bg-stone-200 transition-all disabled:opacity-50 flex items-center justify-center min-w-[32px] min-h-[32px]"
+                title="Download PDF"
             >
-                <Printer size={16} />
+                {isDownloading ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
             </button>
             <button 
                 onClick={() => setCheatSheet(null)}
@@ -134,24 +145,26 @@ const CheatSheetModule: React.FC<CheatSheetModuleProps> = ({ topic, content }) =
             </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Main Content */}
-            <div className="space-y-8">
+            <div className="lg:col-span-2 space-y-8 min-w-0 overflow-hidden">
                 {cheatSheet.sections.map((section, idx) => (
                     <div key={idx} className="space-y-3">
                         <h3 className="text-xs font-black text-indigo-600 uppercase tracking-[0.2em] flex items-center gap-2">
                             <div className="w-1.5 h-1.5 rounded-full bg-indigo-600"></div>
                             {section.heading}
                         </h3>
-                        <div className="prose prose-stone dark:prose-invert prose-sm max-w-none prose-headings:text-stone-900 prose-headings:dark:text-white prose-p:text-stone-600 prose-p:dark:text-stone-400 prose-code:bg-stone-100 prose-code:dark:bg-stone-800 prose-code:p-0.5 prose-code:rounded prose-pre:bg-stone-950 prose-pre:border prose-pre:border-stone-800">
-                            <ReactMarkdown>{section.content}</ReactMarkdown>
+                        <div className="w-full overflow-x-auto no-scrollbar scroll-smooth">
+                            <div className="prose prose-stone dark:prose-invert prose-sm max-w-none prose-headings:text-stone-900 prose-headings:dark:text-white prose-p:text-stone-600 prose-p:dark:text-stone-400 prose-code:bg-black dark:prose-code:bg-black prose-code:text-indigo-600 dark:prose-code:text-indigo-400 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md prose-pre:bg-black dark:prose-pre:bg-black prose-pre:border prose-pre:border-stone-800/80 prose-pre:p-4">
+                                <ReactMarkdown>{section.content}</ReactMarkdown>
+                            </div>
                         </div>
                     </div>
                 ))}
             </div>
 
             {/* Sidebar Stats/Reference */}
-            <div className="space-y-8">
+            <div className="lg:col-span-1 space-y-8">
                 {/* Quick Reference */}
                 <div className="bg-stone-50 dark:bg-stone-800/50 rounded-2xl p-6 border border-stone-100 dark:border-stone-700">
                     <h3 className="text-xs font-black text-stone-400 uppercase tracking-widest mb-4 flex items-center gap-2">

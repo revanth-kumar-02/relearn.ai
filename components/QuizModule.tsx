@@ -271,10 +271,11 @@ const QuizModule: React.FC<QuizModuleProps> = ({
           <AnimatePresence>
             {showExplanation && (
               <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="overflow-hidden"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+                className="mt-4 space-y-4"
               >
                 <div className={`p-4 rounded-xl border text-sm ${
                   isCorrect
