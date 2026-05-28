@@ -32,6 +32,7 @@ export default {
         "dark-cream": "#1F1E1B"
       },
       fontFamily: {
+        "sans": ["Inter", "sans-serif"],
         "display": ["Lexend", "sans-serif"],
         "serif": ["Playfair Display", "serif"],
         "body": ["Inter", "sans-serif"]

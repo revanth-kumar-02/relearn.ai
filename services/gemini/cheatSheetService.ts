@@ -59,7 +59,7 @@ export const generateCheatSheet = async (
                 CRITICAL FORMATTING RULES inside the "content" JSON string value:
                 1. DOUBLE NEWLINES (\\n\\n): You MUST use double newlines (\\n\\n) before and after all headers, list items, and code blocks. This is required for proper markdown rendering.
                 2. NO PIPE TABLES: Do NOT use pipe-delimited tables (e.g. | col1 | col2 |). Instead, perform comparisons using descriptive bold bullet lists or standard definition lists (e.g. "* **Term**: Definition").
-                3. MULTI-LINE CODE: Code examples must have double newlines (\\n\\n) before and after the block, and each code line must end with a single newline (\\n).
+                3. MULTI-LINE CODE: All code examples, syntax configurations, and markup samples must be strictly wrapped inside standard fenced markdown code blocks with triple backticks and the language name (e.g. \`\`\`html\\n[code]\\n\`\`\`). Place double newlines (\\n\\n) before and after the code blocks.
                 
                 Return ONLY valid JSON with this structure:
                 {
@@ -74,9 +74,9 @@ export const generateCheatSheet = async (
               {
                 role: 'user',
                 content: `Generate a comprehensive, printable cheat sheet for: <topic_input>${sanitizeInput(topic)}</topic_input>${contentSection}
-
+ 
 Write in ${language}. Keep technical terms in English.
-
+ 
 The cheat sheet should be:
 - Dense with information but extremely clean and scannable
 - Include code examples where relevant (in fenced code blocks)
@@ -89,12 +89,12 @@ The cheat sheet should be:
             temperature: 0.7
           })
         });
-
+ 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
           throw new Error(errorData.error?.message || `Groq API error: ${response.status}`);
         }
-
+ 
         const data = await response.json();
         text = data.choices?.[0]?.message?.content || "";
       } else {
@@ -104,9 +104,9 @@ The cheat sheet should be:
           contents: [{
             role: 'user',
             parts: [{ text: `Generate a comprehensive, printable cheat sheet for: <topic_input>${sanitizeInput(topic)}</topic_input>${contentSection}
-
+ 
 Write in ${language}. Keep technical terms in English.
-
+ 
 The cheat sheet should be:
 - Dense with information but extremely clean and scannable
 - Include code examples where relevant (in fenced code blocks)
@@ -120,7 +120,7 @@ The cheat sheet should be:
             CRITICAL FORMATTING RULES inside the "content" JSON string value:
             1. DOUBLE NEWLINES (\\n\\n): You MUST use double newlines (\\n\\n) before and after all headers, list items, and code blocks. This is required for proper markdown rendering.
             2. NO PIPE TABLES: Do NOT use pipe-delimited tables (e.g. | col1 | col2 |). Instead, perform comparisons using descriptive bold bullet lists or standard definition lists (e.g. "* **Term**: Definition").
-            3. MULTI-LINE CODE: Code examples must have double newlines (\\n\\n) before and after the block, and each code line must end with a single newline (\\n).
+            3. MULTI-LINE CODE: All code examples, syntax configurations, and markup samples must be strictly wrapped inside standard fenced markdown code blocks with triple backticks and the language name (e.g. \`\`\`html\\n[code]\\n\`\`\`). Place double newlines (\\n\\n) before and after the code blocks.
             
             Return ONLY valid JSON with this structure:
             {

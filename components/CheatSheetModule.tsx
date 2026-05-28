@@ -9,12 +9,31 @@ import {
   Loader2, 
   AlertTriangle,
   Zap,
-  CheckCircle2
+  CheckCircle2,
+  Copy
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { useData } from '../contexts/DataContext';
 import { getContentLanguageLabel } from '../services/youtubeService';
 import { exportCheatSheetAsPDF } from '../services/documentService';
+
+const CopyButton: React.FC<{ text: string }> = ({ text }) => {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = () => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  return (
+    <button
+      onClick={handleCopy}
+      className="hover:text-white transition-colors flex items-center gap-1.5 text-[10px] font-bold"
+    >
+      <Copy size={11} className={copied ? 'text-emerald-400' : 'text-stone-400'} />
+      <span>{copied ? 'Copied!' : 'Copy'}</span>
+    </button>
+  );
+};
 
 interface CheatSheetModuleProps {
   topic: string;
@@ -155,8 +174,61 @@ const CheatSheetModule: React.FC<CheatSheetModuleProps> = ({ topic, content }) =
                             {section.heading}
                         </h3>
                         <div className="w-full overflow-x-auto no-scrollbar scroll-smooth">
-                            <div className="prose prose-stone dark:prose-invert prose-sm max-w-none prose-headings:text-stone-900 prose-headings:dark:text-white prose-p:text-stone-600 prose-p:dark:text-stone-400 prose-code:bg-black dark:prose-code:bg-black prose-code:text-indigo-600 dark:prose-code:text-indigo-400 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md prose-pre:bg-black dark:prose-pre:bg-black prose-pre:border prose-pre:border-stone-800/80 prose-pre:p-4">
-                                <ReactMarkdown>{section.content}</ReactMarkdown>
+                            <div className="prose prose-stone dark:prose-invert prose-sm max-w-none prose-headings:text-stone-900 prose-headings:dark:text-white prose-p:text-stone-600 prose-p:dark:text-stone-400">
+                                <ReactMarkdown
+                                  components={{
+                                    pre({ children }) {
+                                      let lang = 'Code';
+                                      let codeText = '';
+                                      let codeElement: any = children;
+
+                                      try {
+                                        const childArray = React.Children.toArray(children);
+                                        const firstChild = childArray[0] as React.ReactElement;
+                                        if (firstChild && (firstChild as any).props) {
+                                          const className = (firstChild as any).props.className || '';
+                                          const match = /language-(\w+)/.exec(className);
+                                          if (match) lang = match[1];
+                                          codeText = String((firstChild as any).props.children || '').replace(/\n$/, '');
+                                          codeElement = firstChild;
+                                        }
+                                      } catch (e) {
+                                        console.error(e);
+                                      }
+
+                                      return (
+                                        <div className="my-4 rounded-2xl overflow-hidden shadow-xl border border-stone-200 dark:border-stone-800 bg-stone-950 text-stone-200 print:bg-white print:text-black print:border-stone-200">
+                                          {/* Header Bar */}
+                                          <div className="flex items-center justify-between px-5 py-2.5 bg-stone-900 border-b border-stone-800 text-[10px] font-bold text-stone-400 uppercase tracking-widest select-none print:hidden">
+                                            <span>{lang}</span>
+                                            <CopyButton text={codeText} />
+                                          </div>
+                                          {/* Scrollable Code Box */}
+                                          <pre className="p-5 overflow-x-auto font-mono text-xs leading-relaxed no-scrollbar m-0 bg-stone-950 text-stone-200 print:bg-white print:text-black print:p-2">
+                                            {codeElement}
+                                          </pre>
+                                        </div>
+                                      );
+                                    },
+                                    code({ className, children, ...props }) {
+                                      const hasClass = !!className;
+                                      if (hasClass) {
+                                        return (
+                                          <code className={className} {...props}>
+                                            {children}
+                                          </code>
+                                        );
+                                      }
+                                      return (
+                                        <code className="bg-stone-100 dark:bg-stone-950 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded-md font-mono text-xs font-semibold" {...props}>
+                                          {children}
+                                        </code>
+                                      );
+                                    }
+                                  }}
+                                >
+                                  {section.content}
+                                </ReactMarkdown>
                             </div>
                         </div>
                     </div>

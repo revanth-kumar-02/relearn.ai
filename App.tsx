@@ -178,7 +178,7 @@ const AppContent: React.FC = () => {
       {showSidebar && (
         <motion.aside 
           initial={false}
-          animate={{ width: isSidebarExpanded ? 256 : 80 }}
+          animate={{ width: isSidebarExpanded ? 288 : 80 }}
           className="hidden md:flex flex-col h-screen glass-card fixed left-0 top-0 z-50 overflow-hidden"
         >
           <div className={`p-6 flex items-center border-b border-white/10 dark:border-white/5 ${isSidebarExpanded ? 'gap-4' : 'justify-center'}`}>
@@ -193,10 +193,10 @@ const AppContent: React.FC = () => {
             <AnimatePresence>
               {isSidebarExpanded && (
                 <motion.h1 
-                  initial={{ opacity: 0, x: -10 }}
+                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -10 }}
-                  className="text-xl font-black text-text-primary-light dark:text-text-primary-dark tracking-tighter truncate gradient-text"
+                  className="text-xl font-black text-text-primary-light dark:text-text-primary-dark tracking-tighter truncate gradient-text font-display"
                 >
                   ReLearn.ai
                 </motion.h1>
@@ -299,7 +299,7 @@ const AppContent: React.FC = () => {
       <main 
         id="main-content" 
         className={`flex-1 flex flex-col min-h-screen relative transition-all duration-500 ease-in-out ${
-          showSidebar ? (isSidebarExpanded ? 'md:ml-64' : 'md:ml-20') : ''
+          showSidebar ? (isSidebarExpanded ? 'md:ml-72' : 'md:ml-20') : ''
         }`}
       >
         <div className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar scroll-smooth">
@@ -441,12 +441,12 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ icon, label, active, onClick,
     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
         showLabel ? '' : 'justify-center'
     } ${active
-        ? 'bg-primary/20 text-primary font-black shadow-inner shadow-primary/5'
+        ? 'bg-primary/20 text-primary font-bold shadow-inner shadow-primary/5'
         : 'text-text-secondary-light dark:text-text-secondary-dark hover:text-text-primary-light dark:hover:text-text-primary-dark'
       }`}
   >
-    <Icon name={icon} className={`text-2xl min-w-[24px] ${active ? 'filled' : ''}`} />
-    {showLabel && <span className="text-sm font-bold truncate">{label}</span>}
+    <Icon name={icon} className={`text-xl min-w-[20px] ${active ? 'filled' : ''}`} />
+    {showLabel && <span className={`text-sm tracking-tight truncate ${active ? 'font-bold' : 'font-semibold'}`}>{label}</span>}
   </motion.button>
 );
 
@@ -469,7 +469,7 @@ const NavItem: React.FC<NavItemProps> = ({ icon, label, active, onClick, id, ari
       }`}
   >
     <Icon name={icon} className={`text-2xl ${active ? 'filled' : ''}`} />
-    <span className="text-[10px] font-black tracking-tight uppercase">{label}</span>
+    <span className="text-[10px] font-bold tracking-tight uppercase">{label}</span>
   </motion.button>
 );
 
