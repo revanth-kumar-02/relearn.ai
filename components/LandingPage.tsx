@@ -1793,14 +1793,117 @@ export const LandingPage: React.FC = () => {
       </section>
 
       {/* FOOTER */}
-      <footer className="py-12 px-6 border-t border-border-light dark:border-border-dark bg-stone-50 dark:bg-background-dark relative z-10 text-center text-text-secondary-light/60 dark:text-text-secondary-dark/60 text-xs font-semibold">
-        <div className="max-w-[1280px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-lg bg-primary flex items-center justify-center text-white"><Icon name="school" className="text-sm" /></div>
-            <span className="font-bold text-text-primary-light dark:text-text-primary-dark">ReLearn.ai</span>
+      <footer className="pt-20 pb-12 px-6 border-t border-border-light dark:border-border-dark bg-stone-50 dark:bg-background-dark relative z-10 text-xs font-semibold overflow-hidden">
+        {/* Footer Ambient Glow Backdrop */}
+        <div className="absolute bottom-0 right-[10%] w-[35%] h-[60%] rounded-full bg-[radial-gradient(circle_at_center,rgba(0,102,255,0.03)_0%,transparent_70%)] dark:bg-[radial-gradient(circle_at_center,rgba(0,102,255,0.08)_0%,transparent_70%)] pointer-events-none z-0" />
+        
+        <div className="max-w-[1280px] mx-auto relative z-10 space-y-16">
+          {/* Top Section: Multi-columns */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-12 text-left">
+            {/* Column 1: Company Pitch */}
+            <div className="md:col-span-4 space-y-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-r from-primary to-secondary flex items-center justify-center text-white shadow-md shadow-primary/10">
+                  <Icon name="school" className="text-base" />
+                </div>
+                <span className="font-extrabold text-base tracking-tight text-text-primary-light dark:text-text-primary-dark font-display">ReLearn.ai</span>
+              </div>
+              <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark font-medium leading-relaxed max-w-sm">
+                ReLearn.ai is a personalized cognitive operating system, engineered to synthesize facts into direct capability, cross-pollinate separate domains, and structure your lifelong skill graph.
+              </p>
+              {/* Social Media Links */}
+              <div className="flex items-center gap-2.5 pt-2">
+                <button aria-label="Twitter" className="w-8 h-8 rounded-xl bg-white dark:bg-[#18262f] border border-stone-200 dark:border-white/5 flex items-center justify-center text-stone-500 dark:text-stone-400 hover:text-primary hover:border-primary/30 hover:scale-105 active:scale-95 transition-all shadow-sm">
+                  <span className="material-symbols-outlined text-base">alternate_email</span>
+                </button>
+                <button aria-label="GitHub" className="w-8 h-8 rounded-xl bg-white dark:bg-[#18262f] border border-stone-200 dark:border-white/5 flex items-center justify-center text-stone-500 dark:text-stone-400 hover:text-primary hover:border-primary/30 hover:scale-105 active:scale-95 transition-all shadow-sm">
+                  <span className="material-symbols-outlined text-base">code</span>
+                </button>
+                <button aria-label="LinkedIn" className="w-8 h-8 rounded-xl bg-white dark:bg-[#18262f] border border-stone-200 dark:border-white/5 flex items-center justify-center text-stone-500 dark:text-stone-400 hover:text-primary hover:border-primary/30 hover:scale-105 active:scale-95 transition-all shadow-sm">
+                  <span className="material-symbols-outlined text-base">partner_exchange</span>
+                </button>
+                <button aria-label="Discord" className="w-8 h-8 rounded-xl bg-white dark:bg-[#18262f] border border-stone-200 dark:border-white/5 flex items-center justify-center text-stone-500 dark:text-stone-400 hover:text-primary hover:border-primary/30 hover:scale-105 active:scale-95 transition-all shadow-sm">
+                  <span className="material-symbols-outlined text-base">forum</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Column 2: Platform */}
+            <div className="md:col-span-2 space-y-3">
+              <h4 className="text-text-primary-light dark:text-text-primary-dark font-extrabold uppercase tracking-widest text-[10px] font-display">Platform</h4>
+              <ul className="space-y-2 text-text-secondary-light dark:text-text-secondary-dark font-medium">
+                <li>
+                  <a href="#features" className="hover:text-primary hover:translate-x-0.5 inline-block transition-all duration-300">Active Timeline</a>
+                </li>
+                <li>
+                  <a href="#workspace" className="hover:text-primary hover:translate-x-0.5 inline-block transition-all duration-300">AI Study Workspace</a>
+                </li>
+                <li>
+                  <a href="#matrix" className="hover:text-primary hover:translate-x-0.5 inline-block transition-all duration-300">Resonance Matrix</a>
+                </li>
+                <li>
+                  <a href="#collision" className="hover:text-primary hover:translate-x-0.5 inline-block transition-all duration-300">Concept Collision</a>
+                </li>
+              </ul>
+            </div>
+
+            {/* Column 3: Resources */}
+            <div className="md:col-span-2 space-y-3">
+              <h4 className="text-text-primary-light dark:text-text-primary-dark font-extrabold uppercase tracking-widest text-[10px] font-display">Resources</h4>
+              <ul className="space-y-2 text-text-secondary-light dark:text-text-secondary-dark font-medium">
+                <li>
+                  <button onClick={() => navigate('/help-center')} className="hover:text-primary hover:translate-x-0.5 text-left inline-block transition-all duration-300">Help Center</button>
+                </li>
+                <li>
+                  <a href="#" className="hover:text-primary hover:translate-x-0.5 inline-block transition-all duration-300">API Documentation</a>
+                </li>
+                <li>
+                  <a href="#" className="hover:text-primary hover:translate-x-0.5 inline-block transition-all duration-300">Release Codex</a>
+                </li>
+                <li>
+                  <button onClick={() => navigate('/feedback')} className="hover:text-primary hover:translate-x-0.5 text-left inline-block transition-all duration-300">System Feedback</button>
+                </li>
+              </ul>
+            </div>
+
+            {/* Column 4: Stay in Sync Form */}
+            <div className="md:col-span-4 space-y-3">
+              <h4 className="text-text-primary-light dark:text-text-primary-dark font-extrabold uppercase tracking-widest text-[10px] font-display">Stay in Sync</h4>
+              <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark font-medium leading-relaxed">
+                Receive monthly updates on cognitive science, learning frameworks, and new AI study agents.
+              </p>
+              {/* Form Capsule */}
+              <div className="flex items-center gap-1.5 pt-1.5">
+                <input 
+                  type="email" 
+                  placeholder="Enter your email..." 
+                  className="flex-1 bg-white dark:bg-[#18262f] border border-stone-200 dark:border-white/5 rounded-xl h-9 px-3 text-xs text-text-primary-light dark:text-text-primary-dark focus:outline-none focus:border-primary/50 transition-colors shadow-inner"
+                />
+                <button className="h-9 w-9 rounded-xl bg-gradient-to-r from-primary to-secondary text-white flex items-center justify-center shadow-md shadow-primary/10 hover:shadow-primary/30 hover:scale-105 active:scale-95 transition-all">
+                  <Icon name="send" className="text-xs" />
+                </button>
+              </div>
+            </div>
           </div>
-          <div>
-            © {new Date().getFullYear()} ReLearn.ai. All rights reserved. Built for structured human growth.
+
+          {/* Bottom Bar: Copyright and status */}
+          <div className="pt-8 border-t border-stone-200/50 dark:border-white/5 flex flex-col sm:flex-row items-center justify-between gap-4 text-text-secondary-light/60 dark:text-text-secondary-dark/60">
+            <div>
+              © {new Date().getFullYear()} ReLearn.ai. All rights reserved.
+            </div>
+
+            {/* Status Beacon Capsule */}
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-[10px] font-black uppercase tracking-wider shadow-inner font-mono">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="status-dot-outer animate-pulse bg-emerald-400 absolute inline-flex h-full w-full rounded-full opacity-75" />
+                <span className="status-dot-inner relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
+              </span>
+              <span>All Systems Operational</span>
+            </div>
+
+            <div className="text-[10px] font-extrabold uppercase tracking-widest text-text-secondary-light/45">
+              Built for structured human growth.
+            </div>
           </div>
         </div>
       </footer>
