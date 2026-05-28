@@ -353,9 +353,9 @@ export const LandingPage: React.FC = () => {
     <div className="min-h-screen bg-background-light dark:bg-background-dark text-text-primary-light dark:text-text-primary-dark font-sans overflow-x-hidden selection:bg-primary/30 select-none antialiased relative">
       {/* Mesh Ambient Glow Background */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[1600px] h-[900px] overflow-hidden pointer-events-none z-0">
-        <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-gradient-to-br from-primary/10 to-indigo-600/5 blur-[120px] dark:from-primary/20 dark:to-indigo-500/10" />
-        <div className="absolute top-[10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-gradient-to-bl from-secondary/10 to-purple-600/5 blur-[100px] dark:from-secondary/15 dark:to-purple-500/5" />
-        <div className="absolute top-[40%] left-[20%] w-[40%] h-[40%] rounded-full bg-gradient-to-r from-pink-500/5 to-primary/5 blur-[110px] dark:from-pink-500/10 dark:to-primary/10" />
+        <div className="absolute top-[-25%] left-[-15%] w-[70%] h-[70%] rounded-full bg-[radial-gradient(circle_at_center,rgba(0,102,255,0.12)_0%,rgba(99,102,241,0.03)_50%,transparent_70%)] dark:bg-[radial-gradient(circle_at_center,rgba(0,102,255,0.2)_0%,rgba(99,102,241,0.06)_50%,transparent_70%)] animate-glow-drift-1" />
+        <div className="absolute top-[5%] right-[-15%] w-[60%] h-[60%] rounded-full bg-[radial-gradient(circle_at_center,rgba(8,131,149,0.12)_0%,rgba(147,51,234,0.03)_50%,transparent_70%)] dark:bg-[radial-gradient(circle_at_center,rgba(8,131,149,0.2)_0%,rgba(147,51,234,0.06)_50%,transparent_70%)] animate-glow-drift-2" />
+        <div className="absolute top-[35%] left-[15%] w-[50%] h-[50%] rounded-full bg-[radial-gradient(circle_at_center,rgba(236,72,153,0.06)_0%,rgba(0,102,255,0.02)_50%,transparent_70%)] dark:bg-[radial-gradient(circle_at_center,rgba(236,72,153,0.12)_0%,rgba(0,102,255,0.04)_50%,transparent_70%)] animate-glow-drift-3" />
         {/* Futuristic grid overlay */}
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.015)_1px,transparent_1px)] dark:bg-[linear-gradient(rgba(255,255,255,0.007)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.007)_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-80" />
       </div>
@@ -692,34 +692,38 @@ export const LandingPage: React.FC = () => {
 
             {/* Parallax Floating Cards overlaying the dashboard layout */}
             <div 
-              className="absolute top-[28%] left-10 p-4 rounded-2xl glass-card border border-primary/20 dark:border-primary/10 shadow-lg w-52 pointer-events-none transform hidden sm:block"
+              className="absolute top-[28%] left-10 pointer-events-none hidden sm:block z-20"
               style={{
                 transform: `translate(${mousePos.x * -18}px, ${mousePos.y * -18}px)`,
                 transition: 'transform 0.1s ease-out'
               }}
             >
-              <div className="flex items-center gap-2 mb-2">
-                <span className="material-symbols-outlined text-primary text-sm">psychology</span>
-                <span className="text-[10px] font-bold text-primary font-display uppercase tracking-wider">Concept Collision</span>
+              <div className="p-4 rounded-2xl glass-card border border-primary/20 dark:border-primary/10 shadow-lg w-52 animate-float-slow">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="material-symbols-outlined text-primary text-sm">psychology</span>
+                  <span className="text-[10px] font-bold text-primary font-display uppercase tracking-wider">Concept Collision</span>
+                </div>
+                <h4 className="text-xs font-black tracking-tight leading-snug">Math + Aesthetics</h4>
+                <p className="text-[9px] text-text-secondary-light dark:text-text-secondary-dark mt-1 font-medium">Neural mapping generated successfully in pathway.</p>
               </div>
-              <h4 className="text-xs font-black tracking-tight leading-snug">Math + Aesthetics</h4>
-              <p className="text-[9px] text-text-secondary-light dark:text-text-secondary-dark mt-1 font-medium">Neural mapping generated successfully in pathway.</p>
             </div>
 
             <div 
-              className="absolute bottom-16 right-10 p-4 rounded-2xl glass-card border border-secondary/20 dark:border-secondary/10 shadow-lg w-48 pointer-events-none transform"
+              className="absolute bottom-16 right-10 pointer-events-none z-20"
               style={{
                 transform: `translate(${mousePos.x * 22}px, ${mousePos.y * 22}px)`,
                 transition: 'transform 0.1s ease-out'
               }}
             >
-              <div className="flex items-center gap-2 mb-1.5">
-                <span className="material-symbols-outlined text-secondary text-sm">bolt</span>
-                <span className="text-[10px] font-bold text-secondary font-display uppercase tracking-wider">Daily Resonance</span>
-              </div>
-              <div className="text-xl font-black font-display text-text-primary-light dark:text-text-primary-dark">98% Sync</div>
-              <div className="w-full bg-border-light dark:bg-border-dark h-1.5 rounded-full mt-2 overflow-hidden">
-                <div className="bg-secondary h-full w-[98%] rounded-full animate-pulse" />
+              <div className="p-4 rounded-2xl glass-card border border-secondary/20 dark:border-secondary/10 shadow-lg w-48 animate-float-slow-delayed">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="material-symbols-outlined text-secondary text-sm">bolt</span>
+                  <span className="text-[10px] font-bold text-secondary font-display uppercase tracking-wider">Daily Resonance</span>
+                </div>
+                <div className="text-xl font-black font-display text-text-primary-light dark:text-text-primary-dark">98% Sync</div>
+                <div className="w-full bg-border-light dark:bg-border-dark h-1.5 rounded-full mt-2 overflow-hidden">
+                  <div className="bg-secondary h-full w-[98%] rounded-full animate-pulse" />
+                </div>
               </div>
             </div>
           </div>
@@ -733,14 +737,20 @@ export const LandingPage: React.FC = () => {
 
       {/* 3. INTERACTIVE LEARNING JOURNEY */}
       <section id="features" className="py-24 px-6 max-w-[1280px] mx-auto z-10 relative scroll-mt-24">
-        <div className="text-center max-w-[700px] mx-auto mb-16 space-y-4">
+        <motion.div 
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+          className="text-center max-w-[700px] mx-auto mb-16 space-y-4"
+        >
           <h2 className="text-3xl sm:text-5xl font-black font-display tracking-tight leading-none">
             Your Structured Career Evolution
           </h2>
           <p className="text-base text-text-secondary-light dark:text-text-secondary-dark font-medium max-w-[500px] mx-auto">
             Traditional learning is broken and chaotic. Here is how ReLearn.ai guides you from aspiration to true domain mastery.
           </p>
-        </div>
+        </motion.div>
 
         {/* Timeline Timeline Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 relative">
@@ -773,9 +783,21 @@ export const LandingPage: React.FC = () => {
 
       {/* 4. AI WORKSPACE EMULATOR */}
       <section id="workspace" className="py-24 px-6 bg-stone-50 dark:bg-stone-900/30 border-y border-border-light dark:border-border-dark relative z-10 scroll-mt-24">
-        <div className="max-w-[1280px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+        {/* Workspace Ambient Glow Background */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+          <div className="absolute top-[10%] left-[-15%] w-[60%] h-[60%] rounded-full bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.06)_0%,rgba(0,102,255,0.02)_50%,transparent_70%)] dark:bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.12)_0%,rgba(0,102,255,0.04)_50%,transparent_70%)] animate-glow-drift-purple" />
+          <div className="absolute bottom-[10%] right-[-15%] w-[55%] h-[55%] rounded-full bg-[radial-gradient(circle_at_center,rgba(8,131,149,0.06)_0%,rgba(20,184,166,0.02)_50%,transparent_70%)] dark:bg-[radial-gradient(circle_at_center,rgba(8,131,149,0.12)_0%,rgba(20,184,166,0.04)_50%,transparent_70%)] animate-glow-drift-blue" />
+        </div>
+
+        <div className="max-w-[1280px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center relative z-10">
           {/* Text Left */}
-          <div className="lg:col-span-5 space-y-6">
+          <motion.div 
+            initial={{ opacity: 0, x: -50 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+            className="lg:col-span-5 space-y-6"
+          >
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-secondary/10 border border-secondary/20">
               <span className="text-[10px] font-extrabold uppercase tracking-widest text-secondary font-display">Personal growth OS</span>
             </div>
@@ -807,7 +829,7 @@ export const LandingPage: React.FC = () => {
                 <p className="text-sm font-semibold text-text-secondary-light dark:text-text-secondary-dark">Real-time resource recommendations tailored to your goals</p>
               </div>
             </div>
-          </div>
+          </motion.div>
 
           {/* Interactive Workspace Panel Right */}
           <div className="lg:col-span-7 w-full rounded-3xl border border-border-light dark:border-border-dark bg-white dark:bg-background-dark overflow-hidden shadow-2xl flex flex-col min-h-[520px]">
@@ -1006,9 +1028,21 @@ export const LandingPage: React.FC = () => {
 
       {/* 5. KNOWLEDGE MATRIX SECTION */}
       <section id="matrix" className="py-24 px-6 max-w-[1280px] mx-auto z-10 relative scroll-mt-24">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+        {/* Matrix Ambient Glow Background */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+          <div className="absolute top-[5%] right-[-15%] w-[55%] h-[55%] rounded-full bg-[radial-gradient(circle_at_center,rgba(0,102,255,0.06)_0%,rgba(99,102,241,0.02)_50%,transparent_70%)] dark:bg-[radial-gradient(circle_at_center,rgba(0,102,255,0.12)_0%,rgba(99,102,241,0.04)_50%,transparent_70%)] animate-glow-drift-blue" />
+          <div className="absolute bottom-[5%] left-[-15%] w-[50%] h-[50%] rounded-full bg-[radial-gradient(circle_at_center,rgba(168,85,247,0.05)_0%,rgba(236,72,153,0.01)_50%,transparent_70%)] dark:bg-[radial-gradient(circle_at_center,rgba(168,85,247,0.1)_0%,rgba(236,72,153,0.03)_50%,transparent_70%)] animate-glow-drift-purple" />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center relative z-10">
           {/* Text Left */}
-          <div className="lg:col-span-5 space-y-6">
+          <motion.div 
+            initial={{ opacity: 0, x: -40 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+            className="lg:col-span-5 space-y-6"
+          >
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20">
               <span className="text-[10px] font-extrabold uppercase tracking-widest text-primary font-display">Knowledge Matrix</span>
             </div>
@@ -1045,7 +1079,7 @@ export const LandingPage: React.FC = () => {
                 </div>
               </motion.div>
             )}
-          </div>
+          </motion.div>
 
           {/* Interactive Matrix Map Right */}
           <div className="lg:col-span-7 aspect-[4/3] rounded-3xl border border-border-light dark:border-border-dark bg-white dark:bg-background-dark relative overflow-hidden shadow-2xl p-6 flex flex-col justify-between">
@@ -1070,6 +1104,39 @@ export const LandingPage: React.FC = () => {
                 <line x1="60%" y1="25%" x2="80%" y2="65%" stroke="rgba(99, 102, 241, 0.2)" strokeWidth="2" strokeDasharray="3 3" />
                 <line x1="45%" y1="70%" x2="80%" y2="65%" stroke="rgba(99, 102, 241, 0.2)" strokeWidth="2" strokeDasharray="3 3" />
                 <line x1="45%" y1="70%" x2="15%" y2="80%" stroke="rgba(99, 102, 241, 0.2)" strokeWidth="2" strokeDasharray="3 3" />
+
+                {/* Pulsing Concentric Halos behind the selected node */}
+                {selectedNode && (
+                  <>
+                    <circle 
+                      cx={`${selectedNode.x}%`} 
+                      cy={`${selectedNode.y}%`} 
+                      r="45" 
+                      fill="none" 
+                      stroke="url(#selected-node-glow)" 
+                      strokeWidth="2" 
+                      className="origin-center animate-halo-ripple pointer-events-none" 
+                      style={{ transformBox: 'fill-box', transformOrigin: 'center' }} 
+                    />
+                    <circle 
+                      cx={`${selectedNode.x}%`} 
+                      cy={`${selectedNode.y}%`} 
+                      r="45" 
+                      fill="none" 
+                      stroke="url(#selected-node-glow)" 
+                      strokeWidth="1.5" 
+                      className="origin-center animate-halo-ripple-delayed pointer-events-none" 
+                      style={{ transformBox: 'fill-box', transformOrigin: 'center' }} 
+                    />
+                  </>
+                )}
+
+                <defs>
+                  <radialGradient id="selected-node-glow" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stopColor="#0066FF" stopOpacity="0.55" />
+                    <stop offset="100%" stopColor="#088395" stopOpacity="0" />
+                  </radialGradient>
+                </defs>
               </svg>
 
               {/* Nodes */}
@@ -1102,11 +1169,69 @@ export const LandingPage: React.FC = () => {
 
       {/* 6. CONCEPT COLLISION */}
       <section id="collision" className="py-24 px-6 bg-stone-50 dark:bg-stone-900/30 border-y border-border-light dark:border-border-dark relative z-10 scroll-mt-24">
-        <div className="max-w-[1280px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+        {/* Collision Ambient Glow Background */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+          <div className="absolute top-[20%] left-[10%] w-[65%] h-[65%] rounded-full bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.06)_0%,rgba(168,85,247,0.02)_50%,transparent_70%)] dark:bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.12)_0%,rgba(168,85,247,0.04)_50%,transparent_70%)] animate-glow-drift-purple" />
+          <div className="absolute bottom-[5%] right-[-15%] w-[50%] h-[50%] rounded-full bg-[radial-gradient(circle_at_center,rgba(20,184,166,0.06)_0%,rgba(8,131,149,0.02)_50%,transparent_70%)] dark:bg-[radial-gradient(circle_at_center,rgba(20,184,166,0.12)_0%,rgba(8,131,149,0.04)_50%,transparent_70%)] animate-glow-drift-emerald" />
+        </div>
+
+        <div className="max-w-[1280px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center relative z-10">
           {/* Interactive Collide Simulator Left */}
           <div className="lg:col-span-7 p-8 rounded-[2.5rem] border border-border-light dark:border-border-dark bg-white dark:bg-surface-dark/40 shadow-2xl relative overflow-hidden flex flex-col justify-between min-h-[460px]">
             {/* Visual Node Collision animation background */}
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.03),transparent_60%)] pointer-events-none" />
+
+            {/* Sci-Fi Reactor Collision Overlay */}
+            {colliding && (
+              <div className="absolute inset-0 bg-background-light/80 dark:bg-background-dark/85 backdrop-blur-md z-30 flex flex-col items-center justify-center overflow-hidden">
+                {/* Shockwave grid background */}
+                <div className="absolute inset-0 bg-[linear-gradient(rgba(99,102,241,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(99,102,241,0.02)_1px,transparent_1px)] bg-[size:20px_20px] opacity-70 pointer-events-none" />
+                
+                {/* Central Shockwave ring */}
+                <div className="absolute top-1/2 left-1/2 w-48 h-48 rounded-full border-2 border-indigo-500/50 bg-indigo-500/5 animate-reactor-shockwave z-10" />
+                <div className="absolute top-1/2 left-1/2 w-48 h-48 rounded-full border border-secondary/40 bg-secondary/5 animate-reactor-shockwave [animation-delay:0.1s] z-10" />
+
+                {/* Central reactor core flash overlay */}
+                <div className="absolute inset-0 bg-gradient-to-r from-primary/30 via-white to-secondary/30 animate-reactor-flash pointer-events-none z-20" />
+
+                {/* Converging energy bubbles */}
+                <div className="absolute top-1/2 left-1/2 w-28 h-28 rounded-full bg-gradient-to-br from-primary to-indigo-600 blur-xl animate-collide-left" />
+                <div className="absolute top-1/2 left-1/2 w-28 h-28 rounded-full bg-gradient-to-bl from-secondary to-teal-500 blur-xl animate-collide-right" />
+
+                {/* Floating quantum spark particles */}
+                <div className="absolute inset-0 pointer-events-none z-15">
+                  {[...Array(12)].map((_, i) => {
+                    const sway = (i % 3 - 1) * 30 + Math.random() * 20;
+                    const delay = (i * 0.1).toFixed(2);
+                    const left = 35 + (i * 5) + Math.random() * 5;
+                    return (
+                      <span 
+                        key={i} 
+                        className="absolute bottom-1/4 w-1.5 h-1.5 rounded-full bg-indigo-400 blur-[1px] animate-reactor-particle"
+                        style={{
+                          left: `${left}%`,
+                          '--sway': `${sway}px`,
+                          animationDelay: `${delay}s`
+                        } as React.CSSProperties}
+                      />
+                    );
+                  })}
+                </div>
+
+                {/* Status HUD readout */}
+                <div className="relative text-center space-y-3 z-30">
+                  <div className="w-16 h-16 rounded-full border-4 border-t-primary border-r-secondary border-b-indigo-500 border-l-stone-200 animate-spin mx-auto flex items-center justify-center bg-stone-50 dark:bg-surface-dark shadow-xl">
+                    <Icon name="bolt" className="text-2xl text-primary animate-pulse" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-black font-display uppercase tracking-widest bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">SYNTHESIZING MATRIX PATHWAYS</h4>
+                    <p className="text-[9px] font-bold text-text-secondary-light/60 dark:text-text-secondary-dark/60 font-mono mt-1 uppercase tracking-widest animate-pulse">
+                      Analyzing {collisionA} x {collisionB}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div>
               <div className="flex items-center justify-between border-b border-border-light dark:border-border-dark pb-4 mb-6">
@@ -1193,7 +1318,13 @@ export const LandingPage: React.FC = () => {
           </div>
 
           {/* Text Right */}
-          <div className="lg:col-span-5 space-y-6">
+          <motion.div 
+            initial={{ opacity: 0, x: 40 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+            className="lg:col-span-5 space-y-6"
+          >
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20">
               <span className="text-[10px] font-extrabold uppercase tracking-widest text-indigo-500 font-display">Concept Collision</span>
             </div>
@@ -1210,19 +1341,25 @@ export const LandingPage: React.FC = () => {
               <h4 className="text-sm font-bold tracking-tight mb-1">Synthesizing Skills</h4>
               <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark leading-relaxed font-semibold">Combine Finance + Game Development to model economic game theories or write smart-contracts for MMO economies.</p>
             </div>
-          </div>
+          </motion.div>
         </div>
       </section>
 
       {/* 7. MOBILE EXPERIENCE SECTION */}
       <section id="mobile" className="py-24 px-6 max-w-[1280px] mx-auto z-10 relative scroll-mt-24">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+        {/* Mobile Ambient Glow Background */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+          <div className="absolute top-[10%] left-[-15%] w-[55%] h-[55%] rounded-full bg-[radial-gradient(circle_at_center,rgba(8,131,149,0.06)_0%,rgba(20,184,166,0.02)_50%,transparent_70%)] dark:bg-[radial-gradient(circle_at_center,rgba(8,131,149,0.12)_0%,rgba(20,184,166,0.04)_50%,transparent_70%)] animate-glow-drift-blue" />
+          <div className="absolute bottom-[10%] right-[-15%] w-[60%] h-[60%] rounded-full bg-[radial-gradient(circle_at_center,rgba(236,72,153,0.06)_0%,rgba(0,102,255,0.02)_50%,transparent_70%)] dark:bg-[radial-gradient(circle_at_center,rgba(236,72,153,0.12)_0%,rgba(0,102,255,0.04)_50%,transparent_70%)] animate-glow-drift-rose" />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center relative z-10">
           {/* Mobile Previews Left */}
           <div className="lg:col-span-7 flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-8 relative py-8">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(8,131,149,0.03),transparent_70%)] pointer-events-none" />
 
             {/* Mobile Mockup 1 */}
-            <div className="w-60 h-[460px] rounded-[3rem] border-[10px] border-stone-900 dark:border-stone-950 ring-4 ring-stone-200 dark:ring-stone-800 bg-background-light dark:bg-background-dark shadow-2xl relative overflow-hidden shrink-0 transform -rotate-3 hover:rotate-0 transition-all duration-500">
+            <div className="w-60 h-[460px] rounded-[3rem] border-[10px] border-stone-900 dark:border-stone-950 ring-4 ring-stone-200 dark:ring-stone-800 bg-background-light dark:bg-background-dark shadow-2xl relative overflow-hidden shrink-0 transform -rotate-3 hover:rotate-0 transition-all duration-500 animate-float-mobile-1">
               {/* Dynamic Island */}
               <div className="absolute top-2 left-1/2 -translate-x-1/2 w-20 h-4 bg-black rounded-full z-30 flex items-center justify-end px-2 gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-blue-950 border border-white/10" />
@@ -1273,7 +1410,7 @@ export const LandingPage: React.FC = () => {
             </div>
 
             {/* Mobile Mockup 2 */}
-            <div className="w-60 h-[460px] rounded-[3rem] border-[10px] border-stone-900 dark:border-stone-950 ring-4 ring-stone-200 dark:ring-stone-800 bg-background-light dark:bg-background-dark shadow-2xl relative overflow-hidden shrink-0 transform rotate-3 hover:rotate-0 transition-all duration-500">
+            <div className="w-60 h-[460px] rounded-[3rem] border-[10px] border-stone-900 dark:border-stone-950 ring-4 ring-stone-200 dark:ring-stone-800 bg-background-light dark:bg-background-dark shadow-2xl relative overflow-hidden shrink-0 transform rotate-3 hover:rotate-0 transition-all duration-500 animate-float-mobile-2">
               {/* Dynamic Island */}
               <div className="absolute top-2 left-1/2 -translate-x-1/2 w-20 h-4 bg-black rounded-full z-30 flex items-center justify-end px-2 gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-blue-950 border border-white/10" />
@@ -1317,7 +1454,13 @@ export const LandingPage: React.FC = () => {
           </div>
 
           {/* Text Right */}
-          <div className="lg:col-span-5 space-y-6">
+          <motion.div 
+            initial={{ opacity: 0, x: 40 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+            className="lg:col-span-5 space-y-6"
+          >
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-secondary/10 border border-secondary/20">
               <span className="text-[10px] font-extrabold uppercase tracking-widest text-secondary font-display">Optimized Performance</span>
             </div>
@@ -1337,15 +1480,27 @@ export const LandingPage: React.FC = () => {
                 <span className="text-[9px] text-text-secondary-light font-bold">Responsive Touch Gestures</span>
               </div>
             </div>
-          </div>
+          </motion.div>
         </div>
       </section>
 
       {/* 8. ABOUT SECTION */}
       <section id="about" className="py-24 px-6 bg-stone-50 dark:bg-stone-900/30 border-y border-border-light dark:border-border-dark relative z-10 scroll-mt-24">
-        <div className="max-w-[1280px] mx-auto space-y-12">
+        {/* About Ambient Glow Background */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+          <div className="absolute top-[5%] right-[-15%] w-[60%] h-[60%] rounded-full bg-[radial-gradient(circle_at_center,rgba(0,102,255,0.06)_0%,rgba(99,102,241,0.02)_50%,transparent_70%)] dark:bg-[radial-gradient(circle_at_center,rgba(0,102,255,0.12)_0%,rgba(99,102,241,0.04)_50%,transparent_70%)] animate-glow-drift-purple" />
+          <div className="absolute bottom-[5%] left-[-15%] w-[55%] h-[55%] rounded-full bg-[radial-gradient(circle_at_center,rgba(8,131,149,0.06)_0%,rgba(20,184,166,0.02)_50%,transparent_70%)] dark:bg-[radial-gradient(circle_at_center,rgba(8,131,149,0.12)_0%,rgba(20,184,166,0.04)_50%,transparent_70%)] animate-glow-drift-emerald" />
+        </div>
+
+        <div className="max-w-[1280px] mx-auto space-y-12 relative z-10">
           {/* Header */}
-          <div className="text-center max-w-[700px] mx-auto space-y-4">
+          <motion.div 
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+            className="text-center max-w-[700px] mx-auto space-y-4"
+          >
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20">
               <span className="text-[10px] font-extrabold uppercase tracking-widest text-primary font-display">About ReLearn.ai</span>
             </div>
@@ -1355,7 +1510,7 @@ export const LandingPage: React.FC = () => {
             <p className="text-sm sm:text-base text-text-secondary-light dark:text-text-secondary-dark font-semibold">
               Redefining how modern learning and career growth should feel.
             </p>
-          </div>
+          </motion.div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
             {/* Left Card: Core Philosophy */}
