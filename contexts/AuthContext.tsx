@@ -183,6 +183,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const users = getStoredUsers();
         users[profile.id] = updatedProfile;
         saveStoredUsers(users);
+
+        // Handle deferred OAuth/verification redirects for HashRouter
+        const redirectPath = sessionStorage.getItem('oauth_redirect_path');
+        if (redirectPath) {
+          sessionStorage.removeItem('oauth_redirect_path');
+          window.location.hash = '#' + redirectPath;
+        }
       }
     } catch (err: any) {
       // Don't log common refresh token errors as warnings to avoid console noise
