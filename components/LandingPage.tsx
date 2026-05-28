@@ -58,6 +58,25 @@ const JOURNEY_STEPS = [
   }
 ];
 
+// Framer Motion variants for highly-performant staggered card grids
+const STAGGER_CONTAINER_VARIANTS = {
+  hidden: {},
+  visible: {
+    transition: {
+      staggerChildren: 0.08
+    }
+  }
+};
+
+const STAGGER_CARD_VARIANTS = {
+  hidden: { opacity: 0, y: 25 },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] as const }
+  }
+};
+
 // Preset domains for Concept Collision simulation
 const COLLISION_DOMAINS_A = [
   "Neural Networks",
@@ -753,14 +772,17 @@ export const LandingPage: React.FC = () => {
         </motion.div>
 
         {/* Timeline Timeline Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 relative">
-          {JOURNEY_STEPS.map((step, idx) => (
+        <motion.div 
+          variants={STAGGER_CONTAINER_VARIANTS}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-100px" }}
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 relative"
+        >
+          {JOURNEY_STEPS.map((step) => (
             <motion.div
               key={step.step}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-100px" }}
-              transition={{ duration: 0.5, delay: idx * 0.1 }}
+              variants={STAGGER_CARD_VARIANTS}
               className="p-8 rounded-[2rem] border border-border-light dark:border-border-dark bg-white dark:bg-surface-dark/40 shadow-xl group hover:border-primary/20 dark:hover:border-primary/20 transition-all duration-300 relative overflow-hidden"
             >
               {/* Radial gradient glow on card hover */}
@@ -778,7 +800,7 @@ export const LandingPage: React.FC = () => {
               <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark leading-relaxed font-medium relative">{step.desc}</p>
             </motion.div>
           ))}
-        </div>
+        </motion.div>
       </section>
 
       {/* 4. AI WORKSPACE EMULATOR */}
