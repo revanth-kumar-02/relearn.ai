@@ -1380,17 +1380,17 @@ export const LandingPage: React.FC = () => {
           <div className="lg:col-span-7 flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-8 relative py-8">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(8,131,149,0.03),transparent_70%)] pointer-events-none" />
             {/* Mobile Mockup 1 - Real Live Dashboard */}
-            <div className="w-64 h-[490px] rounded-[3rem] border-[10px] border-stone-900 dark:border-stone-950 ring-4 ring-stone-200 dark:ring-stone-800 bg-[#101c22] text-[#f6f7f8] shadow-2xl relative overflow-hidden shrink-0 transform -rotate-3 hover:rotate-0 transition-all duration-500 animate-float-mobile-1 z-20">
+            <div className="w-64 h-[490px] rounded-[3rem] border-[10px] border-stone-900 dark:border-stone-950 ring-4 ring-stone-200 dark:ring-stone-850 bg-[#f6f7f8] text-[#101c22] shadow-2xl relative overflow-hidden shrink-0 transform -rotate-3 hover:rotate-0 transition-all duration-500 animate-float-mobile-1 z-20">
               {/* Dynamic Island */}
               <div className="absolute top-2 left-1/2 -translate-x-1/2 w-20 h-4 bg-black rounded-full z-30 flex items-center justify-end px-2 gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-blue-950 border border-white/10" />
                 <span className="w-1 h-1 rounded-full bg-emerald-500/80" />
               </div>
               {/* Home Indicator */}
-              <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-24 h-1 bg-white/30 rounded-full z-30" />
+              <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-24 h-1 bg-stone-900/10 dark:bg-white/10 rounded-full z-30" />
               
               {/* Mock Status Bar */}
-              <div className="absolute top-0 left-0 w-full h-8 px-5 pt-2 flex items-center justify-between z-20 text-[9px] font-bold text-white/85 font-mono">
+              <div className="absolute top-0 left-0 w-full h-8 px-5 pt-2 flex items-center justify-between z-20 text-[9px] font-bold text-stone-600 font-mono">
                 <span>18:57</span>
                 <div className="flex items-center gap-1.5">
                   <span className="material-symbols-outlined text-[10px]">wifi</span>
@@ -1399,7 +1399,7 @@ export const LandingPage: React.FC = () => {
               </div>
 
               {/* Inner Mock content */}
-              <div className="p-4 pt-9 pb-12 space-y-4 h-full flex flex-col justify-between overflow-y-auto no-scrollbar relative z-10 bg-[#101c22]">
+              <div className="p-4 pt-9 pb-12 space-y-4 h-full flex flex-col justify-between overflow-y-auto no-scrollbar relative z-10 bg-[#f6f7f8]">
                 <div className="space-y-4">
                   {/* Real Dashboard Header */}
                   <div className="flex items-center justify-between">
@@ -1409,35 +1409,35 @@ export const LandingPage: React.FC = () => {
                           <span className="status-dot-outer animate-pulse bg-emerald-400 absolute inline-flex h-full w-full rounded-full opacity-75" />
                           <span className="status-dot-inner relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
                         </span>
-                        <span className="text-[7px] font-black uppercase tracking-wider text-stone-400 font-mono">Live Consciousness</span>
+                        <span className="text-[7px] font-black uppercase tracking-wider text-stone-500 font-mono">Live Consciousness</span>
                       </div>
-                      <h4 className="text-xs font-black font-display tracking-tight leading-none text-white">
+                      <h4 className="text-xs font-black font-display tracking-tight leading-none text-[#101c22]">
                         Good Evening, <span className="text-primary">Learner</span>.
                       </h4>
                     </div>
                     {/* Real Profile / Bell widgets */}
                     <div className="flex items-center gap-1.5">
-                      <div className="w-6 h-6 rounded-lg bg-[#18262f] border border-white/5 flex items-center justify-center text-stone-300 relative shadow-md">
+                      <div className="w-6 h-6 rounded-lg bg-white border border-stone-200 flex items-center justify-center text-stone-600 relative shadow-sm">
                         <Icon name="notifications" className="text-[10px]" />
                         <span className="absolute top-1.5 right-1.5 w-1 h-1 bg-red-500 rounded-full shadow-glow-red" />
                       </div>
-                      <div className="w-6 h-6 rounded-lg bg-primary text-white font-black text-[9px] flex items-center justify-center shadow-lg shadow-primary/20">
+                      <div className="w-6 h-6 rounded-lg bg-primary text-white font-black text-[9px] flex items-center justify-center shadow-md shadow-primary/10">
                         L
                       </div>
                     </div>
                   </div>
 
                   {/* Real Mistake Museum Recalibration alert box */}
-                  <div className="p-3 rounded-2xl bg-[#18262f] border border-red-500/20 shadow-lg relative overflow-hidden">
+                  <div className="p-3 rounded-2xl bg-gradient-to-br from-red-50 to-rose-50/50 border border-red-200/60 shadow-sm relative overflow-hidden">
                     <div className="absolute -right-4 -top-4 w-12 h-12 bg-red-500/5 rounded-full blur-xl pointer-events-none" />
-                    <h5 className="text-[8px] font-black uppercase tracking-widest text-red-500 mb-1 flex items-center gap-1 font-display">
+                    <h5 className="text-[8px] font-black uppercase tracking-widest text-red-600 mb-1 flex items-center gap-1 font-display">
                       <Icon name="history_edu" className="text-[10px]" />
                       Cognitive Recalibration
                     </h5>
-                    <p className="text-[8px] font-bold text-stone-300 leading-normal">
-                      Your AI Engine detected <span className="text-red-500 font-extrabold">3 anomalies</span> in past sessions. Resolve now?
+                    <p className="text-[8px] font-bold text-stone-600 leading-normal">
+                      Your AI Engine detected <span className="text-red-600 font-extrabold">3 anomalies</span> in past sessions. Resolve now?
                     </p>
-                    <button className="w-full py-1.5 mt-2 bg-red-500 text-white rounded-lg font-black text-[7.5px] uppercase tracking-wider shadow-lg shadow-red-500/20 hover:scale-[1.02] active:scale-95 transition-all">
+                    <button className="w-full py-1.5 mt-2 bg-red-500 text-white rounded-lg font-black text-[7.5px] uppercase tracking-wider shadow-md hover:bg-red-600 hover:scale-[1.02] active:scale-95 transition-all">
                       Initiate Warmup
                     </button>
                   </div>
@@ -1445,58 +1445,58 @@ export const LandingPage: React.FC = () => {
                   {/* Pathways list */}
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-[8px] font-black uppercase tracking-wider text-stone-400 font-mono">Learning Pathways</span>
+                      <span className="text-[8px] font-black uppercase tracking-wider text-stone-500 font-mono">Learning Pathways</span>
                       <span className="text-[7.5px] font-bold text-primary font-mono uppercase cursor-pointer hover:underline">Expand View</span>
                     </div>
 
                     <div className="space-y-2">
                       {/* PlanCard 1 */}
-                      <div className="p-3 rounded-2xl bg-[#18262f] border border-white/5 space-y-2.5 shadow-lg relative overflow-hidden group">
+                      <div className="p-3 rounded-2xl bg-white border border-stone-200 shadow-sm space-y-2.5 relative overflow-hidden group">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 flex items-center justify-center border border-blue-500/30 shadow-inner flex-shrink-0">
+                          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-100 to-cyan-100 flex items-center justify-center border border-blue-200 flex-shrink-0">
                             <Icon name="psychology" className="text-xs text-primary" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h6 className="text-[9.5px] font-black tracking-tight leading-tight text-white truncate">NLP & LLM Architectures</h6>
-                            <div className="flex items-center gap-1.5 mt-0.5 text-[6.5px] font-bold text-stone-500">
+                            <h6 className="text-[9.5px] font-black tracking-tight leading-tight text-[#101c22] truncate">NLP & LLM Architectures</h6>
+                            <div className="flex items-center gap-1.5 mt-0.5 text-[6.5px] font-bold text-stone-400">
                               <span>Cognitive</span>
-                              <div className="w-0.5 h-0.5 rounded-full bg-stone-700" />
+                              <div className="w-0.5 h-0.5 rounded-full bg-stone-300" />
                               <span>12 Stages</span>
                             </div>
                           </div>
                         </div>
                         <div className="space-y-1">
-                          <div className="flex justify-between items-end text-[7px] font-bold text-stone-400">
+                          <div className="flex justify-between items-end text-[7px] font-bold text-stone-500">
                             <span className="uppercase tracking-widest text-[6px]">Resonance Level</span>
-                            <span className="text-white text-[8px] font-black">94%</span>
+                            <span className="text-[#101c22] text-[8px] font-black">94%</span>
                           </div>
-                          <div className="w-full bg-[#101c22] h-1.5 rounded-full p-0.5 border border-white/5 overflow-hidden">
+                          <div className="w-full bg-stone-100 h-1.5 rounded-full p-0.5 border border-stone-200/50 overflow-hidden">
                             <div className="bg-primary h-full w-[94%] rounded-full relative shadow-glow-primary" />
                           </div>
                         </div>
                       </div>
 
                       {/* PlanCard 2 */}
-                      <div className="p-3 rounded-2xl bg-[#18262f] border border-white/5 space-y-2.5 shadow-lg relative overflow-hidden group">
+                      <div className="p-3 rounded-2xl bg-white border border-stone-200 shadow-sm space-y-2.5 relative overflow-hidden group">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center border border-pink-500/30 shadow-inner flex-shrink-0">
+                          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center border border-pink-200 flex-shrink-0">
                             <Icon name="insights" className="text-xs text-secondary" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h6 className="text-[9.5px] font-black tracking-tight leading-tight text-white truncate">Behavioral Microeconomics</h6>
-                            <div className="flex items-center gap-1.5 mt-0.5 text-[6.5px] font-bold text-stone-500">
+                            <h6 className="text-[9.5px] font-black tracking-tight leading-tight text-[#101c22] truncate">Behavioral Microeconomics</h6>
+                            <div className="flex items-center gap-1.5 mt-0.5 text-[6.5px] font-bold text-stone-400">
                               <span>Creative</span>
-                              <div className="w-0.5 h-0.5 rounded-full bg-stone-700" />
+                              <div className="w-0.5 h-0.5 rounded-full bg-stone-300" />
                               <span>6 Stages</span>
                             </div>
                           </div>
                         </div>
                         <div className="space-y-1">
-                          <div className="flex justify-between items-end text-[7px] font-bold text-stone-400">
+                          <div className="flex justify-between items-end text-[7px] font-bold text-stone-500">
                             <span className="uppercase tracking-widest text-[6px]">Resonance Level</span>
-                            <span className="text-white text-[8px] font-black">80%</span>
+                            <span className="text-[#101c22] text-[8px] font-black">80%</span>
                           </div>
-                          <div className="w-full bg-[#101c22] h-1.5 rounded-full p-0.5 border border-white/5 overflow-hidden">
+                          <div className="w-full bg-stone-100 h-1.5 rounded-full p-0.5 border border-stone-200/50 overflow-hidden">
                             <div className="bg-secondary h-full w-[80%] rounded-full relative shadow-glow-secondary" />
                           </div>
                         </div>
@@ -1506,7 +1506,7 @@ export const LandingPage: React.FC = () => {
                 </div>
 
                 {/* Real Bottom Navigation */}
-                <div className="h-10 w-full flex items-center justify-around border-t border-white/5 bg-[#18262f]/90 backdrop-blur-md absolute bottom-0 left-0 px-2 shadow-xl z-25">
+                <div className="h-10 w-full flex items-center justify-around border-t border-stone-200 bg-white/95 backdrop-blur-md absolute bottom-0 left-0 px-2 shadow-sm z-25">
                   <div className="flex flex-col items-center cursor-pointer text-primary">
                     <Icon name="home" className="text-[14px]" />
                     <span className="text-[5.5px] font-black tracking-tighter uppercase mt-0.5">Dashboard</span>
@@ -1515,7 +1515,7 @@ export const LandingPage: React.FC = () => {
                     <Icon name="bar_chart" className="text-[14px]" />
                     <span className="text-[5.5px] font-black tracking-tighter uppercase mt-0.5">Progress</span>
                   </div>
-                  <div className="w-6 h-6 rounded-xl bg-gradient-to-r from-primary to-secondary flex items-center justify-center text-white shadow-lg shadow-primary/20"><Icon name="add" className="text-xs" /></div>
+                  <div className="w-6 h-6 rounded-xl bg-gradient-to-r from-primary to-secondary flex items-center justify-center text-white shadow-md shadow-primary/10"><Icon name="add" className="text-xs" /></div>
                   <div className="flex flex-col items-center cursor-pointer text-stone-400 hover:text-primary">
                     <Icon name="menu_book" className="text-[14px]" />
                     <span className="text-[5.5px] font-black tracking-tighter uppercase mt-0.5">Diary</span>
@@ -1529,17 +1529,17 @@ export const LandingPage: React.FC = () => {
             </div>
 
             {/* Mobile Mockup 2 - Real Learning Workspace */}
-            <div className="w-64 h-[490px] rounded-[3rem] border-[10px] border-stone-900 dark:border-stone-950 ring-4 ring-stone-200 dark:ring-stone-800 bg-[#101c22] text-[#f6f7f8] shadow-2xl relative overflow-hidden shrink-0 transform rotate-3 hover:rotate-0 transition-all duration-500 animate-float-mobile-2 z-20">
+            <div className="w-64 h-[490px] rounded-[3rem] border-[10px] border-stone-900 dark:border-stone-950 ring-4 ring-stone-200 dark:ring-stone-850 bg-[#f6f7f8] text-[#101c22] shadow-2xl relative overflow-hidden shrink-0 transform rotate-3 hover:rotate-0 transition-all duration-500 animate-float-mobile-2 z-20">
               {/* Dynamic Island */}
               <div className="absolute top-2 left-1/2 -translate-x-1/2 w-20 h-4 bg-black rounded-full z-30 flex items-center justify-end px-2 gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-blue-950 border border-white/10" />
                 <span className="w-1 h-1 rounded-full bg-emerald-500/80" />
               </div>
               {/* Home Indicator */}
-              <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-24 h-1 bg-white/30 rounded-full z-30" />
+              <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-24 h-1 bg-stone-900/10 dark:bg-white/10 rounded-full z-30" />
               
               {/* Mock Status Bar */}
-              <div className="absolute top-0 left-0 w-full h-8 px-5 pt-2 flex items-center justify-between z-20 text-[9px] font-bold text-white/85 font-mono">
+              <div className="absolute top-0 left-0 w-full h-8 px-5 pt-2 flex items-center justify-between z-20 text-[9px] font-bold text-stone-600 font-mono">
                 <span>18:57</span>
                 <div className="flex items-center gap-1.5">
                   <span className="material-symbols-outlined text-[10px]">wifi</span>
@@ -1548,17 +1548,17 @@ export const LandingPage: React.FC = () => {
               </div>
 
               {/* Inner Mock content */}
-              <div className="p-4 pt-9 pb-12 space-y-4 h-full flex flex-col justify-between overflow-y-auto no-scrollbar relative z-10 bg-[#101c22]">
+              <div className="p-4 pt-9 pb-12 space-y-4 h-full flex flex-col justify-between overflow-y-auto no-scrollbar relative z-10 bg-[#f6f7f8]">
                 <div className="space-y-3">
                   {/* Workspace Header */}
-                  <div className="flex items-center justify-between border-b border-white/5 pb-2">
+                  <div className="flex items-center justify-between border-b border-stone-200 pb-2">
                     <div className="flex items-center gap-2">
-                      <div className="w-5 h-5 rounded-lg bg-[#18262f] flex items-center justify-center border border-white/5">
-                        <Icon name="arrow_back" className="text-[10px] text-stone-300" />
+                      <div className="w-5 h-5 rounded-lg bg-white flex items-center justify-center border border-stone-200 shadow-sm">
+                        <Icon name="arrow_back" className="text-[10px] text-stone-600" />
                       </div>
                       <div>
                         <span className="text-[6px] font-black uppercase text-secondary font-mono tracking-wider block">Learning Workspace</span>
-                        <h4 className="text-[9px] font-black tracking-tight leading-none text-white mt-0.5">Transformer Layers</h4>
+                        <h4 className="text-[9px] font-black tracking-tight leading-none text-[#101c22] mt-0.5">Transformer Layers</h4>
                       </div>
                     </div>
                     <span className="relative flex h-1.5 w-1.5 flex-shrink-0">
@@ -1568,45 +1568,45 @@ export const LandingPage: React.FC = () => {
                   </div>
 
                   {/* Active Note Module with Equation */}
-                  <div className="p-3 rounded-2xl bg-[#18262f] border border-white/5 space-y-2 shadow-lg">
+                  <div className="p-3 rounded-2xl bg-white border border-stone-200 shadow-sm space-y-2">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5 text-stone-300">
+                      <div className="flex items-center gap-1.5 text-stone-700">
                         <Icon name="menu_book" className="text-[9px] text-primary" />
                         <h5 className="text-[8px] font-black uppercase tracking-wider font-mono">1. Attention Mechanism</h5>
                       </div>
-                      <div className="flex bg-[#101c22] p-0.5 rounded border border-white/5">
-                        <span className="px-1.5 py-0.5 bg-[#18262f] text-primary text-[5.5px] font-black uppercase rounded shadow-sm">Socratic</span>
-                        <span className="px-1.5 py-0.5 text-stone-500 text-[5.5px] font-black uppercase">Story</span>
+                      <div className="flex bg-stone-100 p-0.5 rounded border border-stone-200">
+                        <span className="px-1.5 py-0.5 bg-white text-primary text-[5.5px] font-black uppercase rounded shadow-sm">Socratic</span>
+                        <span className="px-1.5 py-0.5 text-stone-400 text-[5.5px] font-black uppercase">Story</span>
                       </div>
                     </div>
-                    <div className="bg-[#101c22] p-2.5 rounded-xl border border-white/5 font-mono text-[7.5px] text-center text-primary font-bold shadow-inner relative overflow-hidden">
-                      <div className="absolute top-0.5 left-2 text-[5px] text-stone-600 font-sans uppercase">Code math</div>
-                      <code className="text-cyan-400 block mt-1">Attention(Q, K, V) = softmax(<span className="text-pink-400">QKᵀ / √d_k</span>) * V</code>
+                    <div className="bg-stone-50 p-2.5 rounded-xl border border-stone-200/60 font-mono text-[7.5px] text-center text-primary font-bold shadow-inner relative overflow-hidden">
+                      <div className="absolute top-0.5 left-2 text-[5px] text-stone-400 font-sans uppercase">Code math</div>
+                      <code className="text-primary block mt-1">Attention(Q, K, V) = softmax(<span className="text-secondary">QKᵀ / √d_k</span>) * V</code>
                     </div>
                   </div>
 
                   {/* Curated Video Resource Card */}
-                  <div className="p-2.5 rounded-2xl bg-[#18262f] border border-white/5 flex gap-2.5 items-center shadow-lg">
-                    <div className="w-12 h-8 rounded-lg bg-gradient-to-br from-rose-500/20 to-purple-500/20 border border-rose-500/30 flex items-center justify-center relative flex-shrink-0 overflow-hidden shadow-inner">
-                      <div className="absolute inset-0 bg-black/10 flex items-center justify-center"><Icon name="play_arrow" className="text-white text-xs" /></div>
+                  <div className="p-2.5 rounded-2xl bg-white border border-stone-200 shadow-sm flex gap-2.5 items-center">
+                    <div className="w-12 h-8 rounded-lg bg-gradient-to-br from-rose-100 to-purple-100 border border-rose-200 flex items-center justify-center relative flex-shrink-0 overflow-hidden shadow-inner">
+                      <div className="absolute inset-0 bg-black/5 flex items-center justify-center"><Icon name="play_arrow" className="text-rose-500 text-xs" /></div>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h6 className="text-[7.5px] font-black leading-tight text-white truncate">Attention Is All You Need</h6>
-                      <p className="text-[6.5px] font-bold text-stone-500 mt-0.5">DeepLearning.ai • 12 mins</p>
+                      <h6 className="text-[7.5px] font-black leading-tight text-[#101c22] truncate">Attention Is All You Need</h6>
+                      <p className="text-[6.5px] font-bold text-stone-400 mt-0.5">DeepLearning.ai • 12 mins</p>
                     </div>
                   </div>
 
                   {/* Active Recall Flashcard Widget */}
                   <div className="w-full h-20 [perspective:1000px] cursor-pointer mx-auto">
-                    <div className="relative w-full h-full text-center border border-primary/20 bg-gradient-to-br from-[#18262f] to-[#0066FF]/10 p-2.5 flex flex-col justify-between shadow-xl rounded-2xl">
+                    <div className="relative w-full h-full text-center border border-blue-200 bg-gradient-to-br from-white to-blue-50/30 p-2.5 flex flex-col justify-between shadow-sm rounded-2xl">
                       <div className="flex items-center justify-between text-[6.5px] font-extrabold text-primary font-mono uppercase tracking-wider">
                         <span className="flex items-center gap-1"><Icon name="lightbulb" className="text-[8px]" /> Active Recall Drill</span>
                         <Icon name="flip" className="text-[8px]" />
                       </div>
-                      <div className="text-[7.5px] font-black text-white my-auto px-2 leading-relaxed">
+                      <div className="text-[7.5px] font-black text-[#101c22] my-auto px-2 leading-relaxed">
                         What represents the Query matrix (Q) in Self-Attention?
                       </div>
-                      <div className="text-[5.5px] text-stone-500 font-bold italic">
+                      <div className="text-[5.5px] text-stone-400 font-bold italic">
                         Tap card to flip codex
                       </div>
                     </div>
@@ -1614,12 +1614,12 @@ export const LandingPage: React.FC = () => {
                 </div>
 
                 {/* Bottom Input Area */}
-                <div className="h-10 w-full flex items-center justify-between border-t border-white/5 bg-[#18262f]/90 backdrop-blur-md absolute bottom-0 left-0 px-3 shadow-xl z-25">
-                  <div className="flex-1 bg-[#101c22] border border-white/5 rounded-full h-6 px-2.5 flex items-center justify-between gap-1.5 shadow-inner">
+                <div className="h-10 w-full flex items-center justify-between border-t border-stone-200 bg-white/95 backdrop-blur-md absolute bottom-0 left-0 px-3 shadow-sm z-25">
+                  <div className="flex-1 bg-white border border-stone-200 rounded-full h-6 px-2.5 flex items-center justify-between gap-1.5 shadow-sm">
                     <span className="text-[7px] font-medium text-stone-400 font-mono truncate">Ask AI about Attention...</span>
-                    <Icon name="mic" className="text-[9px] text-stone-500" />
+                    <Icon name="mic" className="text-[9px] text-stone-400" />
                   </div>
-                  <div className="w-6 h-6 rounded-xl bg-gradient-to-r from-secondary to-primary flex items-center justify-center text-white shadow-lg shadow-secondary/20 ml-2">
+                  <div className="w-6 h-6 rounded-xl bg-gradient-to-r from-secondary to-primary flex items-center justify-center text-white shadow-md shadow-secondary/10 ml-2">
                     <Icon name="send" className="text-[8px]" />
                   </div>
                 </div>
