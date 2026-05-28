@@ -317,5 +317,22 @@ export const adminService = {
         count: localLogs.length 
       };
     }
+  },
+
+  getNewsletterSubscribers: async (): Promise<any[]> => {
+    const { data, error } = await supabase
+      .from('newsletter_subscriptions')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  },
+
+  deleteNewsletterSubscriber: async (id: string) => {
+    const { error } = await supabase
+      .from('newsletter_subscriptions')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
   }
 };

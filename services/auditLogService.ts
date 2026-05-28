@@ -12,7 +12,7 @@ export interface AuditLogEntry {
   admin_id: string;
   admin_email: string;
   action: string;
-  target_type: 'user' | 'plan' | 'room' | 'announcement' | 'system' | 'feedback';
+  target_type: 'user' | 'plan' | 'room' | 'announcement' | 'system' | 'feedback' | 'newsletter';
   target_id?: string;
   target_label?: string;
   details?: Record<string, any>;
@@ -31,7 +31,9 @@ export type AuditAction =
   | 'announcement.delete'
   | 'system.maintenance_toggle'
   | 'system.status_update'
-  | 'feedback.delete';
+  | 'feedback.delete'
+  | 'newsletter.broadcast'
+  | 'newsletter.unsubscribe';
 
 const ACTION_LABELS: Record<AuditAction, string> = {
   'user.delete': 'Deleted user',
@@ -45,6 +47,8 @@ const ACTION_LABELS: Record<AuditAction, string> = {
   'system.maintenance_toggle': 'Toggled maintenance mode',
   'system.status_update': 'Updated system status',
   'feedback.delete': 'Deleted feedback',
+  'newsletter.broadcast': 'Dispatched newsletter campaign',
+  'newsletter.unsubscribe': 'Removed newsletter subscriber',
 };
 
 /**

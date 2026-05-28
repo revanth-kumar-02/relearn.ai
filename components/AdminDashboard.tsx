@@ -19,8 +19,9 @@ import FeedbackPanel from './admin/FeedbackPanel';
 import SystemStatusPanel from './admin/SystemStatusPanel';
 import AuditLogPanel from './admin/AuditLogPanel';
 import MarathonManager from './admin/MarathonManager';
+import BroadcastPanel from './admin/BroadcastPanel';
 
-type AdminTab = 'overview' | 'users' | 'plans' | 'rooms' | 'feedback' | 'system' | 'audit' | 'marathons' | 'health' | 'errors' | 'quality';
+type AdminTab = 'overview' | 'users' | 'plans' | 'rooms' | 'feedback' | 'system' | 'broadcast' | 'audit' | 'marathons' | 'health' | 'errors' | 'quality';
 
 const AdminDashboard: React.FC = () => {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -225,7 +226,7 @@ const AdminDashboard: React.FC = () => {
 
                 <nav className="flex items-center bg-white dark:bg-surface-dark p-2 rounded-2xl border border-border-light dark:border-border-dark shadow-sm overflow-x-auto no-scrollbar">
                     <div className="flex items-center gap-2 px-1">
-                        {(['overview', 'users', 'plans', 'rooms', 'feedback', 'system', 'audit', 'marathons'] as AdminTab[]).map(tab => (
+                        {(['overview', 'users', 'plans', 'rooms', 'feedback', 'system', 'broadcast', 'audit', 'marathons'] as AdminTab[]).map(tab => (
                             <button
                                 key={tab}
                                 onClick={() => { setActiveTab(tab); triggerHaptic('light'); }}
@@ -313,6 +314,10 @@ const AdminDashboard: React.FC = () => {
                             handlePostAnnouncement={handlePostAnnouncement}
                             handleDeleteAnnouncement={handleDeleteAnnouncement}
                         />
+                    )}
+
+                    {activeTab === 'broadcast' && (
+                        <BroadcastPanel setToast={setToast} />
                     )}
 
                     {activeTab === 'audit' && (
