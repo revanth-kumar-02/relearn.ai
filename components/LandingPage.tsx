@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { motion, AnimatePresence } from 'motion/react';
 import Icon from './common/Icon';
+import { supabase } from '../services/supabase';
 
 // Rotating words in hero section
 const HERO_PHRASES = [
@@ -249,6 +250,57 @@ const InteractiveFlashcard: React.FC<{ front: string; back: string }> = ({ front
 export const LandingPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+
+  // Newsletter subscription states
+  const [subscribeEmail, setSubscribeEmail] = useState('');
+  const [subscribeStatus, setSubscribeStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [subscribeError, setSubscribeError] = useState('');
+
+  const handleSubscribe = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (subscribeStatus === 'loading') return;
+
+    const trimmedEmail = subscribeEmail.trim();
+    if (!trimmedEmail) {
+      setSubscribeStatus('error');
+      setSubscribeError('Please enter an email address.');
+      return;
+    }
+
+    // Email validation regex
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(trimmedEmail)) {
+      setSubscribeStatus('error');
+      setSubscribeError('Please enter a valid email address.');
+      return;
+    }
+
+    setSubscribeStatus('loading');
+    setSubscribeError('');
+
+    try {
+      const { error } = await supabase
+        .from('newsletter_subscriptions')
+        .insert([{ email: trimmedEmail }]);
+
+      if (error) {
+        // PostgREST/Supabase unique violation error code (23505)
+        if (error.code === '23505') {
+          setSubscribeStatus('error');
+          setSubscribeError("You're already subscribed! Stay tuned.");
+        } else {
+          setSubscribeStatus('error');
+          setSubscribeError(error.message || 'An error occurred. Please try again.');
+        }
+      } else {
+        setSubscribeStatus('success');
+        setSubscribeEmail('');
+      }
+    } catch (err: any) {
+      setSubscribeStatus('error');
+      setSubscribeError(err.message || 'An unexpected error occurred.');
+    }
+  };
 
   // Scroll effect for Navbar
   const [scrolled, setScrolled] = useState(false);
@@ -1872,17 +1924,74 @@ export const LandingPage: React.FC = () => {
               <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark font-medium leading-relaxed">
                 Receive monthly updates on cognitive science, learning frameworks, and new AI study agents.
               </p>
-              {/* Form Capsule */}
-              <div className="flex items-center gap-1.5 pt-1.5">
-                <input 
-                  type="email" 
-                  placeholder="Enter your email..." 
-                  className="flex-1 bg-white dark:bg-[#18262f] border border-stone-200 dark:border-white/5 rounded-xl h-9 px-3 text-xs text-text-primary-light dark:text-text-primary-dark focus:outline-none focus:border-primary/50 transition-colors shadow-inner"
-                />
-                <button className="h-9 w-9 rounded-xl bg-gradient-to-r from-primary to-secondary text-white flex items-center justify-center shadow-md shadow-primary/10 hover:shadow-primary/30 hover:scale-105 active:scale-95 transition-all">
-                  <Icon name="send" className="text-xs" />
-                </button>
-              </div>
+              
+              <form onSubmit={handleSubscribe} className="space-y-2 pt-1.5">
+                <div className="flex items-center gap-1.5 relative">
+                  <div className="relative flex-1">
+                    <input 
+                      type="email" 
+                      placeholder={subscribeStatus === 'success' ? "Subscribed!" : "Enter your email..."}
+                      value={subscribeEmail}
+                      onChange={(e) => {
+                        setSubscribeEmail(e.target.value);
+                        if (subscribeStatus === 'error') {
+                          setSubscribeStatus('idle');
+                        }
+                      }}
+                      disabled={subscribeStatus === 'loading' || subscribeStatus === 'success'}
+                      className="w-full bg-white dark:bg-[#18262f] border border-stone-200 dark:border-white/5 rounded-xl h-9 pl-8 pr-3 text-xs text-text-primary-light dark:text-text-primary-dark focus:outline-none focus:border-primary/50 transition-colors shadow-inner disabled:opacity-75 disabled:cursor-not-allowed"
+                    />
+                    <Icon name="mail" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-text-secondary-light/60 dark:text-text-secondary-dark/60" />
+                  </div>
+                  <button 
+                    type="submit"
+                    disabled={subscribeStatus === 'loading' || subscribeStatus === 'success'}
+                    className={`h-9 w-9 rounded-xl flex items-center justify-center shadow-md transition-all select-none ${
+                      subscribeStatus === 'success'
+                        ? 'bg-emerald-500 text-white shadow-emerald-500/10'
+                        : subscribeStatus === 'loading'
+                          ? 'bg-stone-300 dark:bg-stone-700 text-stone-500 cursor-not-allowed'
+                          : 'bg-gradient-to-r from-primary to-secondary text-white shadow-primary/10 hover:shadow-primary/30 hover:scale-105 active:scale-95'
+                    }`}
+                  >
+                    {subscribeStatus === 'loading' ? (
+                      <span className="h-4 w-4 border-2 border-stone-500 border-t-transparent rounded-full animate-spin" />
+                    ) : subscribeStatus === 'success' ? (
+                      <Icon name="check" className="text-sm font-bold animate-bounce" />
+                    ) : (
+                      <Icon name="send" className="text-xs" />
+                    )}
+                  </button>
+                </div>
+
+                <AnimatePresence mode="wait">
+                  {subscribeStatus === 'success' && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      transition={{ duration: 0.2 }}
+                      className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1.5 rounded-lg shadow-sm"
+                    >
+                      <Icon name="check_circle" className="text-sm shrink-0" />
+                      <span>Thank you! Successfully subscribed to updates.</span>
+                    </motion.div>
+                  )}
+
+                  {subscribeStatus === 'error' && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      transition={{ duration: 0.2 }}
+                      className="flex items-center gap-1.5 text-[11px] font-semibold text-rose-600 dark:text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2.5 py-1.5 rounded-lg shadow-sm"
+                    >
+                      <Icon name="error" className="text-sm shrink-0" />
+                      <span>{subscribeError}</span>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </form>
             </div>
           </div>
 
