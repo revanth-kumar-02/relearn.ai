@@ -1380,64 +1380,64 @@ export const LandingPage: React.FC = () => {
           <div className="lg:col-span-7 flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-8 relative py-8">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(8,131,149,0.03),transparent_70%)] pointer-events-none" />
             {/* Mobile Mockup 1 - Real Live Dashboard */}
-            <div className="w-64 h-[490px] rounded-[3rem] border-[10px] border-stone-900 dark:border-stone-950 ring-4 ring-stone-200 dark:ring-stone-800 bg-stone-50 dark:bg-background-dark shadow-2xl relative overflow-hidden shrink-0 transform -rotate-3 hover:rotate-0 transition-all duration-500 animate-float-mobile-1 z-20">
+            <div className="w-64 h-[490px] rounded-[3rem] border-[10px] border-stone-900 dark:border-stone-950 ring-4 ring-stone-200 dark:ring-stone-800 bg-[#101c22] text-[#f6f7f8] shadow-2xl relative overflow-hidden shrink-0 transform -rotate-3 hover:rotate-0 transition-all duration-500 animate-float-mobile-1 z-20">
               {/* Dynamic Island */}
               <div className="absolute top-2 left-1/2 -translate-x-1/2 w-20 h-4 bg-black rounded-full z-30 flex items-center justify-end px-2 gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-blue-950 border border-white/10" />
                 <span className="w-1 h-1 rounded-full bg-emerald-500/80" />
               </div>
               {/* Home Indicator */}
-              <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-24 h-1 bg-black/30 dark:bg-white/30 rounded-full z-30" />
+              <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-24 h-1 bg-white/30 rounded-full z-30" />
               
               {/* Mock Status Bar */}
-              <div className="absolute top-0 left-0 w-full h-8 px-5 pt-2 flex items-center justify-between z-20 text-[9px] font-bold text-text-primary-light/80 dark:text-text-primary-dark/80 font-mono">
+              <div className="absolute top-0 left-0 w-full h-8 px-5 pt-2 flex items-center justify-between z-20 text-[9px] font-bold text-white/85 font-mono">
                 <span>18:57</span>
-                <div className="flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[10px] input-icon">wifi</span>
-                  <span className="material-symbols-outlined text-[10px] input-icon">battery_full</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-[10px]">wifi</span>
+                  <span className="material-symbols-outlined text-[10px]">battery_full</span>
                 </div>
               </div>
 
               {/* Inner Mock content */}
-              <div className="p-4 pt-9 pb-12 space-y-4 h-full flex flex-col justify-between overflow-y-auto no-scrollbar relative z-10">
+              <div className="p-4 pt-9 pb-12 space-y-4 h-full flex flex-col justify-between overflow-y-auto no-scrollbar relative z-10 bg-[#101c22]">
                 <div className="space-y-4">
                   {/* Real Dashboard Header */}
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="flex items-center gap-1 mb-0.5">
                         <span className="relative flex h-1.5 w-1.5">
-                          <span className="status-dot-outer" />
-                          <span className="status-dot-inner w-1.5 h-1.5" />
+                          <span className="status-dot-outer animate-pulse bg-emerald-400 absolute inline-flex h-full w-full rounded-full opacity-75" />
+                          <span className="status-dot-inner relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
                         </span>
-                        <span className="text-[7px] font-black uppercase tracking-wider text-text-secondary-light dark:text-text-secondary-dark font-mono">Live Sync</span>
+                        <span className="text-[7px] font-black uppercase tracking-wider text-stone-400 font-mono">Live Consciousness</span>
                       </div>
-                      <h4 className="text-xs font-black font-display tracking-tight leading-none text-text-primary-light dark:text-text-primary-dark">
-                        Good Evening, <span className="text-primary">Learner</span>
+                      <h4 className="text-xs font-black font-display tracking-tight leading-none text-white">
+                        Good Evening, <span className="text-primary">Learner</span>.
                       </h4>
                     </div>
                     {/* Real Profile / Bell widgets */}
                     <div className="flex items-center gap-1.5">
-                      <div className="w-6 h-6 rounded-lg bg-stone-100 dark:bg-surface-dark border border-border-light dark:border-border-dark flex items-center justify-center text-text-secondary-light dark:text-text-secondary-dark relative">
+                      <div className="w-6 h-6 rounded-lg bg-[#18262f] border border-white/5 flex items-center justify-center text-stone-300 relative shadow-md">
                         <Icon name="notifications" className="text-[10px]" />
-                        <span className="absolute top-1.5 right-1.5 w-1 h-1 bg-red-500 rounded-full" />
+                        <span className="absolute top-1.5 right-1.5 w-1 h-1 bg-red-500 rounded-full shadow-glow-red" />
                       </div>
-                      <div className="w-6 h-6 rounded-lg bg-primary text-white font-black text-[9px] flex items-center justify-center shadow-md">
-                        R
+                      <div className="w-6 h-6 rounded-lg bg-primary text-white font-black text-[9px] flex items-center justify-center shadow-lg shadow-primary/20">
+                        L
                       </div>
                     </div>
                   </div>
 
                   {/* Real Mistake Museum Recalibration alert box */}
-                  <div className="p-3 rounded-2xl bg-gradient-to-br from-rose-50 to-red-50/50 dark:from-red-950/20 dark:to-stone-900 border border-red-500/10 shadow-sm relative overflow-hidden">
-                    <div className="absolute -right-4 -top-4 w-12 h-12 bg-red-500/5 rounded-full blur-xl" />
-                    <h5 className="text-[8px] font-black uppercase tracking-widest text-red-500 mb-1 flex items-center gap-1">
+                  <div className="p-3 rounded-2xl bg-[#18262f] border border-red-500/20 shadow-lg relative overflow-hidden">
+                    <div className="absolute -right-4 -top-4 w-12 h-12 bg-red-500/5 rounded-full blur-xl pointer-events-none" />
+                    <h5 className="text-[8px] font-black uppercase tracking-widest text-red-500 mb-1 flex items-center gap-1 font-display">
                       <Icon name="history_edu" className="text-[10px]" />
                       Cognitive Recalibration
                     </h5>
-                    <p className="text-[8px] font-bold text-text-secondary-light dark:text-text-secondary-dark leading-normal">
-                      AI Engine detected <span className="text-red-500 font-extrabold">3 anomalies</span> in past sessions. Resolve now?
+                    <p className="text-[8px] font-bold text-stone-300 leading-normal">
+                      Your AI Engine detected <span className="text-red-500 font-extrabold">3 anomalies</span> in past sessions. Resolve now?
                     </p>
-                    <button className="w-full py-1.5 mt-2 bg-red-500 text-white rounded-lg font-black text-[7.5px] uppercase tracking-wider shadow-sm hover:scale-[1.02] active:scale-95 transition-all">
+                    <button className="w-full py-1.5 mt-2 bg-red-500 text-white rounded-lg font-black text-[7.5px] uppercase tracking-wider shadow-lg shadow-red-500/20 hover:scale-[1.02] active:scale-95 transition-all">
                       Initiate Warmup
                     </button>
                   </div>
@@ -1445,36 +1445,60 @@ export const LandingPage: React.FC = () => {
                   {/* Pathways list */}
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-[8px] font-black uppercase tracking-wider text-text-secondary-light dark:text-text-secondary-dark font-mono">Learning Pathways</span>
-                      <span className="text-[7.5px] font-bold text-primary font-mono uppercase">Expand</span>
+                      <span className="text-[8px] font-black uppercase tracking-wider text-stone-400 font-mono">Learning Pathways</span>
+                      <span className="text-[7.5px] font-bold text-primary font-mono uppercase cursor-pointer hover:underline">Expand View</span>
                     </div>
 
                     <div className="space-y-2">
-                      <div className="p-3 rounded-xl bg-white dark:bg-surface-dark border border-border-light dark:border-border-dark space-y-1.5 shadow-sm">
-                        <div className="flex justify-between items-start gap-1">
-                          <h6 className="text-[9px] font-black tracking-tight leading-tight">NLP & LLM Architectures</h6>
-                          <span className="px-1 py-0.5 bg-primary/10 text-primary text-[6.5px] font-extrabold rounded font-mono">Resonance: 94%</span>
+                      {/* PlanCard 1 */}
+                      <div className="p-3 rounded-2xl bg-[#18262f] border border-white/5 space-y-2.5 shadow-lg relative overflow-hidden group">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 flex items-center justify-center border border-blue-500/30 shadow-inner flex-shrink-0">
+                            <Icon name="psychology" className="text-xs text-primary" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h6 className="text-[9.5px] font-black tracking-tight leading-tight text-white truncate">NLP & LLM Architectures</h6>
+                            <div className="flex items-center gap-1.5 mt-0.5 text-[6.5px] font-bold text-stone-500">
+                              <span>Cognitive</span>
+                              <div className="w-0.5 h-0.5 rounded-full bg-stone-700" />
+                              <span>12 Stages</span>
+                            </div>
+                          </div>
                         </div>
-                        <div className="w-full bg-border-light dark:bg-border-dark h-1 rounded-full overflow-hidden">
-                          <div className="bg-primary h-full w-[45%]" />
-                        </div>
-                        <div className="flex justify-between items-center text-[7.5px] font-bold text-text-secondary-light dark:text-text-secondary-dark font-mono">
-                          <span>45% Complete</span>
-                          <span>12 lessons left</span>
+                        <div className="space-y-1">
+                          <div className="flex justify-between items-end text-[7px] font-bold text-stone-400">
+                            <span className="uppercase tracking-widest text-[6px]">Resonance Level</span>
+                            <span className="text-white text-[8px] font-black">94%</span>
+                          </div>
+                          <div className="w-full bg-[#101c22] h-1.5 rounded-full p-0.5 border border-white/5 overflow-hidden">
+                            <div className="bg-primary h-full w-[94%] rounded-full relative shadow-glow-primary" />
+                          </div>
                         </div>
                       </div>
 
-                      <div className="p-3 rounded-xl bg-white dark:bg-surface-dark border border-border-light dark:border-border-dark space-y-1.5 shadow-sm">
-                        <div className="flex justify-between items-start gap-1">
-                          <h6 className="text-[9px] font-black tracking-tight leading-tight">Behavioral Microeconomics</h6>
-                          <span className="px-1 py-0.5 bg-secondary/10 text-secondary text-[6.5px] font-extrabold rounded font-mono">Resonance: 97%</span>
+                      {/* PlanCard 2 */}
+                      <div className="p-3 rounded-2xl bg-[#18262f] border border-white/5 space-y-2.5 shadow-lg relative overflow-hidden group">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center border border-pink-500/30 shadow-inner flex-shrink-0">
+                            <Icon name="insights" className="text-xs text-secondary" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h6 className="text-[9.5px] font-black tracking-tight leading-tight text-white truncate">Behavioral Microeconomics</h6>
+                            <div className="flex items-center gap-1.5 mt-0.5 text-[6.5px] font-bold text-stone-500">
+                              <span>Creative</span>
+                              <div className="w-0.5 h-0.5 rounded-full bg-stone-700" />
+                              <span>6 Stages</span>
+                            </div>
+                          </div>
                         </div>
-                        <div className="w-full bg-border-light dark:bg-border-dark h-1 rounded-full overflow-hidden">
-                          <div className="bg-secondary h-full w-[80%]" />
-                        </div>
-                        <div className="flex justify-between items-center text-[7.5px] font-bold text-text-secondary-light dark:text-text-secondary-dark font-mono">
-                          <span>80% Complete</span>
-                          <span>3 lessons left</span>
+                        <div className="space-y-1">
+                          <div className="flex justify-between items-end text-[7px] font-bold text-stone-400">
+                            <span className="uppercase tracking-widest text-[6px]">Resonance Level</span>
+                            <span className="text-white text-[8px] font-black">80%</span>
+                          </div>
+                          <div className="w-full bg-[#101c22] h-1.5 rounded-full p-0.5 border border-white/5 overflow-hidden">
+                            <div className="bg-secondary h-full w-[80%] rounded-full relative shadow-glow-secondary" />
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1482,109 +1506,126 @@ export const LandingPage: React.FC = () => {
                 </div>
 
                 {/* Real Bottom Navigation */}
-                <div className="h-10 w-full flex items-center justify-around border-t border-border-light dark:border-border-dark bg-white dark:bg-surface-dark/95 backdrop-blur-md absolute bottom-0 left-0 px-2 shadow-inner z-25">
+                <div className="h-10 w-full flex items-center justify-around border-t border-white/5 bg-[#18262f]/90 backdrop-blur-md absolute bottom-0 left-0 px-2 shadow-xl z-25">
                   <div className="flex flex-col items-center cursor-pointer text-primary">
                     <Icon name="home" className="text-[14px]" />
-                    <span className="text-[6.5px] font-black tracking-tighter uppercase font-mono mt-0.5">Home</span>
+                    <span className="text-[5.5px] font-black tracking-tighter uppercase mt-0.5">Dashboard</span>
                   </div>
-                  <div className="flex flex-col items-center cursor-pointer text-text-secondary-light hover:text-primary">
+                  <div className="flex flex-col items-center cursor-pointer text-stone-400 hover:text-primary">
                     <Icon name="bar_chart" className="text-[14px]" />
-                    <span className="text-[6.5px] font-black tracking-tighter uppercase font-mono mt-0.5">Progress</span>
+                    <span className="text-[5.5px] font-black tracking-tighter uppercase mt-0.5">Progress</span>
                   </div>
-                  <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-white shadow-md shadow-primary/20"><Icon name="add" className="text-xs" /></div>
-                  <div className="flex flex-col items-center cursor-pointer text-text-secondary-light hover:text-primary">
+                  <div className="w-6 h-6 rounded-xl bg-gradient-to-r from-primary to-secondary flex items-center justify-center text-white shadow-lg shadow-primary/20"><Icon name="add" className="text-xs" /></div>
+                  <div className="flex flex-col items-center cursor-pointer text-stone-400 hover:text-primary">
                     <Icon name="menu_book" className="text-[14px]" />
-                    <span className="text-[6.5px] font-black tracking-tighter uppercase font-mono mt-0.5">Diary</span>
+                    <span className="text-[5.5px] font-black tracking-tighter uppercase mt-0.5">Diary</span>
                   </div>
-                  <div className="flex flex-col items-center cursor-pointer text-text-secondary-light hover:text-primary">
+                  <div className="flex flex-col items-center cursor-pointer text-stone-400 hover:text-primary">
                     <Icon name="settings" className="text-[14px]" />
-                    <span className="text-[6.5px] font-black tracking-tighter uppercase font-mono mt-0.5">Settings</span>
+                    <span className="text-[5.5px] font-black tracking-tighter uppercase mt-0.5">Settings</span>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Mobile Mockup 2 - Real Learning Workspace */}
-            <div className="w-64 h-[490px] rounded-[3rem] border-[10px] border-stone-900 dark:border-stone-950 ring-4 ring-stone-200 dark:ring-stone-800 bg-stone-50 dark:bg-background-dark shadow-2xl relative overflow-hidden shrink-0 transform rotate-3 hover:rotate-0 transition-all duration-500 animate-float-mobile-2 z-20">
+            <div className="w-64 h-[490px] rounded-[3rem] border-[10px] border-stone-900 dark:border-stone-950 ring-4 ring-stone-200 dark:ring-stone-800 bg-[#101c22] text-[#f6f7f8] shadow-2xl relative overflow-hidden shrink-0 transform rotate-3 hover:rotate-0 transition-all duration-500 animate-float-mobile-2 z-20">
               {/* Dynamic Island */}
               <div className="absolute top-2 left-1/2 -translate-x-1/2 w-20 h-4 bg-black rounded-full z-30 flex items-center justify-end px-2 gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-blue-950 border border-white/10" />
                 <span className="w-1 h-1 rounded-full bg-emerald-500/80" />
               </div>
               {/* Home Indicator */}
-              <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-24 h-1 bg-black/30 dark:bg-white/30 rounded-full z-30" />
+              <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-24 h-1 bg-white/30 rounded-full z-30" />
               
               {/* Mock Status Bar */}
-              <div className="absolute top-0 left-0 w-full h-8 px-5 pt-2 flex items-center justify-between z-20 text-[9px] font-bold text-text-primary-light/80 dark:text-text-primary-dark/80 font-mono">
+              <div className="absolute top-0 left-0 w-full h-8 px-5 pt-2 flex items-center justify-between z-20 text-[9px] font-bold text-white/85 font-mono">
                 <span>18:57</span>
-                <div className="flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[10px] input-icon">wifi</span>
-                  <span className="material-symbols-outlined text-[10px] input-icon">battery_full</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-[10px]">wifi</span>
+                  <span className="material-symbols-outlined text-[10px]">battery_full</span>
                 </div>
               </div>
 
               {/* Inner Mock content */}
-              <div className="p-4 pt-9 pb-12 space-y-4 h-full flex flex-col justify-between overflow-y-auto no-scrollbar relative z-10">
-                <div className="space-y-3.5">
+              <div className="p-4 pt-9 pb-12 space-y-4 h-full flex flex-col justify-between overflow-y-auto no-scrollbar relative z-10 bg-[#101c22]">
+                <div className="space-y-3">
                   {/* Workspace Header */}
-                  <div className="flex items-center justify-between border-b border-border-light dark:border-border-dark pb-2">
-                    <div>
-                      <span className="text-[7px] font-black uppercase text-secondary font-mono tracking-wider">Learning Workspace</span>
-                      <h4 className="text-[9.5px] font-black tracking-tight leading-none text-text-primary-light dark:text-text-primary-dark mt-0.5">Transformer Layers</h4>
+                  <div className="flex items-center justify-between border-b border-white/5 pb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-5 h-5 rounded-lg bg-[#18262f] flex items-center justify-center border border-white/5">
+                        <Icon name="arrow_back" className="text-[10px] text-stone-300" />
+                      </div>
+                      <div>
+                        <span className="text-[6px] font-black uppercase text-secondary font-mono tracking-wider block">Learning Workspace</span>
+                        <h4 className="text-[9px] font-black tracking-tight leading-none text-white mt-0.5">Transformer Layers</h4>
+                      </div>
                     </div>
-                    <span className="relative flex h-2 w-2 flex-shrink-0">
-                      <span className="status-dot-outer" />
-                      <span className="status-dot-inner w-2 h-2" />
+                    <span className="relative flex h-1.5 w-1.5 flex-shrink-0">
+                      <span className="status-dot-outer animate-pulse bg-emerald-400 absolute inline-flex h-full w-full rounded-full opacity-75" />
+                      <span className="status-dot-inner relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
                     </span>
                   </div>
 
                   {/* Active Note Module with Equation */}
-                  <div className="p-3 rounded-xl bg-white dark:bg-surface-dark border border-border-light dark:border-border-dark space-y-1.5 shadow-sm">
-                    <h5 className="text-[8px] font-black text-text-primary-light dark:text-text-primary-dark uppercase font-mono">Scaled Dot-Product Equation</h5>
-                    <div className="bg-stone-50 dark:bg-background-dark/70 p-2 rounded-lg border border-border-light dark:border-border-dark font-mono text-[8px] text-center text-primary font-bold">
-                      Attention(Q,K,V) = softmax(QKᵀ / √d_k) * V
+                  <div className="p-3 rounded-2xl bg-[#18262f] border border-white/5 space-y-2 shadow-lg">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 text-stone-300">
+                        <Icon name="menu_book" className="text-[9px] text-primary" />
+                        <h5 className="text-[8px] font-black uppercase tracking-wider font-mono">1. Attention Mechanism</h5>
+                      </div>
+                      <div className="flex bg-[#101c22] p-0.5 rounded border border-white/5">
+                        <span className="px-1.5 py-0.5 bg-[#18262f] text-primary text-[5.5px] font-black uppercase rounded shadow-sm">Socratic</span>
+                        <span className="px-1.5 py-0.5 text-stone-500 text-[5.5px] font-black uppercase">Story</span>
+                      </div>
+                    </div>
+                    <div className="bg-[#101c22] p-2.5 rounded-xl border border-white/5 font-mono text-[7.5px] text-center text-primary font-bold shadow-inner relative overflow-hidden">
+                      <div className="absolute top-0.5 left-2 text-[5px] text-stone-600 font-sans uppercase">Code math</div>
+                      <code className="text-cyan-400 block mt-1">Attention(Q, K, V) = softmax(<span className="text-pink-400">QKᵀ / √d_k</span>) * V</code>
                     </div>
                   </div>
 
-                  {/* Chat messages */}
-                  <div className="space-y-2">
-                    <div className="flex justify-start">
-                      <div className="p-2.5 rounded-2xl max-w-[85%] text-[8px] font-bold leading-relaxed shadow-sm bg-stone-100 dark:bg-surface-dark border border-border-light dark:border-border-dark text-text-primary-light dark:text-text-primary-dark">
-                        Let's generate an active flashcard based on this attention layer equation.
-                      </div>
+                  {/* Curated Video Resource Card */}
+                  <div className="p-2.5 rounded-2xl bg-[#18262f] border border-white/5 flex gap-2.5 items-center shadow-lg">
+                    <div className="w-12 h-8 rounded-lg bg-gradient-to-br from-rose-500/20 to-purple-500/20 border border-rose-500/30 flex items-center justify-center relative flex-shrink-0 overflow-hidden shadow-inner">
+                      <div className="absolute inset-0 bg-black/10 flex items-center justify-center"><Icon name="play_arrow" className="text-white text-xs" /></div>
                     </div>
-                    
-                    {/* Interactive Flashcard in mockup */}
-                    <div className="w-full max-w-[210px] h-20 [perspective:1000px] cursor-pointer mx-auto">
-                      <div className="relative w-full h-full text-center border border-primary/20 dark:border-primary/10 rounded-xl bg-gradient-to-br from-indigo-50/50 to-primary/5 dark:from-surface-dark dark:to-primary/10 p-2.5 flex flex-col justify-between shadow-sm">
-                        <div className="flex items-center justify-between text-[7px] font-extrabold text-primary font-mono uppercase tracking-wider">
-                          <span>Flashcard (Front)</span>
-                          <Icon name="flip" className="text-[10px]" />
-                        </div>
-                        <div className="text-[8px] font-extrabold text-text-primary-light dark:text-text-primary-dark my-auto">
-                          What represents Q in Self-Attention?
-                        </div>
-                        <div className="text-[6.5px] text-text-secondary-light dark:text-text-secondary-dark font-semibold italic">
-                          Clicking card flips inside application
-                        </div>
+                    <div className="flex-1 min-w-0">
+                      <h6 className="text-[7.5px] font-black leading-tight text-white truncate">Attention Is All You Need</h6>
+                      <p className="text-[6.5px] font-bold text-stone-500 mt-0.5">DeepLearning.ai • 12 mins</p>
+                    </div>
+                  </div>
+
+                  {/* Active Recall Flashcard Widget */}
+                  <div className="w-full h-20 [perspective:1000px] cursor-pointer mx-auto">
+                    <div className="relative w-full h-full text-center border border-primary/20 bg-gradient-to-br from-[#18262f] to-[#0066FF]/10 p-2.5 flex flex-col justify-between shadow-xl rounded-2xl">
+                      <div className="flex items-center justify-between text-[6.5px] font-extrabold text-primary font-mono uppercase tracking-wider">
+                        <span className="flex items-center gap-1"><Icon name="lightbulb" className="text-[8px]" /> Active Recall Drill</span>
+                        <Icon name="flip" className="text-[8px]" />
+                      </div>
+                      <div className="text-[7.5px] font-black text-white my-auto px-2 leading-relaxed">
+                        What represents the Query matrix (Q) in Self-Attention?
+                      </div>
+                      <div className="text-[5.5px] text-stone-500 font-bold italic">
+                        Tap card to flip codex
                       </div>
                     </div>
                   </div>
                 </div>
 
                 {/* Bottom Input Area */}
-                <div className="h-10 w-full flex items-center justify-between border-t border-border-light dark:border-border-dark bg-white dark:bg-surface-dark/95 backdrop-blur-md absolute bottom-0 left-0 px-3 shadow-inner z-25">
-                  <div className="flex-1 bg-stone-50 dark:bg-background-dark/80 border border-border-light dark:border-border-dark rounded-full h-6 px-2.5 flex items-center justify-between gap-1.5">
-                    <span className="text-[8px] font-medium text-text-secondary-light/60 dark:text-text-secondary-dark/60 font-mono truncate">Ask AI about Attention Layer...</span>
-                    <Icon name="mic" className="text-[10px] text-text-secondary-light/60" />
+                <div className="h-10 w-full flex items-center justify-between border-t border-white/5 bg-[#18262f]/90 backdrop-blur-md absolute bottom-0 left-0 px-3 shadow-xl z-25">
+                  <div className="flex-1 bg-[#101c22] border border-white/5 rounded-full h-6 px-2.5 flex items-center justify-between gap-1.5 shadow-inner">
+                    <span className="text-[7px] font-medium text-stone-400 font-mono truncate">Ask AI about Attention...</span>
+                    <Icon name="mic" className="text-[9px] text-stone-500" />
                   </div>
-                  <div className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center text-white shadow-md shadow-secondary/20 ml-2">
-                    <Icon name="send" className="text-[9px]" />
+                  <div className="w-6 h-6 rounded-xl bg-gradient-to-r from-secondary to-primary flex items-center justify-center text-white shadow-lg shadow-secondary/20 ml-2">
+                    <Icon name="send" className="text-[8px]" />
                   </div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
           {/* Text Right */}
           <motion.div 
