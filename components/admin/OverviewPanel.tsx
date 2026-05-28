@@ -90,7 +90,10 @@ const OverviewPanel: React.FC<OverviewPanelProps> = ({ stats, growthData, setAct
                         </div>
 
                         <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-emerald-500/10 text-emerald-500 rounded-full border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.1)]">
-                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                            <span className="relative flex h-2.5 w-2.5 flex-shrink-0">
+                                <span className="status-dot-outer" />
+                                <span className="status-dot-inner w-2.5 h-2.5" />
+                            </span>
                             <span className="text-[10px] font-black uppercase tracking-widest">Core Synchronized</span>
                         </div>
                     </div>

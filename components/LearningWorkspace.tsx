@@ -818,7 +818,10 @@ const LearningWorkspace: React.FC = () => {
                             animate={{ opacity: 1 }}
                             className="flex items-center gap-1.5 text-emerald-500"
                            >
-                             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                             <span className="relative flex h-2.5 w-2.5 flex-shrink-0">
+                               <span className="status-dot-outer" />
+                               <span className="status-dot-inner w-2.5 h-2.5" />
+                             </span>
                              <span className="text-[9px] font-black uppercase tracking-widest opacity-60">Secured</span>
                            </motion.div>
                         )}

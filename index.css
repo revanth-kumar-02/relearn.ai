@@ -463,3 +463,51 @@
     margin: 2cm;
   }
 }
+
+/* =============================================
+   ONLINE STATUS DOT INDICATOR ANIMATION
+   ============================================= */
+@keyframes status-beacon {
+  0% {
+    transform: scale(1);
+    opacity: 0.85;
+  }
+  70% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+
+@keyframes status-breath {
+  0%, 100% {
+    transform: scale(0.9);
+    opacity: 0.8;
+    box-shadow: 0 0 6px rgba(16, 185, 129, 0.4);
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 1;
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.9);
+  }
+}
+
+.status-dot-outer {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 9999px;
+  background-color: #10b981;
+  animation: status-beacon 2s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
+.status-dot-inner {
+  position: relative;
+  border-radius: 9999px;
+  background-color: #10b981;
+  animation: status-breath 2s ease-in-out infinite;
+}
+

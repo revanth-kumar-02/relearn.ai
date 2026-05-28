@@ -27,6 +27,7 @@ import XPDropAnimation from './components/common/XPDropAnimation';
 const KeyboardShortcutsModal = lazy(() => import('./components/common/KeyboardShortcutsModal'));
 
 // Lazy Loaded Components
+const LandingPage = lazy(() => import('./components/LandingPage'));
 const Login = lazy(() => import('./components/Login'));
 const CreateAccount = lazy(() => import('./components/CreateAccount'));
 const Dashboard = lazy(() => import('./components/Dashboard'));
@@ -106,7 +107,7 @@ const AppContent: React.FC = () => {
 
   usePresence(user?.id);
 
-  const authPaths = ['/', '/signup'];
+  const authPaths = ['/', '/login', '/signup'];
   const isAuthPage = authPaths.includes(location.pathname);
 
   const hideMobileNavPaths = [
@@ -314,7 +315,8 @@ const AppContent: React.FC = () => {
                 >
                     <Suspense fallback={<PageLoader />}>
                     <Routes location={location}>
-                        <Route path="/" element={<Login />} />
+                        <Route path="/" element={<LandingPage />} />
+                        <Route path="/login" element={<Login />} />
                         <Route path="/signup" element={<CreateAccount />} />
 
                         {/* Protected Routes */}
@@ -363,7 +365,7 @@ const AppContent: React.FC = () => {
             <ChatBot isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
           </Suspense>
         )}
-        <XPDropAnimation trigger={xpTrigger} />
+        {!isAuthPage && <XPDropAnimation trigger={xpTrigger} />}
 
 
         {/* Mobile Bottom Navigation */}

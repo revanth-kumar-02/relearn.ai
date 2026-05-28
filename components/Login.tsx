@@ -68,8 +68,10 @@ const Login: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col justify-center items-center p-6 bg-white dark:bg-background-dark animate-fade-in">
       <div className="w-full max-w-sm">
-        <div className="text-center mb-10">
-          <span className="material-symbols-outlined text-6xl text-primary mb-2">school</span>
+        <div className="text-center mb-10 flex flex-col items-center">
+          <div className="w-20 h-20 rounded-[1.5rem] bg-primary/10 text-primary flex items-center justify-center mb-6 shadow-lg shadow-primary/5">
+            <span className="material-symbols-outlined text-5xl">school</span>
+          </div>
           <h1 className="text-4xl font-bold text-text-primary-light dark:text-text-primary-dark tracking-tight">Welcome Back!</h1>
           <p className="text-text-secondary-light dark:text-text-secondary-dark font-medium mt-1">Continue your learning journey</p>
         </div>

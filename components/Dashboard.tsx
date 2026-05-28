@@ -134,18 +134,20 @@ const Dashboard: React.FC = () => {
     return (
         <div className="pb-24 pt-8">
             <div className="w-full px-4 sm:px-6 space-y-10">
-                {/* Quantum Header */}
                 <motion.header 
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6"
+                    className="flex flex-row justify-between items-start md:items-end gap-4 w-full"
                 >
-                    <div className="space-y-1">
+                    <div className="space-y-1 flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1.5">
-                            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse glow-secondary" />
+                            <span className="relative flex h-3 w-3 flex-shrink-0">
+                                <span className="status-dot-outer" />
+                                <span className="status-dot-inner w-3 h-3" />
+                            </span>
                             <span className="text-[9px] font-bold uppercase tracking-[0.3em] text-stone-500 dark:text-stone-400">Live Consciousness</span>
                         </div>
-                        <h1 className="text-3xl md:text-[2.25rem] font-bold tracking-tight text-stone-900 dark:text-white leading-tight">
+                        <h1 className="text-2xl sm:text-3xl md:text-[2.25rem] font-bold tracking-tight text-stone-900 dark:text-white leading-tight">
                             {greeting}, <span className="text-primary">{firstName}</span>.
                         </h1>
                         <p className="text-xs sm:text-sm font-medium text-stone-500 dark:text-stone-400 leading-relaxed mt-1">
@@ -153,16 +155,16 @@ const Dashboard: React.FC = () => {
                         </p>
                     </div>
                     
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2.5 shrink-0 pt-5 md:pt-0">
                         <motion.button 
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             onClick={() => navigate('/notifications')}
-                            className="w-12 h-12 rounded-2xl glass-card noise-overlay flex items-center justify-center text-stone-600 dark:text-stone-300 relative shadow-xl"
+                            className="w-10 h-10 md:w-12 md:h-12 rounded-2xl glass-card noise-overlay flex items-center justify-center text-stone-600 dark:text-stone-300 relative shadow-xl"
                         >
-                            <Icon name="notifications" className="text-xl" />
+                            <Icon name="notifications" className="text-lg md:text-xl" />
                             {hasUnreadNotifications && (
-                                <span className="absolute top-3.5 right-3.5 w-2 h-2 bg-red-500 rounded-full border border-white dark:border-stone-900 shadow-glow-red" />
+                                <span className="absolute top-2.5 right-2.5 md:top-3.5 md:right-3.5 w-2 h-2 bg-red-500 rounded-full border border-white dark:border-stone-900 shadow-glow-red" />
                             )}
                         </motion.button>
                         
@@ -170,10 +172,10 @@ const Dashboard: React.FC = () => {
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             onClick={() => navigate('/profile')}
-                            className="w-12 h-12 rounded-2xl bg-primary text-white flex items-center justify-center shadow-xl shadow-primary/20 overflow-hidden relative"
+                            className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-primary text-white flex items-center justify-center shadow-xl shadow-primary/20 overflow-hidden relative"
                         >
                             <div className="absolute inset-0 bg-white/10 noise-overlay" />
-                            <span className="text-lg font-bold relative z-10">{firstInitial}</span>
+                            <span className="text-base md:text-lg font-bold relative z-10">{firstInitial}</span>
                         </motion.button>
                     </div>
                 </motion.header>
