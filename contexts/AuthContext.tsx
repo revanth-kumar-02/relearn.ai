@@ -4,6 +4,7 @@ import { supabase, supabaseAvailable } from '../services/supabase';
 import { getUserProfile, saveUserProfile } from '../services/dataService';
 import { requestNotificationPermission } from '../services/notificationService';
 import { setServiceAuthToken } from '../services/utils/auth';
+import { logAuthDiagnostic } from '../utils/authDiagnostics';
 
 interface AuthContextType {
   user: User | null;
@@ -82,17 +83,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     // 1. Initial check: load session from local storage immediately for fast UI
     const sessionUserId = getSession();
+    logAuthDiagnostic('Session Restoration - Initial check', { sessionUserId });
     if (sessionUserId) {
       const users = getStoredUsers();
       const stored = users[sessionUserId];
       if (stored) {
+        logAuthDiagnostic('Session Restoration - Loaded cached user', { userId: stored.id });
         setUser(stored);
       }
     }
     
     // 2. Hydrate from Supabase if completely available
     if (supabaseAvailable) {
+      logAuthDiagnostic('Supabase available, fetching session');
       supabase.auth.getSession().then(({ data: { session } }) => {
+        logAuthDiagnostic('Supabase getSession resolved', { hasSession: !!session });
         if (session && session.user) {
           setServiceAuthToken(session.access_token);
           syncSupabaseUser(session.user.id, session.user);
@@ -101,7 +106,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
       });
 
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+        logAuthDiagnostic('Supabase onAuthStateChange', { event, hasSession: !!session });
         if (session && session.user) {
           setServiceAuthToken(session.access_token);
           syncSupabaseUser(session.user.id, session.user);
@@ -117,14 +123,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         subscription.unsubscribe();
       };
     } else {
+      logAuthDiagnostic('Supabase not available');
       setLoading(false);
     }
   }, []);
 
   const syncSupabaseUser = async (authId: string, authUser?: any) => {
     // Prevent concurrent syncs for the same user
-    if (syncLock.current === authId) return;
+    if (syncLock.current === authId) {
+      logAuthDiagnostic('syncSupabaseUser locked (concurrent call)', { authId });
+      return;
+    }
     syncLock.current = authId;
+    logAuthDiagnostic('syncSupabaseUser starting', { authId });
 
     try {
       // 1. Get auth status from Supabase to check verification
@@ -137,10 +148,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
 
       // 2. Fetch deeper profile from our `users` table
-      let profile = await getUserProfile(authId);
+      let profile: User | null = null;
+      let fetchFailed = false;
+      try {
+        profile = await getUserProfile(authId);
+        logAuthDiagnostic('Fetched user profile from DB', { hasProfile: !!profile });
+      } catch (err: any) {
+        logAuthDiagnostic('Failed to fetch user profile from DB, checking cache', { error: err?.message || err });
+        fetchFailed = true;
+        profile = getStoredUsers()[authId] || null;
+      }
       
       // Auto-provision a new profile for Google/OAuth signups
-      if (!profile && currentAuthUser) {
+      if (!profile && currentAuthUser && !fetchFailed) {
+        logAuthDiagnostic('User profile not found. Auto-provisioning new profile.', { authId });
         const name = currentAuthUser?.user_metadata?.full_name || currentAuthUser?.user_metadata?.name || 'Scholar';
         const email = currentAuthUser?.email || '';
         const generatedUsername = `${name.toLowerCase().replace(/\s+/g, '_')}_${Math.random().toString(36).substring(2, 7)}`;
@@ -171,12 +192,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         };
 
         // Save using dataService
-        await saveUserProfile(authId, newUser as unknown as Record<string, unknown>);
+        try {
+          await saveUserProfile(authId, newUser as unknown as Record<string, unknown>);
+          logAuthDiagnostic('Auto-provisioned profile saved', { authId });
+        } catch (err: any) {
+          logAuthDiagnostic('Auto-provisioned profile save failed (will retry via queue)', { error: err?.message || err });
+        }
         profile = newUser;
       }
 
       if (profile) {
         const updatedProfile = { ...profile, isVerified };
+        logAuthDiagnostic('Session successfully created', { userId: profile.id, isVerified });
         setUser(updatedProfile);
         setSession(profile.id);
         
@@ -185,13 +212,33 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         saveStoredUsers(users);
 
         // Handle deferred OAuth/verification redirects for HashRouter
+        const currentHash = window.location.hash;
         const redirectPath = sessionStorage.getItem('oauth_redirect_path');
+        logAuthDiagnostic('Handling post-auth redirects', { redirectPath, currentHash });
+        
         if (redirectPath) {
           sessionStorage.removeItem('oauth_redirect_path');
+          // 1. Clear search query parameters (?code=...) without triggering a reload
+          window.history.replaceState(null, '', window.location.pathname);
+          // 2. Set the hash which triggers the hashchange event and routes the user
           window.location.hash = '#' + redirectPath;
+          logAuthDiagnostic('OAuth Redirect applied', { target: redirectPath });
+        } else if (!currentHash || currentHash === '#' || currentHash === '#/' || currentHash === '#/login' || currentHash === '#/signup') {
+          // 1. Clear search query parameters (?code=...) without triggering a reload
+          window.history.replaceState(null, '', window.location.pathname);
+          // 2. Redirect to dashboard
+          window.location.hash = '#/dashboard';
+          logAuthDiagnostic('Default redirect to dashboard applied');
+        } else {
+          // Just clean up the query parameters but keep the current hash route
+          window.history.replaceState(null, '', window.location.pathname + currentHash);
+          logAuthDiagnostic('Query params cleaned up; kept current route', { route: currentHash });
         }
+      } else {
+        logAuthDiagnostic('No profile available. Authentication block aborted.');
       }
     } catch (err: any) {
+      logAuthDiagnostic('syncSupabaseUser failed', { error: err?.message || err });
       // Don't log common refresh token errors as warnings to avoid console noise
       if (!err?.message?.includes('Refresh Token Not Found')) {
         console.warn('[AuthContext] Sync failed:', err);
@@ -417,6 +464,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const loginWithGoogle = async () => {
+    logAuthDiagnostic('loginWithGoogle called');
     if (supabaseAvailable && navigator.onLine) {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -426,11 +474,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       });
 
       if (error) {
+        logAuthDiagnostic('signInWithOAuth failed', { error: error.message });
         return { success: false, message: error.message };
       }
+      logAuthDiagnostic('signInWithOAuth redirecting');
       return { success: true };
     }
 
+    logAuthDiagnostic('signInWithOAuth failed (network or supabase unavailable)');
     return { 
       success: false, 
       message: 'Network connection required for Google Authentication.' 

@@ -52,7 +52,8 @@ const SharedPlanView: React.FC = () => {
         dailyGoalMins: 45, // Default
         difficulty: 'Intermediate',
         status: 'active',
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        isImported: true
       };
 
       const newTasks: Task[] = sharedPlan.tasks.map((t, idx) => ({

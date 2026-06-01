@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { logAuthDiagnostic } from '../utils/authDiagnostics';
 
 const CreateAccount: React.FC = () => {
     const navigate = useNavigate();
-    const { signup, loginWithGoogle } = useAuth();
+    const { signup, loginWithGoogle, user } = useAuth();
 
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
@@ -12,6 +13,44 @@ const CreateAccount: React.FC = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        // Check for OAuth errors in the URL
+        const parseOAuthError = () => {
+            const href = window.location.href;
+            let errorMsg = '';
+            
+            if (href.includes('error=')) {
+                const urlParams = new URLSearchParams(href.split('?')[1] || href.split('#')[1] || '');
+                const error = urlParams.get('error') || '';
+                const description = urlParams.get('error_description') || '';
+                
+                if (error) {
+                    errorMsg = description 
+                        ? decodeURIComponent(description).replace(/\+/g, ' ') 
+                        : `Authentication failed: ${error}`;
+                        
+                    logAuthDiagnostic('OAuth Redirect Error parsed on Signup Page', { error, description: errorMsg });
+                    
+                    // Clean up the URL to remove the error parameters
+                    const cleanUrl = window.location.origin + window.location.pathname + '#/signup';
+                    window.history.replaceState(null, '', cleanUrl);
+                }
+            }
+            return errorMsg;
+        };
+
+        const oauthError = parseOAuthError();
+        if (oauthError) {
+            setError(oauthError);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (user && user.isVerified) {
+            navigate('/dashboard');
+        }
+    }, [user, navigate]);
 
     const handleGoogleLogin = async () => {
         setError('');

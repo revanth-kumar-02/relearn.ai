@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { logAuthDiagnostic } from '../utils/authDiagnostics';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -17,7 +18,10 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     );
   }
 
+  logAuthDiagnostic('Route Protection Check', { isAuthenticated: !!user, isVerified: user?.isVerified });
+
   if (!user) {
+    logAuthDiagnostic('Route Protection Redirect to /login');
     return <Navigate to="/login" replace />;
   }
 

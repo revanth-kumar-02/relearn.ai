@@ -440,19 +440,18 @@ export async function createNotification(userId: string, notification: Omit<AppN
 
 export async function getUserProfile(userId: string): Promise<User | null> {
   if (canUseSupabase()) {
-    try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('id, name, username, email, role, preferences, stats, profileSettings, academicLevel, learningGoals, preferredStudyTime, weakSubjects, strongSubjects, createdAt')
-        .eq('id', userId)
-        .maybeSingle();
-      if (error) throw error; 
-      if (data) {
-        lsSet(`user_${userId}`, data as User);
-        return data as User;
-      }
-    } catch (err) {
-      console.warn('[DataService] Supabase getUserProfile failed:', err);
+    const { data, error } = await supabase
+      .from('users')
+      .select('id, name, username, email, role, preferences, stats, profileSettings, academicLevel, learningGoals, preferredStudyTime, weakSubjects, strongSubjects, createdAt')
+      .eq('id', userId)
+      .maybeSingle();
+    if (error) {
+      console.error('[DataService] Supabase getUserProfile failed:', error);
+      throw error;
+    }
+    if (data) {
+      lsSet(`user_${userId}`, data as User);
+      return data as User;
     }
   }
   return lsGet<User | null>(`user_${userId}`, null);

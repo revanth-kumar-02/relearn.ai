@@ -11,6 +11,8 @@ import { Plan, Task, User } from '../types';
 import Icon from './common/Icon';
 import ActivePlanModal from './common/ActivePlanModal';
 import { getContentLanguageLabel } from '../services/youtubeService';
+import PlanRateLimitModal from './common/PlanRateLimitModal';
+import { checkPlanCreationLimit } from '../utils/planRateLimiter';
 
 const CreatePlan: React.FC = () => {
     const navigate = useNavigate();
@@ -21,6 +23,8 @@ const CreatePlan: React.FC = () => {
     const [prompt, setPrompt] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [showActivePlanModal, setShowActivePlanModal] = useState(false);
+    const [showRateLimitModal, setShowRateLimitModal] = useState(false);
+    const [rateLimitCooldown, setRateLimitCooldown] = useState<string | null>(null);
     const activePlan = useMemo(() => plans.find(p => p.status === 'active'), [plans]);
     const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -71,6 +75,15 @@ const CreatePlan: React.FC = () => {
         // Enforcement: Only one active plan allowed
         if (activePlan) {
             setShowActivePlanModal(true);
+            triggerHaptic('warning');
+            return;
+        }
+
+        // Enforcement: Rate Limit (3 plans per 48 hours)
+        const rateLimit = checkPlanCreationLimit(plans);
+        if (!rateLimit.allowed) {
+            setRateLimitCooldown(rateLimit.cooldownText);
+            setShowRateLimitModal(true);
             triggerHaptic('warning');
             return;
         }
@@ -445,6 +458,13 @@ const CreatePlan: React.FC = () => {
                 isOpen={showActivePlanModal}
                 onClose={() => setShowActivePlanModal(false)}
                 activePlan={activePlan!}
+            />
+
+            {/* Rate Limit Modal */}
+            <PlanRateLimitModal 
+                isOpen={showRateLimitModal}
+                onClose={() => setShowRateLimitModal(false)}
+                cooldownText={rateLimitCooldown}
             />
         </div>
     );

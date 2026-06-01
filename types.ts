@@ -20,6 +20,7 @@ export interface Plan {
   updatedAt?: string;
   isTeamPlan?: boolean;
   teamMembers?: string[];
+  isImported?: boolean;
 }
 
 export interface Task {

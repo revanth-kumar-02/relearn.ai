@@ -9,6 +9,8 @@ import { useToast } from '../contexts/ToastContext';
 import ConfirmationModal from './common/ConfirmationModal';
 import { generateLearningPlan } from '../services/gemini/planGeneratorService';
 import ActivePlanModal from './common/ActivePlanModal';
+import PlanRateLimitModal from './common/PlanRateLimitModal';
+import { checkPlanCreationLimit } from '../utils/planRateLimiter';
 
 const TemplateGallery: React.FC = () => {
   const navigate = useNavigate();
@@ -20,6 +22,8 @@ const TemplateGallery: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationStep, setGenerationStep] = useState<'confirm' | 'refining'>('confirm');
   const [showActivePlanModal, setShowActivePlanModal] = useState(false);
+  const [showRateLimitModal, setShowRateLimitModal] = useState(false);
+  const [rateLimitCooldown, setRateLimitCooldown] = useState<string | null>(null);
   const activePlan = useMemo(() => plans.find(p => p.status === 'active'), [plans]);
 
   const filteredTemplates = useMemo(() => {
@@ -36,6 +40,15 @@ const TemplateGallery: React.FC = () => {
 
     if (activePlan) {
       setShowActivePlanModal(true);
+      return;
+    }
+    
+    // Enforcement: Rate Limit (3 plans per 48 hours)
+    const rateLimit = checkPlanCreationLimit(plans);
+    if (!rateLimit.allowed) {
+      setRateLimitCooldown(rateLimit.cooldownText);
+      setShowRateLimitModal(true);
+      setSelectedTemplate(null);
       return;
     }
     
@@ -370,6 +383,12 @@ STRICT ARCHITECTURAL RULES:
         isOpen={showActivePlanModal}
         onClose={() => setShowActivePlanModal(false)}
         activePlan={activePlan!}
+      />
+
+      <PlanRateLimitModal 
+        isOpen={showRateLimitModal}
+        onClose={() => setShowRateLimitModal(false)}
+        cooldownText={rateLimitCooldown}
       />
     </div>
   );
