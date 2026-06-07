@@ -74,6 +74,10 @@ const Dashboard: React.FC = () => {
         (notifications || []).some(n => !n.read),
     [notifications]);
 
+    const unreadCount = useMemo(() => 
+        (notifications || []).filter(n => !n.read).length,
+    [notifications]);
+
     const greeting = useMemo(() => {
         const hour = new Date().getHours();
         if (hour >= 5 && hour < 12) return 'Good Morning';
@@ -163,8 +167,10 @@ const Dashboard: React.FC = () => {
                             className="w-10 h-10 md:w-12 md:h-12 rounded-2xl glass-card noise-overlay flex items-center justify-center text-stone-600 dark:text-stone-300 relative shadow-xl"
                         >
                             <Icon name="notifications" className="text-lg md:text-xl" />
-                            {hasUnreadNotifications && (
-                                <span className="absolute top-2.5 right-2.5 md:top-3.5 md:right-3.5 w-2 h-2 bg-red-500 rounded-full border border-white dark:border-stone-900 shadow-glow-red" />
+                            {unreadCount > 0 && (
+                                <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 bg-red-500 rounded-full border border-white dark:border-stone-950 flex items-center justify-center text-[9px] font-black text-white shadow-lg shadow-red-500/20">
+                                    {unreadCount}
+                                </span>
                             )}
                         </motion.button>
                         

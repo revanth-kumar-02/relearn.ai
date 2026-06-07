@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { marathonService } from '../../services/marathonService';
 import { Marathon } from '../../types';
 import Icon from '../common/Icon';
@@ -10,6 +11,7 @@ const MarathonManager: React.FC = () => {
     const [marathons, setMarathons] = useState<Marathon[]>([]);
     const [showCreate, setShowCreate] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    const [deleteMarathonId, setDeleteMarathonId] = useState<string | null>(null);
     const [newMarathon, setNewMarathon] = useState({
         title: '',
         description: '',
@@ -56,17 +58,20 @@ const MarathonManager: React.FC = () => {
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!window.confirm("Are you sure? This will delete all participation records too.")) return;
+    const confirmDeleteMarathon = async () => {
+        if (!deleteMarathonId) return;
         try {
-            const { error } = await supabase.from('marathons').delete().eq('id', id);
+            const { error } = await supabase.from('marathons').delete().eq('id', deleteMarathonId);
             if (error) throw error;
             showToast("Marathon deleted", "success");
+            setDeleteMarathonId(null);
             loadMarathons();
         } catch (err) {
             showToast("Delete failed", "error");
         }
     };
+
+    const selectedMarathon = marathons.find(m => m.id === deleteMarathonId);
 
     return (
         <div className="space-y-6">
@@ -162,15 +167,57 @@ const MarathonManager: React.FC = () => {
                                 <p className="text-[10px] text-slate-400 font-bold uppercase">{m.status} • {m.participant_count} joined • Ends {new Date(m.end_date).toLocaleDateString()}</p>
                             </div>
                         </div>
-                        <button 
-                            onClick={() => handleDelete(m.id)}
-                            className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl transition-colors"
-                        >
-                            <Icon name="delete" />
-                        </button>
+                         <button 
+                             onClick={() => setDeleteMarathonId(m.id)}
+                             className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl transition-colors"
+                         >
+                             <Icon name="delete" />
+                         </button>
                     </div>
                 ))}
             </div>
+
+            {/* Marathon Delete Modal */}
+            <AnimatePresence>
+                {deleteMarathonId && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/40 backdrop-blur-sm"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, y: 20 }}
+                            animate={{ scale: 1, y: 0 }}
+                            exit={{ scale: 0.9, y: 20 }}
+                            className="bg-white dark:bg-surface-dark rounded-[2.5rem] p-10 max-w-md w-full shadow-2xl border border-border-light dark:border-border-dark text-left"
+                        >
+                            <h2 className="text-2xl font-black tracking-tight mb-2">Delete Marathon?</h2>
+                            <p className="text-xs font-bold text-slate-400 mb-6 uppercase tracking-widest">
+                                Target: {selectedMarathon?.title || 'Unknown Event'}
+                            </p>
+                            <p className="text-sm font-medium text-slate-500 dark:text-stone-400 mb-8 leading-relaxed">
+                                Are you sure you want to proceed? This action will permanently remove this marathon event and delete all user participation records too.
+                            </p>
+
+                            <div className="flex gap-4">
+                                <button 
+                                    onClick={() => setDeleteMarathonId(null)} 
+                                    className="flex-1 py-4 rounded-2xl bg-slate-100 dark:bg-stone-800 font-black text-xs uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-stone-700 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button 
+                                    onClick={confirmDeleteMarathon} 
+                                    className="flex-1 py-4 rounded-2xl bg-red-600 text-white font-black text-xs uppercase tracking-widest hover:bg-red-700 transition-colors shadow-lg shadow-red-600/20"
+                                >
+                                    Delete
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };

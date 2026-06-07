@@ -45,11 +45,11 @@ const AdminCharts: React.FC<AdminChartsProps> = ({ growthData }) => {
                     <div className="flex gap-4">
                         <div className="flex items-center gap-1.5">
                             <div className="w-2 h-2 rounded-full bg-indigo-500" />
-                            <span className="text-[10px] font-bold text-stone-400 uppercase tracking-tight">Users</span>
+                            <span className="text-[10px] font-bold text-stone-400 uppercase tracking-tight whitespace-nowrap">Users</span>
                         </div>
                         <div className="flex items-center gap-1.5">
                             <div className="w-2 h-2 rounded-full bg-purple-500" />
-                            <span className="text-[10px] font-bold text-stone-400 uppercase tracking-tight">Plans</span>
+                            <span className="text-[10px] font-bold text-stone-400 uppercase tracking-tight whitespace-nowrap">Plans</span>
                         </div>
                     </div>
                 </div>

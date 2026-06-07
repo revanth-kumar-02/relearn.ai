@@ -4,9 +4,11 @@ import { HashRouter, Routes, Route, useLocation, useNavigate } from 'react-route
 import { DataProvider, useData } from './contexts/DataContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { ConnectionProvider } from './contexts/ConnectionContext';
-import { ToastProvider } from './contexts/ToastContext';
+import { ToastProvider, useToast } from './contexts/ToastContext';
 import { TutorialProvider } from './contexts/TutorialContext';
 import { useAuth } from './contexts/AuthContext';
+import { supabase } from './services/supabase';
+import { friendService } from './services/friendService';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 import OfflineIndicator from './components/OfflineIndicator';
@@ -82,6 +84,72 @@ const AppContent: React.FC = () => {
   const { user } = useAuth();
   const { xpTrigger } = useData();
   const isAdmin = user?.role === 'admin';
+  const { showToast } = useToast();
+
+  const [friendRequestToast, setFriendRequestToast] = useState<{
+    requestId: string;
+    requesterId: string;
+    name: string;
+    username: string;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    // Listen for postgres changes on friendships table
+    const requestChannel = supabase.channel(`realtime_requests_${user.id}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'friendships',
+        filter: `receiver_id=eq.${user.id}`
+      }, async (payload) => {
+        const request = payload.new;
+        if (request && request.status === 'pending') {
+          try {
+            // Retrieve requester details
+            const { data: requester, error } = await supabase
+              .from('users')
+              .select('name, username')
+              .eq('id', request.requester_id)
+              .single();
+
+            if (!error && requester) {
+              setFriendRequestToast({
+                requestId: request.id,
+                requesterId: request.requester_id,
+                name: requester.name,
+                username: requester.username
+              });
+            }
+          } catch (e) {
+            console.error('Failed to handle real-time request:', e);
+          }
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(requestChannel);
+    };
+  }, [user?.id]);
+
+  const handleAcceptRequest = async (e: React.MouseEvent, requestId: string, requesterName: string) => {
+    e.stopPropagation();
+    try {
+      await friendService.acceptFriendRequest(requestId);
+      showToast(`You are now friends with ${requesterName}!`, 'success');
+      setFriendRequestToast(null);
+    } catch (err) {
+      showToast('Failed to accept request', 'error');
+    }
+  };
+
+  const handleViewRequest = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setFriendRequestToast(null);
+    navigate('/profile', { state: { activeFriendTab: 'incoming' } });
+  };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -152,7 +220,7 @@ const AppContent: React.FC = () => {
         Skip to main content
       </a>
 
-      <SystemBanner />
+      <SystemBanner showSidebar={showSidebar} isSidebarExpanded={isSidebarExpanded} />
       <HelpPromptOverlay />
       <OfflineIndicator showMobileNav={showMobileNav} />
       <Suspense fallback={null}>
@@ -419,6 +487,43 @@ const AppContent: React.FC = () => {
           </nav>
         )}
       </main>
+
+      {/* Real-time Friend Request Toast */}
+      {friendRequestToast && (
+        <div className="fixed top-6 right-6 z-[110] max-w-sm w-full bg-white/95 dark:bg-stone-900/95 backdrop-blur-md rounded-2xl border border-primary/20 shadow-2xl p-4 animate-slide-up flex flex-col gap-3">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+              <Icon name="person_add" className="text-2xl" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h4 className="text-sm font-bold text-text-primary-light dark:text-text-primary-dark">New Friend Request Received</h4>
+              <p className="text-xs text-text-secondary-light mt-0.5 leading-relaxed truncate">
+                <span className="font-bold text-primary">@{friendRequestToast.username}</span> ({friendRequestToast.name}) wants to connect.
+              </p>
+            </div>
+            <button 
+              onClick={() => setFriendRequestToast(null)}
+              className="text-text-secondary-light hover:text-red-500 transition-colors shrink-0"
+            >
+              <Icon name="close" className="text-sm" />
+            </button>
+          </div>
+          <div className="flex gap-2 justify-end mt-1">
+            <button 
+              onClick={handleViewRequest}
+              className="px-3.5 py-1.5 rounded-lg bg-gray-100 dark:bg-white/5 hover:bg-gray-250 dark:hover:bg-white/10 text-xs font-bold text-text-primary-light dark:text-text-primary-dark transition-colors"
+            >
+              View
+            </button>
+            <button 
+              onClick={(e) => handleAcceptRequest(e, friendRequestToast.requestId, friendRequestToast.name)}
+              className="px-3.5 py-1.5 rounded-lg bg-primary hover:bg-primary-dark text-xs font-bold text-white transition-colors"
+            >
+              Accept
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

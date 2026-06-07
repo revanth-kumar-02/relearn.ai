@@ -3,7 +3,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Icon from './common/Icon';
 import { adminService, Announcement } from '../services/adminService';
 
-export const SystemBanner: React.FC = () => {
+interface SystemBannerProps {
+  showSidebar?: boolean;
+  isSidebarExpanded?: boolean;
+}
+
+export const SystemBanner: React.FC<SystemBannerProps> = ({ showSidebar, isSidebarExpanded }) => {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [dismissed, setDismissed] = useState<string[]>([]);
 
@@ -27,7 +32,11 @@ export const SystemBanner: React.FC = () => {
   if (visibleAnnouncements.length === 0) return null;
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 flex flex-col items-center pointer-events-none mt-2 px-4 gap-2">
+    <div className={`fixed top-0 left-0 right-0 z-[60] flex flex-col items-center pointer-events-none mt-2 px-4 gap-2 transition-all duration-300 ${
+      showSidebar 
+        ? (isSidebarExpanded ? 'md:pl-72' : 'md:pl-20') 
+        : ''
+    }`}>
       <AnimatePresence>
         {visibleAnnouncements.map((announcement) => (
           <motion.div

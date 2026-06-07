@@ -59,7 +59,7 @@ export interface Activity {
 
 export interface Notification {
   id: string;
-  type: 'plan' | 'goal' | 'reminder' | 'system' | 'achievement';
+  type: 'plan' | 'goal' | 'reminder' | 'system' | 'achievement' | 'friend_request';
   title: string;
   message: string;
   time: string;

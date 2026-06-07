@@ -226,7 +226,7 @@ const AdminDashboard: React.FC = () => {
 
                 <nav className="flex items-center bg-white dark:bg-surface-dark p-2 rounded-2xl border border-border-light dark:border-border-dark shadow-sm overflow-x-auto no-scrollbar">
                     <div className="flex items-center gap-2 px-1">
-                        {(['overview', 'users', 'plans', 'rooms', 'feedback', 'system', 'broadcast', 'audit', 'marathons'] as AdminTab[]).map(tab => (
+                        {(['overview', 'users', 'plans', 'rooms', 'system'] as AdminTab[]).map(tab => (
                             <button
                                 key={tab}
                                 onClick={() => { setActiveTab(tab); triggerHaptic('light'); }}
@@ -242,6 +242,26 @@ const AdminDashboard: React.FC = () => {
                     </div>
                 </nav>
             </header>
+
+            {!['overview', 'users', 'plans', 'rooms', 'system'].includes(activeTab) && (
+                <div className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-450 dark:text-stone-400">
+                    <button 
+                        onClick={() => { setActiveTab('overview'); triggerHaptic('light'); }}
+                        className="flex items-center gap-1.5 text-indigo-600 hover:text-indigo-750 transition-colors"
+                    >
+                        <Icon name="arrow_back" className="text-sm" />
+                        <span>Back to Overview</span>
+                    </button>
+                    <span className="text-slate-300 dark:text-stone-600">/</span>
+                    <span className="text-slate-650 dark:text-stone-300">
+                        {activeTab === 'marathons' 
+                            ? 'Community Marathons' 
+                            : activeTab === 'audit' 
+                            ? 'Security Audit Logs' 
+                            : activeTab}
+                    </span>
+                </div>
+            )}
 
             <AnimatePresence mode="wait">
                 <motion.div
@@ -360,7 +380,7 @@ const AdminDashboard: React.FC = () => {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-900/40 backdrop-blur-sm"
+                        className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/40 backdrop-blur-sm"
                     >
                         <motion.div
                             initial={{ scale: 0.9, y: 20 }}
