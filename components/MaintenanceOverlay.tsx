@@ -29,6 +29,22 @@ const MaintenanceOverlay: React.FC = () => {
     };
   }, []);
 
+  // Lock body & html scroll when maintenance mode is active
+  useEffect(() => {
+    const isShowing = status?.maintenance_mode && !isAdmin;
+    if (isShowing) {
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    };
+  }, [status?.maintenance_mode, isAdmin]);
+
   if (!status?.maintenance_mode || isAdmin) return null;
 
   const handleRefresh = () => {
@@ -42,7 +58,7 @@ const MaintenanceOverlay: React.FC = () => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[9999] bg-white flex flex-col items-center justify-center p-6 text-center select-none"
+        className="fixed inset-0 z-[9999] bg-surface-light dark:bg-background-dark flex flex-col items-center justify-center p-6 text-center select-none overscroll-none"
       >
         <div className="max-w-md w-full flex flex-col items-center gap-8">
           

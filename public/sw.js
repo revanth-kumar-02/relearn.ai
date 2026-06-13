@@ -34,15 +34,24 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+    // Only handle HTTP/HTTPS requests (bypasses chrome-extension, mailto, etc.)
+    if (!event.request.url.startsWith('http')) return;
+
+    // Only handle GET requests
+    if (event.request.method !== 'GET') return;
+
     const url = new URL(event.request.url);
 
-    // Bypass Service Worker for API calls, external services, and Google Fonts
-    // This ensures Gemini, Supabase, YouTube, and font requests work reliably
-    if (url.pathname.startsWith('/api/') || 
-        url.hostname.includes('supabase.co') || 
-        url.hostname.includes('googleapis.com') ||
-        url.hostname.includes('fonts.gstatic.com')) {
+    // Bypass Service Worker for local API calls or Supabase/external database requests
+    if (url.pathname.startsWith('/api/') || url.hostname.includes('supabase.co')) {
         return; // Direct network access
+    }
+
+    // Bypass Service Worker for other third-party origins (except Google Fonts)
+    if (url.origin !== self.location.origin) {
+        if (!url.hostname.includes('googleapis.com') && !url.hostname.includes('fonts.gstatic.com')) {
+            return; // Direct network access
+        }
     }
 
     // Network First strategy for navigation requests (SPA routing)
@@ -51,11 +60,14 @@ self.addEventListener('fetch', (event) => {
         event.respondWith(
             fetch(event.request)
                 .then((response) => {
-                    const clonedResponse = response.clone();
-                    caches.open(CACHE_NAME).then((cache) => {
-                        // Store the latest index file mapped to '/' instead of specific route
-                        cache.put('/', clonedResponse);
-                    });
+                    // Only cache successful status 200 responses to prevent polluting the cache with error pages
+                    if (response.status === 200) {
+                        const clonedResponse = response.clone();
+                        caches.open(CACHE_NAME).then((cache) => {
+                            // Store the latest index file mapped to '/' instead of specific route
+                            cache.put('/', clonedResponse);
+                        });
+                    }
                     return response;
                 })
                 .catch(() => {
@@ -67,10 +79,38 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // Default: Cache First, then Network
+    // Default: Cache First, then Network (with dynamic caching for local assets & fonts)
     event.respondWith(
         caches.match(event.request).then((response) => {
-            return response || fetch(event.request).catch((err) => {
+            if (response) {
+                return response; // Serve from cache if found
+            }
+
+            return fetch(event.request).then((networkResponse) => {
+                // Ensure we got a valid response
+                if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
+                    return networkResponse;
+                }
+
+                // Dynamically cache local assets (js, css, images, fonts, icons)
+                const shouldCache = url.pathname.includes('/assets/') ||
+                                    url.pathname.endsWith('.js') ||
+                                    url.pathname.endsWith('.css') ||
+                                    url.pathname.endsWith('.png') ||
+                                    url.pathname.endsWith('.jpg') ||
+                                    url.pathname.endsWith('.svg') ||
+                                    url.pathname.endsWith('.ico') ||
+                                    url.pathname.endsWith('.woff2');
+
+                if (shouldCache) {
+                    const responseToCache = networkResponse.clone();
+                    caches.open(CACHE_NAME).then((cache) => {
+                        cache.put(event.request, responseToCache);
+                    });
+                }
+
+                return networkResponse;
+            }).catch((err) => {
                 console.warn('[SW] Fetch failed:', event.request.url);
                 return new Response('Network error', { status: 503, statusText: 'Service Unavailable' });
             });

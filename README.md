@@ -1,6 +1,10 @@
-# ReLearn.ai — AI-Powered Learning Platform (v8.1)
+# ReLearn.ai — AI-Powered Learning Platform (v8.2)
 
 ReLearn.ai is a premium, AI-native learning platform designed to help users organize their learning journey with personalized study plans, deep analytics, a collaborative study hub, and an intelligent AI tutor.
+
+## What's New in v8.2 (The PWA & Stability Update)
+* **Bulletproof PWA Offline Capabilities**: Revamped service worker with dynamic asset caching (JS, CSS, images, fonts), secure root scoping (`/`), and safety checks bypassing third-party/extension fetch requests.
+* **Scroll-Locked Maintenance Mode**: Refactored the maintenance mode overlay to prevent background page scrolling on mobile and desktop, adding seamless Light/Dark theme compatibility.
 
 ## What's New in v8.1 (The Live Social Update)
 * **Dynamic Collaboration Hub**: The Collaboration Hub has been completely refactored from a static demo into a production-ready, database-backed social ecosystem.
