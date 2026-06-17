@@ -21,7 +21,9 @@ const CreateAccount: React.FC = () => {
             let errorMsg = '';
             
             if (href.includes('error=')) {
-                const urlParams = new URLSearchParams(href.split('?')[1] || href.split('#')[1] || '');
+                const rawParams = href.split('?')[1] || href.split('#')[1] || '';
+                const cleanParams = rawParams.split('#')[0];
+                const urlParams = new URLSearchParams(cleanParams);
                 const error = urlParams.get('error') || '';
                 const description = urlParams.get('error_description') || '';
                 

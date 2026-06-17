@@ -304,7 +304,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (error.message.toLowerCase().includes('rate limit')) {
           console.warn('[AuthContext] Supabase rate limit hit. Falling back to local-first account.');
         } else {
-          return { success: false, message: error.message };
+          console.error('[AuthContext] Signup database error:', error);
+          
+          let userFriendlyMessage = error.message;
+          const lowerMsg = error.message.toLowerCase();
+          
+          if (lowerMsg.includes('database error saving new user')) {
+            userFriendlyMessage = 'User profile creation failed';
+          } else if (lowerMsg.includes('email') && (lowerMsg.includes('already registered') || lowerMsg.includes('already exists') || lowerMsg.includes('taken'))) {
+            userFriendlyMessage = 'Account already exists';
+          } else if (lowerMsg.includes('conflict') || lowerMsg.includes('unique constraint') || lowerMsg.includes('duplicate key')) {
+            userFriendlyMessage = 'Authentication record conflict detected';
+          }
+          
+          return { success: false, message: userFriendlyMessage };
         }
       }
       if (data.user) {
