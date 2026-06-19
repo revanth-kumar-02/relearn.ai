@@ -5,6 +5,7 @@ import { getUserProfile, saveUserProfile } from '../services/dataService';
 import { requestNotificationPermission } from '../services/notificationService';
 import { setServiceAuthToken } from '../services/utils/auth';
 import { logAuthDiagnostic } from '../utils/authDiagnostics';
+import { adminService } from '../services/adminService';
 
 interface AuthContextType {
   user: User | null;
@@ -204,6 +205,38 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (profile) {
         const updatedProfile = { ...profile, isVerified };
         logAuthDiagnostic('Session successfully created', { userId: profile.id, isVerified });
+        
+        // Update presence and last_login on new session establishment
+        adminService.updatePresence(profile.id);
+        const priorSession = getSession();
+        if (!priorSession) {
+          adminService.updateLastLogin(profile.id);
+          try {
+            const cached = JSON.parse(localStorage.getItem(`relearn_activity_${profile.id}`) || '[]');
+            const logExists = cached.some((c: any) => c.title === 'Logged in' && (Date.now() - new Date(c.time).getTime()) < 10000);
+            if (!logExists) {
+              cached.unshift({
+                id: crypto.randomUUID(),
+                title: 'Logged in',
+                time: new Date().toISOString(),
+                icon: 'login',
+                color: 'text-indigo-500',
+                bg: 'bg-indigo-500/10'
+              });
+              localStorage.setItem(`relearn_activity_${profile.id}`, JSON.stringify(cached.slice(0, 50)));
+              supabase.from('activity').insert({
+                id: crypto.randomUUID(),
+                userId: profile.id,
+                title: 'Logged in',
+                time: new Date().toISOString(),
+                icon: 'login',
+                color: 'text-indigo-500',
+                bg: 'bg-indigo-500/10'
+              }).catch(() => {});
+            }
+          } catch {}
+        }
+
         setUser(updatedProfile);
         setSession(profile.id);
         
@@ -273,6 +306,29 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       if (data.user) {
         await syncSupabaseUser(data.user.id, data.user);
+        await adminService.updateLastLogin(data.user.id);
+        await adminService.updatePresence(data.user.id);
+        try {
+          const cached = JSON.parse(localStorage.getItem(`relearn_activity_${data.user.id}`) || '[]');
+          cached.unshift({
+            id: crypto.randomUUID(),
+            title: 'Logged in',
+            time: new Date().toISOString(),
+            icon: 'login',
+            color: 'text-indigo-500',
+            bg: 'bg-indigo-500/10'
+          });
+          localStorage.setItem(`relearn_activity_${data.user.id}`, JSON.stringify(cached.slice(0, 50)));
+          await supabase.from('activity').insert({
+            id: crypto.randomUUID(),
+            userId: data.user.id,
+            title: 'Logged in',
+            time: new Date().toISOString(),
+            icon: 'login',
+            color: 'text-indigo-500',
+            bg: 'bg-indigo-500/10'
+          });
+        } catch {}
         return { success: true };
       }
     }
@@ -372,6 +428,29 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     setUser(newUser);
     setSession(finalUserId);
+    await adminService.updateLastLogin(finalUserId);
+    await adminService.updatePresence(finalUserId);
+    try {
+      const cached = JSON.parse(localStorage.getItem(`relearn_activity_${finalUserId}`) || '[]');
+      cached.unshift({
+        id: crypto.randomUUID(),
+        title: 'Logged in',
+        time: new Date().toISOString(),
+        icon: 'login',
+        color: 'text-indigo-500',
+        bg: 'bg-indigo-500/10'
+      });
+      localStorage.setItem(`relearn_activity_${finalUserId}`, JSON.stringify(cached.slice(0, 50)));
+      await supabase.from('activity').insert({
+        id: crypto.randomUUID(),
+        userId: finalUserId,
+        title: 'Logged in',
+        time: new Date().toISOString(),
+        icon: 'login',
+        color: 'text-indigo-500',
+        bg: 'bg-indigo-500/10'
+      });
+    } catch {}
     return { success: true };
   };
 

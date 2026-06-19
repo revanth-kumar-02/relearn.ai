@@ -173,7 +173,7 @@ const AppContent: React.FC = () => {
     triggerHaptic('light');
   };
 
-  usePresence(user?.id);
+  usePresence(user?.id, location.pathname);
 
   const authPaths = ['/', '/login', '/signup'];
   const isAuthPage = authPaths.includes(location.pathname);

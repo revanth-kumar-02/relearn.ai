@@ -44,7 +44,7 @@ const AdminDashboard: React.FC = () => {
     const [newAnnouncement, setNewAnnouncement] = useState('');
     const [announcementType, setAnnouncementType] = useState<'info' | 'warning' | 'emergency'>('info');
 
-    const [verificationFilter, setVerificationFilter] = useState<'all' | 'verified' | 'unverified' | 'online'>('all');
+    const [verificationFilter, setVerificationFilter] = useState<string>('all');
     const [deleteModalUser, setDeleteModalUser] = useState<UserAdminData | null>(null);
     const [deleteReason, setDeleteReason] = useState('');
     const [activeActionMenu, setActiveActionMenu] = useState<string | null>(null);

@@ -136,6 +136,8 @@ export interface User {
   isVerified?: boolean;
   createdAt?: string;
   updatedAt?: string;
+  last_login?: string;
+  last_seen?: string;
 }
 
 export interface PlanTemplate {

@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { StudyRoom, RoomMember, RoomMessage } from '../types';
+import { adminService } from './adminService';
 
 export const roomService = {
   // Generate a random 6-character room code
@@ -11,6 +12,9 @@ export const roomService = {
   createRoom: async (name: string, hostId: string, userName: string) => {
     try {
       const roomCode = roomService.generateRoomCode();
+      
+      // Update presence
+      adminService.updatePresence(hostId);
       
       // 1. Create the room
       const { data: room, error: roomError } = await supabase
@@ -50,6 +54,33 @@ export const roomService = {
         // as the user can try to join manually or we can handle it in the UI
       }
 
+      // Log Joined Study Room activity
+      try {
+        await supabase
+          .from('activity')
+          .insert({
+            id: crypto.randomUUID(),
+            userId: hostId,
+            title: `Joined Study Room: ${room.name}`,
+            time: new Date().toISOString(),
+            icon: 'hub',
+            color: 'text-amber-500',
+            bg: 'bg-amber-500/10'
+          });
+      } catch {}
+      try {
+        const cached = JSON.parse(localStorage.getItem(`relearn_activity_${hostId}`) || '[]');
+        cached.unshift({
+          id: crypto.randomUUID(),
+          title: `Joined Study Room: ${room.name}`,
+          time: new Date().toISOString(),
+          icon: 'hub',
+          color: 'text-amber-500',
+          bg: 'bg-amber-500/10'
+        });
+        localStorage.setItem(`relearn_activity_${hostId}`, JSON.stringify(cached.slice(0, 50)));
+      } catch {}
+
       return room as StudyRoom;
     } catch (err: any) {
       console.error('Room Creation Exception:', err);
@@ -68,6 +99,9 @@ export const roomService = {
       .single();
 
     if (roomError) throw new Error('Room not found or inactive');
+
+    // Update presence
+    adminService.updatePresence(userId);
 
     // 2. Join the room
     const { data: member, error: memberError } = await supabase
@@ -88,6 +122,33 @@ export const roomService = {
       }
       throw memberError;
     }
+
+    // Log Joined Study Room activity
+    try {
+      await supabase
+        .from('activity')
+        .insert({
+          id: crypto.randomUUID(),
+          userId,
+          title: `Joined Study Room: ${room.name}`,
+          time: new Date().toISOString(),
+          icon: 'hub',
+          color: 'text-amber-500',
+          bg: 'bg-amber-500/10'
+        });
+    } catch {}
+    try {
+      const cached = JSON.parse(localStorage.getItem(`relearn_activity_${userId}`) || '[]');
+      cached.unshift({
+        id: crypto.randomUUID(),
+        title: `Joined Study Room: ${room.name}`,
+        time: new Date().toISOString(),
+        icon: 'hub',
+        color: 'text-amber-500',
+        bg: 'bg-amber-500/10'
+      });
+      localStorage.setItem(`relearn_activity_${userId}`, JSON.stringify(cached.slice(0, 50)));
+    } catch {}
 
     return room as StudyRoom;
   },
@@ -132,6 +193,9 @@ export const roomService = {
 
   // Send a chat message
   sendMessage: async (roomId: string, userId: string, userName: string, content: string) => {
+    // Update presence
+    adminService.updatePresence(userId);
+
     const { error } = await supabase
       .from('room_messages')
       .insert({

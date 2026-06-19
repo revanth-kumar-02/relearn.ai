@@ -151,6 +151,37 @@ export const friendService = {
         time: new Date().toISOString(),
         read: false
       });
+
+    // 4. Log "Accepted Friend Request" activity for receiver
+    try {
+      await supabase
+        .from('activity')
+        .insert({
+          id: crypto.randomUUID(),
+          userId: request.receiver_id,
+          title: 'Accepted Friend Request',
+          time: new Date().toISOString(),
+          icon: 'person_add',
+          color: 'text-indigo-500',
+          bg: 'bg-indigo-500/10'
+        });
+    } catch (e) {
+      console.warn('[FriendService] Failed to insert accept activity in DB:', e);
+    }
+    
+    // Also save in local storage
+    try {
+      const cached = JSON.parse(localStorage.getItem(`relearn_activity_${request.receiver_id}`) || '[]');
+      cached.unshift({
+        id: crypto.randomUUID(),
+        title: 'Accepted Friend Request',
+        time: new Date().toISOString(),
+        icon: 'person_add',
+        color: 'text-indigo-500',
+        bg: 'bg-indigo-500/10'
+      });
+      localStorage.setItem(`relearn_activity_${request.receiver_id}`, JSON.stringify(cached.slice(0, 50)));
+    } catch {}
   },
 
   async rejectFriendRequest(requestId: string) {

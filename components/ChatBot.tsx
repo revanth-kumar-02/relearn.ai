@@ -5,6 +5,7 @@ import ReactMarkdown from 'react-markdown';
 import { useData } from '../contexts/DataContext';
 import { getContentLanguageLabel } from '../services/youtubeService';
 import { CHAT_PERSONAS, ChatPersonaId, getPersona, getSelectedPersonaId, setSelectedPersonaId } from '../services/gemini/chatPersonas';
+import { adminService } from '../services/adminService';
 
 interface ChatBotProps {
   isOpen: boolean;
@@ -50,6 +51,10 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isStreaming) return;
+
+    if (user?.id) {
+      adminService.updatePresence(user.id);
+    }
 
     const userMessage = input.trim();
     setInput('');

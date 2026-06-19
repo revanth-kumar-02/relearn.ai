@@ -9,8 +9,10 @@ import {
   markAllNotificationsRead, clearAllNotifications as dsClearAllNotifications,
   createPlan, createTasksBatch, updatePlan as dsUpdatePlan, deletePlan as dsDeletePlan,
   createTask, updateTask as dsUpdateTask, updateTasksBatch as dsUpdateTasksBatch, deleteTask as dsDeleteTask,
-  startAnalyticsSession as dsStartAnalyticsSession, endAnalyticsSession as dsEndAnalyticsSession, trackAnalyticsEvent as dsTrackAnalyticsEvent
+  startAnalyticsSession as dsStartAnalyticsSession, endAnalyticsSession as dsEndAnalyticsSession, trackAnalyticsEvent as dsTrackAnalyticsEvent,
+  addActivity as dsAddActivity
 } from '../services/dataService';
+import { adminService } from '../services/adminService';
 import { supabase } from '../services/supabase';
 import { 
   VideoLanguageCode, setVideoLanguagePreference, getVideoLanguagePreference,
@@ -80,6 +82,12 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [learningStyle, setLearningStyleState] = useState<string>(user?.preferences?.learningStyle || 'Standard');
   const [xpTrigger, setXpTrigger] = useState<{ amount: number; timestamp: number } | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  const updatePresenceIfNeeded = useCallback(() => {
+    if (user?.id) {
+      adminService.updatePresence(user.id);
+    }
+  }, [user?.id]);
 
   // Synchronize initial preferences from user profile if they change
   useEffect(() => {
@@ -353,6 +361,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // =================== DATA OPERATIONS ===================
   const addPlan = async (plan: Plan) => {
     if (!user?.id) return;
+    updatePresenceIfNeeded();
 
     const newPlan: Plan = { 
       ...plan, 
@@ -376,6 +385,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const addPlanWithTasks = async (plan: Plan, newTasks: Task[]) => {
     if (!user?.id) return;
+    updatePresenceIfNeeded();
 
     const total = newTasks.length;
     const completed = newTasks.filter(t => t.status === 'Completed').length;
@@ -448,12 +458,14 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const updatePlan = async (id: string, updates: Partial<Plan>) => {
     if (!user?.id) return;
+    updatePresenceIfNeeded();
     setPlans(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
     try { await dsUpdatePlan(user.id, id, updates); } catch (e) { console.error(e); }
   };
 
   const deletePlan = async (id: string) => {
     if (!user?.id) return;
+    updatePresenceIfNeeded();
     setPlans(prev => prev.filter(p => p.id !== id));
     setTasks(prev => prev.filter(t => t.planId !== id));
     try { await dsDeletePlan(user.id, id); } catch (e) { console.error(e); }
@@ -461,6 +473,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const addTask = async (task: Task) => {
     if (!user?.id) return;
+    updatePresenceIfNeeded();
     const newTask = { ...task, id: task.id || crypto.randomUUID(), createdAt: new Date().toISOString() };
     const updatedTasks = [...tasks, newTask];
     setTasks(updatedTasks);
@@ -480,6 +493,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const updateTask = async (id: string, updates: Partial<Task>) => {
     if (!user?.id) return;
+    updatePresenceIfNeeded();
 
     const task = tasks.find(t => t.id === id);
     if (!task) return;
@@ -594,6 +608,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const updateTasksBatch = async (planId: string, taskIdUpdates: { id: string; updates: Partial<Task> }[]) => {
     if (!user?.id) return;
+    updatePresenceIfNeeded();
 
     const originalTasks = [...tasks];
     const originalPlans = [...plans];
@@ -626,6 +641,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const deleteTask = async (id: string) => {
     if (!user?.id) return;
+    updatePresenceIfNeeded();
     const taskToDelete = tasks.find(t => t.id === id);
     if (!taskToDelete) return;
     
@@ -648,7 +664,13 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const addActivity = async (activity: Activity) => {
     if (!user?.id) return;
+    updatePresenceIfNeeded();
     setRecentActivity(prev => [activity, ...prev].slice(0, 50));
+    try {
+      await dsAddActivity(user.id, activity);
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const clearAllActivity = async () => {
@@ -670,6 +692,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const addNotification = async (notification: Omit<AppNotification, 'id'>) => {
     if (!user?.id) return;
+    updatePresenceIfNeeded();
     const newNotif = { ...notification, id: crypto.randomUUID() };
     setNotifications(prev => [newNotif, ...prev].slice(0, 100)); // L3 Fix: Cap notifications
 

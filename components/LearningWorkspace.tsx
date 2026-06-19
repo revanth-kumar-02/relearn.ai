@@ -4,6 +4,7 @@ import { useData } from '../contexts/DataContext';
 import { progressionService } from '../services/progressionService';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
+import { adminService } from '../services/adminService';
 import { generateLessonContent } from '../services/gemini/learningWorkspaceService';
 import { safeParseAIResponse } from '../services/utils/aiUtils';
 import { extractTextFromPDF, validatePDFFile } from '../services/documentService';
@@ -76,13 +77,28 @@ const LearningWorkspace: React.FC = () => {
   useEffect(() => {
     if (taskId && task) {
         sessionStartRef.current = startAnalyticsSession(taskId);
+        
+        // Log "Viewed Learning Workspace" activity
+        addActivity({
+          id: crypto.randomUUID(),
+          title: `Viewed Learning Workspace: ${task.title}`,
+          time: new Date().toISOString(),
+          icon: 'visibility',
+          color: 'text-blue-500',
+          bg: 'bg-blue-500/10'
+        });
+
+        // Update user presence
+        if (user?.id) {
+          adminService.updatePresence(user.id);
+        }
     }
     return () => {
         if (taskId && sessionStartRef.current) {
             endAnalyticsSession(taskId, sessionStartRef.current);
         }
     };
-  }, [taskId, task]);
+  }, [taskId, task, user?.id]);
 
   // Countdown timer for auto-generation
   useEffect(() => {

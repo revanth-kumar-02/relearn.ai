@@ -5,7 +5,7 @@ import { adminService } from '../services/adminService';
  * Hook to automatically update the user's presence (last_seen) in the database.
  * Only updates when the app is in focus to save DB calls, and throttles requests.
  */
-export const usePresence = (userId?: string) => {
+export const usePresence = (userId?: string, pathname?: string) => {
   const presenceInterval = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -37,5 +37,5 @@ export const usePresence = (userId?: string) => {
       if (presenceInterval.current) clearInterval(presenceInterval.current);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [userId]);
+  }, [userId, pathname]);
 };
