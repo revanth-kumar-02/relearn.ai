@@ -138,6 +138,8 @@ export interface User {
   updatedAt?: string;
   last_login?: string;
   last_seen?: string;
+  last_active_at?: string;
+  last_login_at?: string;
 }
 
 export interface PlanTemplate {

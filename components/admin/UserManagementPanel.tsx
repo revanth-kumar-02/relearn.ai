@@ -17,9 +17,9 @@ interface UserManagementPanelProps {
 }
 
 const formatActiveTimestamp = (dateString?: string): string => {
-    if (!dateString) return 'N/A';
+    if (!dateString) return 'No activity recorded';
     const date = new Date(dateString);
-    if (isNaN(date.getTime())) return 'N/A';
+    if (isNaN(date.getTime())) return 'No activity recorded';
 
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -67,8 +67,8 @@ const formatRelativeTime = (timeIso?: string): string => {
     return formatShortDate(timeIso);
 };
 
-const getStatusInfo = (lastSeenIso?: string) => {
-    if (!lastSeenIso) {
+const getStatusInfo = (lastActiveIso?: string) => {
+    if (!lastActiveIso) {
         return {
             text: 'Offline',
             dotColor: 'bg-slate-400 dark:bg-stone-600',
@@ -77,8 +77,8 @@ const getStatusInfo = (lastSeenIso?: string) => {
             icon: '⚫'
         };
     }
-    const lastSeen = new Date(lastSeenIso).getTime();
-    const diffMinutes = (Date.now() - lastSeen) / 1000 / 60;
+    const lastActive = new Date(lastActiveIso).getTime();
+    const diffMinutes = (Date.now() - lastActive) / 1000 / 60;
     if (diffMinutes <= 5) {
         return {
             text: 'Online',
@@ -180,7 +180,9 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
                     </thead>
                     <tbody className="divide-y divide-border-light dark:divide-border-dark">
                         {users.map((u, idx) => {
-                            const status = getStatusInfo(u.last_seen);
+                            const lastActive = u.last_active_at || u.last_seen;
+                            const lastLogin = u.last_login_at || u.last_login;
+                            const status = getStatusInfo(lastActive);
                             return (
                                 <tr key={u.id} className="hover:bg-gray-50/30 dark:hover:bg-stone-900/30 transition-colors">
                                     <td className="px-8 py-5">
@@ -201,10 +203,10 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
                                         </div>
                                     </td>
                                     <td className="px-8 py-5 text-xs font-bold text-slate-700 dark:text-stone-300">
-                                        {formatActiveTimestamp(u.last_seen)}
+                                        {formatActiveTimestamp(lastActive)}
                                     </td>
                                     <td className="px-8 py-5 text-xs font-bold text-slate-700 dark:text-stone-300">
-                                        {formatActiveTimestamp(u.last_login)}
+                                        {formatActiveTimestamp(lastLogin)}
                                     </td>
                                     <td className="px-8 py-5 text-xs font-bold text-slate-500">
                                         {formatShortDate(u.createdAt)}
@@ -340,10 +342,10 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
                                 
                                 {/* Status Badge */}
                                 {(() => {
-                                    const status = getStatusInfo(selectedUser.last_seen);
+                                    const status = getStatusInfo(selectedUser.last_active_at || selectedUser.last_seen);
                                     return (
                                         <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full ${status.bgColor} border ${status.dotColor.replace('bg-', 'border-')}/20 text-xs font-black uppercase tracking-wider`}>
-                                            <span className={`w-2 h-2 rounded-full ${status.dotColor} ${status.text === 'Online' ? 'animate-pulse' : ''}`} />
+                                            <span className={`w-2.5 h-2.5 rounded-full ${status.dotColor} ${status.text === 'Online' ? 'animate-pulse' : ''}`} />
                                             <span className={status.textColor}>{status.text}</span>
                                         </div>
                                     );
@@ -354,15 +356,15 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
                             <div className="grid grid-cols-2 gap-4 bg-gray-50 dark:bg-stone-900/50 p-4 rounded-2xl border border-border-light dark:border-border-dark">
                                 <div className="space-y-1">
                                     <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Last Seen</span>
-                                    <p className="text-xs font-bold text-slate-700 dark:text-stone-200">{formatActiveTimestamp(selectedUser.last_seen)}</p>
+                                    <p className="text-xs font-bold text-slate-700 dark:text-stone-200">{formatActiveTimestamp(selectedUser.last_active_at || selectedUser.last_seen)}</p>
                                 </div>
                                 <div className="space-y-1">
                                     <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Last Login</span>
-                                    <p className="text-xs font-bold text-slate-700 dark:text-stone-200">{formatActiveTimestamp(selectedUser.last_login)}</p>
+                                    <p className="text-xs font-bold text-slate-700 dark:text-stone-200">{formatActiveTimestamp(selectedUser.last_login_at || selectedUser.last_login)}</p>
                                 </div>
                                 <div className="space-y-1 col-span-2 border-t border-border-light dark:border-border-dark pt-3">
                                     <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Account Created</span>
-                                    <p className="text-xs font-bold text-slate-700 dark:text-stone-200">{selectedUser.createdAt ? formatActiveTimestamp(selectedUser.createdAt) : 'N/A'}</p>
+                                    <p className="text-xs font-bold text-slate-700 dark:text-stone-200">{selectedUser.createdAt ? formatActiveTimestamp(selectedUser.createdAt) : 'No activity recorded'}</p>
                                 </div>
                             </div>
 

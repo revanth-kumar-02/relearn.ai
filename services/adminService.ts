@@ -106,6 +106,8 @@ export const adminService = {
             createdAt: getPastDateString(3 * 24 * 60), // 3 days ago
             last_login: getPastDateString(10), // 10 mins ago
             last_seen: getPastDateString(1), // 1 min ago (Online)
+            last_login_at: getPastDateString(10),
+            last_active_at: getPastDateString(1),
             stats: {
               studyStreak: 4,
               longestStreak: 12,
@@ -128,6 +130,8 @@ export const adminService = {
             createdAt: getPastDateString(7 * 24 * 60), // 7 days ago
             last_login: getPastDateString(60), // 1 hour ago
             last_seen: getPastDateString(12), // 12 mins ago (Away)
+            last_login_at: getPastDateString(60),
+            last_active_at: getPastDateString(12),
             stats: {
               studyStreak: 7,
               longestStreak: 7,
@@ -150,6 +154,8 @@ export const adminService = {
             createdAt: getPastDateString(30 * 24 * 60), // 30 days ago
             last_login: getPastDateString(4 * 60), // 4 hours ago
             last_seen: getPastDateString(3 * 60), // 3 hours ago (Offline)
+            last_login_at: getPastDateString(4 * 60),
+            last_active_at: getPastDateString(3 * 60),
             stats: {
               studyStreak: 15,
               longestStreak: 20,
@@ -172,6 +178,8 @@ export const adminService = {
             createdAt: getPastDateString(14 * 24 * 60), // 14 days ago
             last_login: getPastDateString(15), // 15 mins ago
             last_seen: getPastDateString(2), // 2 mins ago (Online)
+            last_login_at: getPastDateString(15),
+            last_active_at: getPastDateString(2),
             stats: {
               studyStreak: 2,
               longestStreak: 5,
@@ -194,6 +202,8 @@ export const adminService = {
             createdAt: getPastDateString(60 * 24 * 60), // 60 days ago
             last_login: getPastDateString(5 * 24 * 60), // 5 days ago
             last_seen: getPastDateString(5 * 24 * 60), // 5 days ago (Offline)
+            last_login_at: getPastDateString(5 * 24 * 60),
+            last_active_at: getPastDateString(5 * 24 * 60),
             stats: {
               studyStreak: 0,
               longestStreak: 30,
@@ -262,20 +272,23 @@ export const adminService = {
     let filteredUsers = allUsers;
     if (filter === 'online') {
       filteredUsers = allUsers.filter(u => {
-        if (!u.last_seen) return false;
-        const diff = Date.now() - new Date(u.last_seen).getTime();
+        const lastActive = u.last_active_at || u.last_seen;
+        if (!lastActive) return false;
+        const diff = Date.now() - new Date(lastActive).getTime();
         return diff <= 5 * 60 * 1000;
       });
     } else if (filter === 'away') {
       filteredUsers = allUsers.filter(u => {
-        if (!u.last_seen) return false;
-        const diff = Date.now() - new Date(u.last_seen).getTime();
+        const lastActive = u.last_active_at || u.last_seen;
+        if (!lastActive) return false;
+        const diff = Date.now() - new Date(lastActive).getTime();
         return diff > 5 * 60 * 1000 && diff <= 30 * 60 * 1000;
       });
     } else if (filter === 'offline') {
       filteredUsers = allUsers.filter(u => {
-        if (!u.last_seen) return true;
-        const diff = Date.now() - new Date(u.last_seen).getTime();
+        const lastActive = u.last_active_at || u.last_seen;
+        if (!lastActive) return true;
+        const diff = Date.now() - new Date(lastActive).getTime();
         return diff > 30 * 60 * 1000;
       });
     } else if (filter === 'recent') {
@@ -504,13 +517,22 @@ export const adminService = {
 
   updatePresence: async (userId: string) => {
     const timestamp = new Date().toISOString();
+    console.log(`[AdminService] updatePresence: Updating user ${userId} last_active_at and last_seen to ${timestamp}`);
     try {
-      await supabase
+      const { error } = await supabase
         .from('users')
-        .update({ last_seen: timestamp })
+        .update({ 
+          last_seen: timestamp,
+          last_active_at: timestamp
+        })
         .eq('id', userId);
-    } catch {
-      // Silently fail
+      if (error) {
+        console.error('[AdminService] updatePresence error:', error);
+      } else {
+        console.log('[AdminService] updatePresence successful');
+      }
+    } catch (err) {
+      console.error('[AdminService] updatePresence failed:', err);
     }
 
     // Also update local storage so it works offline/locally
@@ -520,6 +542,7 @@ export const adminService = {
         const users = JSON.parse(raw);
         if (users[userId]) {
           users[userId].last_seen = timestamp;
+          users[userId].last_active_at = timestamp;
           localStorage.setItem('relearn_users', JSON.stringify(users));
         }
       }
@@ -528,6 +551,7 @@ export const adminService = {
       if (rawUser) {
         const user = JSON.parse(rawUser);
         user.last_seen = timestamp;
+        user.last_active_at = timestamp;
         localStorage.setItem(`relearn_user_${userId}`, JSON.stringify(user));
       }
     } catch (e) {
@@ -537,13 +561,22 @@ export const adminService = {
 
   updateLastLogin: async (userId: string) => {
     const timestamp = new Date().toISOString();
+    console.log(`[AdminService] updateLastLogin: Updating user ${userId} last_login_at and last_login to ${timestamp}`);
     try {
-      await supabase
+      const { error } = await supabase
         .from('users')
-        .update({ last_login: timestamp })
+        .update({ 
+          last_login: timestamp,
+          last_login_at: timestamp
+        })
         .eq('id', userId);
-    } catch {
-      // Silently fail
+      if (error) {
+        console.error('[AdminService] updateLastLogin error:', error);
+      } else {
+        console.log('[AdminService] updateLastLogin successful');
+      }
+    } catch (err) {
+      console.error('[AdminService] updateLastLogin failed:', err);
     }
 
     // Also update local storage
@@ -553,6 +586,7 @@ export const adminService = {
         const users = JSON.parse(raw);
         if (users[userId]) {
           users[userId].last_login = timestamp;
+          users[userId].last_login_at = timestamp;
           localStorage.setItem('relearn_users', JSON.stringify(users));
         }
       }
@@ -560,6 +594,7 @@ export const adminService = {
       if (rawUser) {
         const user = JSON.parse(rawUser);
         user.last_login = timestamp;
+        user.last_login_at = timestamp;
         localStorage.setItem(`relearn_user_${userId}`, JSON.stringify(user));
       }
     } catch (e) {

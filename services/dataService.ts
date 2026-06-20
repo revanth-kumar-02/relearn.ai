@@ -442,7 +442,7 @@ export async function getUserProfile(userId: string): Promise<User | null> {
   if (canUseSupabase()) {
     const { data, error } = await supabase
       .from('users')
-      .select('id, name, username, email, role, preferences, stats, profileSettings, academicLevel, learningGoals, preferredStudyTime, weakSubjects, strongSubjects, createdAt')
+      .select('id, name, username, email, role, preferences, stats, profileSettings, academicLevel, learningGoals, preferredStudyTime, weakSubjects, strongSubjects, createdAt, last_seen, last_login, last_active_at, last_login_at')
       .eq('id', userId)
       .maybeSingle();
     if (error) {

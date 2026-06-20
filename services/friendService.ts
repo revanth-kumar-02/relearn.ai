@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { User } from '../types';
+import { adminService } from './adminService';
 
 export interface FriendRequest {
   id: string;
@@ -74,6 +75,7 @@ export const friendService = {
   },
 
   async sendFriendRequest(requesterId: string, username: string) {
+    adminService.updatePresence(requesterId);
     // 1. Find user by username
     const { data: targetUser, error: findError } = await supabase
       .from('users')
@@ -137,6 +139,8 @@ export const friendService = {
       .eq('id', requestId);
 
     if (error) throw error;
+
+    adminService.updatePresence(request.receiver_id);
 
     // 3. Notify the requester that the request was accepted
     const receiverName = (request.receiver as any)?.name || 'Someone';
@@ -202,6 +206,7 @@ export const friendService = {
 
     // 3. Notify the requester that the request was declined
     if (request) {
+      adminService.updatePresence(request.receiver_id);
       await supabase
         .from('notifications')
         .insert({
