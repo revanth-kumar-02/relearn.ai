@@ -11,6 +11,13 @@ export default {
     "./data/**/*.{js,ts,jsx,tsx}",
   ],
   darkMode: "class",
+  safelist: [
+    'bg-rose-500/10', 'bg-amber-500/10', 'bg-emerald-500/10',
+    'border-rose-500/20', 'border-amber-500/20', 'border-emerald-500/20',
+    'text-rose-600', 'text-amber-600', 'text-emerald-600',
+    'text-rose-500', 'text-amber-500', 'text-emerald-500',
+    'shadow-rose-500/40', 'shadow-amber-500/40', 'shadow-emerald-500/40'
+  ],
   theme: {
     extend: {
       colors: {

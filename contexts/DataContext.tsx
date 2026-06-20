@@ -10,7 +10,7 @@ import {
   createPlan, createTasksBatch, updatePlan as dsUpdatePlan, deletePlan as dsDeletePlan,
   createTask, updateTask as dsUpdateTask, updateTasksBatch as dsUpdateTasksBatch, deleteTask as dsDeleteTask,
   startAnalyticsSession as dsStartAnalyticsSession, endAnalyticsSession as dsEndAnalyticsSession, trackAnalyticsEvent as dsTrackAnalyticsEvent,
-  addActivity as dsAddActivity
+  addActivity as dsAddActivity, getMistakes
 } from '../services/dataService';
 import { adminService } from '../services/adminService';
 import { supabase } from '../services/supabase';
@@ -205,8 +205,47 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       getPlans(user.id),
       getTasks(user.id),
       getActivity(user.id),
-      getNotifications(user.id)
-    ]).then(([dbPlans, dbTasks, dbActivity, dbNotifs]) => {
+      getNotifications(user.id),
+      getMistakes(user.id)
+    ]).then(async ([dbPlans, dbTasks, dbActivity, dbNotifs, dbMistakes]) => {
+      // Self-healing task cloning for team plans
+      const teamPlansWithoutTasks = dbPlans.filter(p => 
+        p.isTeamPlan && 
+        p.userId !== user.id && 
+        !dbTasks.some(t => t.planId === p.id)
+      );
+
+      if (teamPlansWithoutTasks.length > 0) {
+        console.log(`[TeamPlan] Found ${teamPlansWithoutTasks.length} team plans without tasks. Cloning...`);
+        for (const plan of teamPlansWithoutTasks) {
+          try {
+            const { data: creatorTasks, error } = await supabase
+              .from('tasks')
+              .select('*')
+              .eq('planId', plan.id)
+              .eq('userId', plan.userId); // creator's tasks
+            
+            if (!error && creatorTasks && creatorTasks.length > 0) {
+              const clonedTasks: Task[] = creatorTasks.map(t => ({
+                ...t,
+                id: crypto.randomUUID(),
+                userId: user.id!,
+                status: 'Not Started',
+                completedAt: undefined,
+                notes: undefined,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+              }));
+
+              await createTasksBatch(user.id!, clonedTasks);
+              dbTasks.push(...clonedTasks);
+            }
+          } catch (e) {
+            console.error(`[TeamPlan] Failed to clone tasks for plan ${plan.id}:`, e);
+          }
+        }
+      }
+
       const healedPlans = calculateProgressForPlans(dbPlans, dbTasks);
       setPlans(healedPlans);
       setTasks(dbTasks);
@@ -248,6 +287,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setTasks(dbTasks);
           setPlans(calculateProgressForPlans(dbPlans, dbTasks));
         });
+      })
+      // Mistakes
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'mistakes', filter: `userId=eq.${user.id}` }, () => {
+        getMistakes(user.id!);
       })
       .subscribe();
 

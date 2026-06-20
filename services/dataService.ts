@@ -10,7 +10,7 @@
  */
 
 import { supabase, supabaseAvailable } from './supabase';
-import { Plan, Task, Activity, Notification as AppNotification, User } from '../types';
+import { Plan, Task, Activity, Notification as AppNotification, User, MistakeEntry } from '../types';
 import { lsGet, lsSet } from './storageService';
 import { encryptField, decryptField } from './encryptionService';
 import { 
@@ -36,7 +36,7 @@ export async function getActivePlan(userId: string): Promise<Plan | null> {
       const { data: plan } = await supabase
         .from('plans')
         .select('*')
-        .eq('userId', userId)
+        .or(`userId.eq.${userId},teamMembers.cs.["${userId}"]`)
         .eq('status', 'active')
         .maybeSingle();
       
@@ -61,7 +61,7 @@ export async function getPlans(userId: string): Promise<Plan[]> {
       const { data, error } = await supabase
         .from('plans')
         .select('*')
-        .eq('userId', userId)
+        .or(`userId.eq.${userId},teamMembers.cs.["${userId}"]`)
         .order('createdAt', { ascending: false });
         
       if (error) throw error;
@@ -545,6 +545,100 @@ export function getSyncHealth() {
     failedCount: failed.length,
     lastError: failed[failed.length - 1]?.lastError
   };
+}
+
+// ────────────────────────── MISTAKES ──────────────────────────
+
+export async function getMistakes(userId: string): Promise<MistakeEntry[]> {
+  if (canUseSupabase()) {
+    try {
+      const { data, error } = await supabase
+        .from('mistakes')
+        .select('*')
+        .eq('userId', userId)
+        .order('timestamp', { ascending: false });
+      if (error) throw error;
+      if (data) {
+        const mistakes = data as MistakeEntry[];
+        const local = lsGet<MistakeEntry[]>(`mistakes_${userId}`, []);
+        const merged = mergeCollections(local, mistakes);
+        lsSet(`mistakes_${userId}`, merged);
+        return merged;
+      }
+    } catch (err) {
+      console.warn('[DataService] Supabase getMistakes failed, using cache:', err);
+    }
+  }
+  return lsGet<MistakeEntry[]>(`mistakes_${userId}`, []);
+}
+
+export async function createMistake(userId: string, mistake: MistakeEntry): Promise<void> {
+  const mistakeWithMeta = { ...mistake, userId, timestamp: mistake.timestamp || new Date().toISOString() };
+  const cached = lsGet<MistakeEntry[]>(`mistakes_${userId}`, []);
+  lsSet(`mistakes_${userId}`, [mistakeWithMeta, ...cached.filter(m => m.id !== mistake.id)]);
+
+  if (canUseSupabase()) {
+    try {
+      const { error } = await supabase.from('mistakes').insert(mistakeWithMeta);
+      if (error) throw error;
+      return;
+    } catch (err) {
+      console.warn('[DataService] Supabase createMistake failed:', err);
+    }
+  }
+
+  addUnsyncedChange({
+    id: mistake.id,
+    type: 'create',
+    collection: 'mistakes',
+    data: mistakeWithMeta as any,
+    userId
+  });
+}
+
+export async function updateMistake(userId: string, mistakeId: string, updates: Partial<MistakeEntry>): Promise<void> {
+  const cached = lsGet<MistakeEntry[]>(`mistakes_${userId}`, []);
+  lsSet(`mistakes_${userId}`, cached.map(m => m.id === mistakeId ? { ...m, ...updates } : m));
+
+  if (canUseSupabase()) {
+    try {
+      const { error } = await supabase.from('mistakes').update(updates).eq('id', mistakeId);
+      if (error) throw error;
+      return;
+    } catch (err) {
+      console.warn('[DataService] Supabase updateMistake failed:', err);
+    }
+  }
+
+  addUnsyncedChange({
+    id: mistakeId,
+    type: 'update',
+    collection: 'mistakes',
+    data: updates as any,
+    userId
+  });
+}
+
+export async function deleteMistake(userId: string, mistakeId: string): Promise<void> {
+  const cached = lsGet<MistakeEntry[]>(`mistakes_${userId}`, []);
+  lsSet(`mistakes_${userId}`, cached.filter(m => m.id !== mistakeId));
+
+  if (canUseSupabase()) {
+    try {
+      const { error } = await supabase.from('mistakes').delete().eq('id', mistakeId);
+      if (error) throw error;
+      return;
+    } catch (err) {
+      console.warn('[DataService] Supabase deleteMistake failed:', err);
+    }
+  }
+
+  addUnsyncedChange({
+    id: mistakeId,
+    type: 'delete',
+    collection: 'mistakes',
+    userId
+  });
 }
 
 export async function discoverMentors(userId: string, weakSubjects: string[]): Promise<User[]> {

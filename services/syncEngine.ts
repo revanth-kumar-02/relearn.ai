@@ -13,7 +13,7 @@ import { SYNC_MAX_RETRIES } from './gemini/config';
 export interface UnsyncedChange {
   id: string;
   type: 'create' | 'update' | 'delete';
-  collection: 'plans' | 'tasks' | 'activity' | 'notifications' | 'users';
+  collection: 'plans' | 'tasks' | 'activity' | 'notifications' | 'users' | 'mistakes';
   data?: Record<string, unknown>;
   timestamp: string;
   userId: string;
@@ -147,7 +147,8 @@ export async function syncOfflineData(): Promise<SyncResult> {
     'plans': 2,
     'tasks': 3,
     'activity': 4,
-    'notifications': 5
+    'notifications': 5,
+    'mistakes': 6
   };
   
   retryable.sort((a, b) => {

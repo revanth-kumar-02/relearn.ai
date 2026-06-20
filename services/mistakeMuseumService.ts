@@ -6,6 +6,7 @@
  */
 
 import { QuizQuestion } from './gemini/quizService';
+import { createMistake, updateMistake, deleteMistake } from './dataService';
 
 export interface MistakeEntry {
   id: string;
@@ -22,14 +23,24 @@ export interface MistakeEntry {
   mastered: boolean;
 }
 
-const LS_KEY = 'relearn_mistake_museum';
+const SESSION_KEY = 'relearn_session';
+
+function getUserId(): string | null {
+  try {
+    return localStorage.getItem(SESSION_KEY);
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Get all stored mistakes
  */
 export function getMistakes(): MistakeEntry[] {
+  const userId = getUserId();
+  if (!userId) return [];
   try {
-    const raw = localStorage.getItem(LS_KEY);
+    const raw = localStorage.getItem(`relearn_mistakes_${userId}`);
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
@@ -45,6 +56,9 @@ export function addMistake(
   topic: string,
   planId?: string
 ): void {
+  const userId = getUserId();
+  if (!userId) return;
+
   const mistakes = getMistakes();
   
   // Don't duplicate the same question
@@ -73,7 +87,12 @@ export function addMistake(
   // Keep max 100 mistakes
   if (mistakes.length > 100) mistakes.length = 100;
   
-  localStorage.setItem(LS_KEY, JSON.stringify(mistakes));
+  try {
+    localStorage.setItem(`relearn_mistakes_${userId}`, JSON.stringify(mistakes));
+  } catch {}
+
+  // Trigger background creation/sync to Supabase
+  createMistake(userId, entry).catch(e => console.error('[MistakeSync] Failed to create mistake:', e));
 }
 
 /**
@@ -97,6 +116,9 @@ export function getWarmUpQuestions(count: number = 3, planId?: string): MistakeE
  * Mark a mistake as reviewed (user answered correctly this time)
  */
 export function markMistakeReviewed(id: string, answeredCorrectly: boolean): void {
+  const userId = getUserId();
+  if (!userId) return;
+
   const mistakes = getMistakes();
   const idx = mistakes.findIndex(m => m.id === id);
   if (idx === -1) return;
@@ -105,11 +127,22 @@ export function markMistakeReviewed(id: string, answeredCorrectly: boolean): voi
   mistakes[idx].lastReviewedAt = new Date().toISOString();
   
   // Mark as mastered after 3 correct reviews
+  let mastered = mistakes[idx].mastered;
   if (answeredCorrectly && mistakes[idx].reviewCount >= 3) {
+    mastered = true;
     mistakes[idx].mastered = true;
   }
 
-  localStorage.setItem(LS_KEY, JSON.stringify(mistakes));
+  try {
+    localStorage.setItem(`relearn_mistakes_${userId}`, JSON.stringify(mistakes));
+  } catch {}
+
+  // Trigger background update/sync to Supabase
+  updateMistake(userId, id, { 
+    reviewCount: mistakes[idx].reviewCount,
+    lastReviewedAt: mistakes[idx].lastReviewedAt,
+    mastered
+  }).catch(e => console.error('[MistakeSync] Failed to update mistake:', e));
 }
 
 /**
@@ -146,6 +179,19 @@ function getWeakTopics(mistakes: MistakeEntry[]): { topic: string; count: number
  * Clear all mastered mistakes
  */
 export function clearMasteredMistakes(): void {
-  const mistakes = getMistakes().filter(m => !m.mastered);
-  localStorage.setItem(LS_KEY, JSON.stringify(mistakes));
+  const userId = getUserId();
+  if (!userId) return;
+
+  const mistakes = getMistakes();
+  const mastered = mistakes.filter(m => m.mastered);
+  const active = mistakes.filter(m => !m.mastered);
+
+  try {
+    localStorage.setItem(`relearn_mistakes_${userId}`, JSON.stringify(active));
+  } catch {}
+
+  // Trigger background deletes for mastered mistakes
+  mastered.forEach(m => {
+    deleteMistake(userId, m.id).catch(e => console.error('[MistakeSync] Failed to delete mistake:', e));
+  });
 }

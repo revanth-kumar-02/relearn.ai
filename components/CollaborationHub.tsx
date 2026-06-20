@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { supabase } from '../services/supabase';
 import { motion, AnimatePresence } from 'motion/react';
 import Icon from './common/Icon';
 import { useData } from '../contexts/DataContext';
@@ -21,6 +22,7 @@ const CollaborationHub: React.FC = () => {
     const [pacts, setPacts] = useState<StudyPact[]>([]);
     const [marathons, setMarathons] = useState<Marathon[]>([]);
     const [participations, setParticipations] = useState<any[]>([]);
+    const [friendActivities, setFriendActivities] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     // Pact Creation State
@@ -36,6 +38,7 @@ const CollaborationHub: React.FC = () => {
     });
 
     const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const lastTabRef = useRef<HubTab | null>(null);
 
     useEffect(() => {
         loadData();
@@ -54,7 +57,9 @@ const CollaborationHub: React.FC = () => {
 
     const loadData = async () => {
         if (!user) return;
-        setIsLoading(activeTab !== activeTab); // Only show loader on initial switch
+        const isTabSwitch = lastTabRef.current !== activeTab;
+        setIsLoading(isTabSwitch);
+        lastTabRef.current = activeTab;
         try {
             if (activeTab === 'pacts') {
                 const data = await studyPactService.getUserPacts(user.id!);
@@ -66,6 +71,30 @@ const CollaborationHub: React.FC = () => {
                 ]);
                 setMarathons(mData);
                 setParticipations(pData);
+            } else if (activeTab === 'teams') {
+                const friends = await friendService.getFriends(user.id!);
+                const friendIds = friends.map(f => f.id);
+                if (friendIds.length > 0) {
+                    const { data: actData, error } = await supabase
+                        .from('activity')
+                        .select('userId, title, time')
+                        .in('userId', friendIds)
+                        .order('time', { ascending: false })
+                        .limit(20);
+                    
+                    if (!error && actData) {
+                        const friendsMap: Record<string, string> = {};
+                        friends.forEach(f => { friendsMap[f.id] = f.name; });
+                        const formattedActs = actData.map((act: any) => ({
+                            userName: friendsMap[act.userId] || 'Friend',
+                            title: act.title,
+                            time: act.time
+                        }));
+                        setFriendActivities(formattedActs);
+                    }
+                } else {
+                    setFriendActivities([]);
+                }
             }
         } catch (error) {
             console.error('Failed to load hub data:', error);
@@ -416,11 +445,29 @@ const CollaborationHub: React.FC = () => {
                                         Activity Stream
                                     </h2>
                                     <div className="space-y-6">
-                                        <div className="py-12 text-center bg-gray-50/50 dark:bg-stone-800/30 rounded-[1.5rem] border border-dashed border-border-light dark:border-border-dark">
-                                            <Icon name="rss_feed" className="text-3xl text-slate-200 mb-3 mx-auto" />
-                                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Stream Offline</p>
-                                            <p className="text-[9px] font-bold text-slate-400/60 mt-1 max-w-[150px] mx-auto">Friend activity will appear here soon!</p>
-                                        </div>
+                                        {friendActivities.length > 0 ? (
+                                            <div className="space-y-4 max-h-[350px] overflow-y-auto pr-2 no-scrollbar">
+                                                {friendActivities.map((act, i) => (
+                                                    <div key={i} className="flex gap-3 text-xs items-start p-3 bg-gray-50 dark:bg-stone-850/30 rounded-xl">
+                                                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1.5 shrink-0" />
+                                                        <div className="flex-1">
+                                                            <p className="text-stone-700 dark:text-stone-300 font-bold leading-normal">
+                                                                <span className="font-black text-stone-900 dark:text-white">{act.userName}</span> {act.title}
+                                                            </p>
+                                                            <p className="text-[10px] text-slate-400 mt-1 font-semibold">
+                                                                {new Date(act.time).toLocaleString()}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="py-12 text-center bg-gray-50/50 dark:bg-stone-800/30 rounded-[1.5rem] border border-dashed border-border-light dark:border-border-dark">
+                                                <Icon name="rss_feed" className="text-3xl text-slate-200 mb-3 mx-auto" />
+                                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Stream Empty</p>
+                                                <p className="text-[9px] font-bold text-slate-400/60 mt-1 max-w-[150px] mx-auto">No friend activity recorded yet!</p>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>

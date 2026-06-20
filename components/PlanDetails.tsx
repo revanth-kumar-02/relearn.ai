@@ -14,6 +14,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { translatePlan } from '../services/gemini/translationService';
 import InvitePeerModal from './InvitePeerModal';
 import { getUserProfile } from '../services/dataService';
+import { supabase } from '../services/supabase';
 
 const ConfirmationModal: React.FC<{
   title: string;
@@ -74,6 +75,8 @@ const PlanDetails: React.FC = () => {
   const [isExportingPDF, setIsExportingPDF] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
   const [teamMemberNames, setTeamMemberNames] = useState<Record<string, string>>({});
+  const [teamProgress, setTeamProgress] = useState<Record<string, number>>({});
+  const [teamActivities, setTeamActivities] = useState<any[]>([]);
 
   // Image preloading with fallback chain
   const [resolvedImage, setResolvedImage] = useState<string>('');
@@ -306,6 +309,63 @@ const PlanDetails: React.FC = () => {
     }
   }, [currentPlan?.teamMembers, user?.id]);
 
+  useEffect(() => {
+    if (currentPlan?.isTeamPlan && currentPlan?.teamMembers) {
+      const fetchTeamProgress = async () => {
+        try {
+          const { data, error } = await supabase
+            .from('tasks')
+            .select('userId, status')
+            .eq('planId', currentPlan.id);
+          
+          if (!error && data) {
+            const userTasks: Record<string, { total: number; completed: number }> = {};
+            data.forEach((t: any) => {
+              if (!userTasks[t.userId]) {
+                userTasks[t.userId] = { total: 0, completed: 0 };
+              }
+              userTasks[t.userId].total++;
+              if (t.status === 'Completed') {
+                userTasks[t.userId].completed++;
+              }
+            });
+
+            const progressMap: Record<string, number> = {};
+            Object.entries(userTasks).forEach(([uid, stats]) => {
+              progressMap[uid] = stats.total === 0 ? 0 : (stats.completed / stats.total) * 100;
+            });
+            setTeamProgress(progressMap);
+          }
+        } catch (e) {
+          console.error("Failed to fetch team progress:", e);
+        }
+      };
+      fetchTeamProgress();
+    }
+  }, [currentPlan?.id, currentPlan?.isTeamPlan, currentPlan?.teamMembers, tasks]);
+
+  useEffect(() => {
+    if (currentPlan?.isTeamPlan && currentPlan?.teamMembers) {
+      const fetchTeamActivities = async () => {
+        try {
+          const { data, error } = await supabase
+            .from('activity')
+            .select('userId, title, time')
+            .in('userId', currentPlan.teamMembers)
+            .order('time', { ascending: false })
+            .limit(10);
+          
+          if (!error && data) {
+            setTeamActivities(data);
+          }
+        } catch (e) {
+          console.error("Failed to fetch team activities:", e);
+        }
+      };
+      fetchTeamActivities();
+    }
+  }, [currentPlan?.id, currentPlan?.isTeamPlan, currentPlan?.teamMembers]);
+
   if (!currentPlan) {
       return (
           <div className="flex flex-col items-center justify-center min-h-screen bg-background-light dark:bg-background-dark p-6 space-y-4">
@@ -468,7 +528,7 @@ const PlanDetails: React.FC = () => {
                                 { name: user?.name || 'You', progress: progressPercentage, isMe: true, rawId: user?.id || 'me' },
                                 ...(currentPlan.teamMembers || []).filter((id: string) => id !== user?.id && id !== 'me').map((id: string) => ({
                                     name: teamMemberNames[id] || (id.includes('@') ? id.split('@')[0] : id),
-                                    progress: 0,
+                                    progress: teamProgress[id] || 0,
                                     isMe: false,
                                     rawId: id
                                 }))
@@ -495,21 +555,18 @@ const PlanDetails: React.FC = () => {
                     <div className="space-y-4">
                         <p className="text-xs font-black uppercase tracking-widest text-slate-400">Recent Activity</p>
                         <div className="space-y-4 overflow-y-auto max-h-[160px] pr-2 no-scrollbar">
-                            {((currentPlan.teamMembers || []).length > 1) ? [
-                                ...((currentPlan.teamMembers || []).filter((id: string) => id !== user?.id && id !== 'me').map((id: string) => ({
-                                    user: teamMemberNames[id] || (id.includes('@') ? id.split('@')[0] : 'Peer'),
-                                    action: 'joined the plan',
-                                    time: 'Just now'
-                                }))),
-                                { user: 'You', action: 'started the plan', time: '1d ago' }
-                            ].map((act, i) => (
-                                <div key={i} className="flex gap-3 text-[11px]">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 mt-1" />
-                                    <p className="text-slate-600 dark:text-stone-400">
-                                        <span className="font-black text-slate-900 dark:text-white">{act.user}</span> {act.action} <span className="opacity-60">· {act.time}</span>
-                                    </p>
-                                </div>
-                            )) : (
+                            {teamActivities.length > 0 ? teamActivities.map((act, i) => {
+                                const isMe = act.userId === user?.id;
+                                const userName = isMe ? 'You' : (teamMemberNames[act.userId] || (act.userId.includes('@') ? act.userId.split('@')[0] : 'Peer'));
+                                return (
+                                    <div key={i} className="flex gap-3 text-[11px]">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 mt-1" />
+                                        <p className="text-slate-600 dark:text-stone-400">
+                                            <span className="font-black text-slate-900 dark:text-white">{userName}</span> {act.title.replace(/^(Started plan:|Generated AI plan:|Completed task:)/, '').trim()} <span className="opacity-60">· {new Date(act.time).toLocaleDateString()}</span>
+                                        </p>
+                                    </div>
+                                );
+                            }) : (
                                 <div className="text-xs text-slate-500 italic">No recent peer activity yet. Invite some peers!</div>
                             )}
                         </div>
