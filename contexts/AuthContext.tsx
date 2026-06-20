@@ -206,11 +206,25 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const updatedProfile = { ...profile, isVerified };
         logAuthDiagnostic('Session successfully created', { userId: profile.id, isVerified });
         
-        // Update presence and last_login on new session establishment
-        adminService.updatePresence(profile.id);
+        // Update presence and last_login on new session establishment (non-blocking)
+        try {
+          adminService.updatePresence(profile.id).catch(err => {
+            console.error('[AuthContext] syncSupabaseUser updatePresence failed:', err);
+          });
+        } catch (e) {
+          console.error('[AuthContext] syncSupabaseUser updatePresence synchronous error:', e);
+        }
+
         const priorSession = getSession();
         if (!priorSession) {
-          adminService.updateLastLogin(profile.id);
+          try {
+            adminService.updateLastLogin(profile.id).catch(err => {
+              console.error('[AuthContext] syncSupabaseUser updateLastLogin failed:', err);
+            });
+          } catch (e) {
+            console.error('[AuthContext] syncSupabaseUser updateLastLogin synchronous error:', e);
+          }
+
           try {
             const cached = JSON.parse(localStorage.getItem(`relearn_activity_${profile.id}`) || '[]');
             const logExists = cached.some((c: any) => c.title === 'Logged in' && (Date.now() - new Date(c.time).getTime()) < 10000);
@@ -232,9 +246,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 icon: 'login',
                 color: 'text-indigo-500',
                 bg: 'bg-indigo-500/10'
-              }).catch(() => {});
+              }).catch(err => {
+                console.error('[AuthContext] syncSupabaseUser activity insert failed:', err);
+              });
             }
-          } catch {}
+          } catch (e) {
+            console.error('[AuthContext] syncSupabaseUser activity cache failed:', e);
+          }
         }
 
         setUser(updatedProfile);
@@ -306,8 +324,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       if (data.user) {
         await syncSupabaseUser(data.user.id, data.user);
-        await adminService.updateLastLogin(data.user.id);
-        await adminService.updatePresence(data.user.id);
+        
+        // Non-blocking background activity logging and presence updates
+        try {
+          adminService.updateLastLogin(data.user.id).catch(err => {
+            console.error('[AuthContext] login updateLastLogin failed:', err);
+          });
+        } catch (e) {
+          console.error('[AuthContext] login updateLastLogin sync error:', e);
+        }
+
+        try {
+          adminService.updatePresence(data.user.id).catch(err => {
+            console.error('[AuthContext] login updatePresence failed:', err);
+          });
+        } catch (e) {
+          console.error('[AuthContext] login updatePresence sync error:', e);
+        }
+
         try {
           const cached = JSON.parse(localStorage.getItem(`relearn_activity_${data.user.id}`) || '[]');
           cached.unshift({
@@ -319,7 +353,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             bg: 'bg-indigo-500/10'
           });
           localStorage.setItem(`relearn_activity_${data.user.id}`, JSON.stringify(cached.slice(0, 50)));
-          await supabase.from('activity').insert({
+          supabase.from('activity').insert({
             id: crypto.randomUUID(),
             userId: data.user.id,
             title: 'Logged in',
@@ -327,8 +361,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             icon: 'login',
             color: 'text-indigo-500',
             bg: 'bg-indigo-500/10'
+          }).catch(err => {
+            console.error('[AuthContext] login activity insert failed:', err);
           });
-        } catch {}
+        } catch (e) {
+          console.error('[AuthContext] login activity cache failed:', e);
+        }
         return { success: true };
       }
     }
@@ -428,8 +466,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     setUser(newUser);
     setSession(finalUserId);
-    await adminService.updateLastLogin(finalUserId);
-    await adminService.updatePresence(finalUserId);
+
+    // Non-blocking background activity logging and presence updates
+    try {
+      adminService.updateLastLogin(finalUserId).catch(err => {
+        console.error('[AuthContext] signup updateLastLogin failed:', err);
+      });
+    } catch (e) {
+      console.error('[AuthContext] signup updateLastLogin sync error:', e);
+    }
+
+    try {
+      adminService.updatePresence(finalUserId).catch(err => {
+        console.error('[AuthContext] signup updatePresence failed:', err);
+      });
+    } catch (e) {
+      console.error('[AuthContext] signup updatePresence sync error:', e);
+    }
+
     try {
       const cached = JSON.parse(localStorage.getItem(`relearn_activity_${finalUserId}`) || '[]');
       cached.unshift({
@@ -441,7 +495,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         bg: 'bg-indigo-500/10'
       });
       localStorage.setItem(`relearn_activity_${finalUserId}`, JSON.stringify(cached.slice(0, 50)));
-      await supabase.from('activity').insert({
+      supabase.from('activity').insert({
         id: crypto.randomUUID(),
         userId: finalUserId,
         title: 'Logged in',
@@ -449,8 +503,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         icon: 'login',
         color: 'text-indigo-500',
         bg: 'bg-indigo-500/10'
+      }).catch(err => {
+        console.error('[AuthContext] signup activity insert failed:', err);
       });
-    } catch {}
+    } catch (e) {
+      console.error('[AuthContext] signup activity cache failed:', e);
+    }
     return { success: true };
   };
 

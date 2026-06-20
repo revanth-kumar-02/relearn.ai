@@ -566,7 +566,6 @@ export const adminService = {
       const { error } = await supabase
         .from('users')
         .update({ 
-          last_login: timestamp,
           last_login_at: timestamp
         })
         .eq('id', userId);
