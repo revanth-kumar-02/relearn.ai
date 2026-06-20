@@ -1,6 +1,14 @@
-# ReLearn.ai — AI-Powered Learning Platform (v8.2)
+# ReLearn.ai — AI-Powered Learning Platform (v8.3)
 
 ReLearn.ai is a premium, AI-native learning platform designed to help users organize their learning journey with personalized study plans, deep analytics, a collaborative study hub, and an intelligent AI tutor.
+
+## What's New in v8.3 (The Security & Peer Collaboration Update)
+* **OpenAI Fallback Removal**: Completely removed all OpenAI/DALL-E 3 fallback logic, Netlify redirects, local proxies, and CSP permissions. The platform now relies exclusively on high-performance FLUX models.
+* **Production-Grade Team Plans**: Resolved plan isolation using database containment filters. Implemented self-healing task cloning for invited peers, and replaced mocked progress/activities with live queries.
+* **Cloud-Synced Mistake Museum**: Added the `public.mistakes` table and integrated mistake tracking into the Sync Engine, providing multi-tab and multi-device persistence for Oops Mode warmup questions.
+* **Study Room Shared Notes Fix**: Patched the database schema to include the missing `shared_notes` column, enabling group notes in study rooms.
+* **Strict Tenant Isolation (RLS Remediation)**: Restored RLS security rules on all major tables and removed permissive `OR true` bypasses to safeguard user study data.
+* **Tailwind Safelisting & UX Polishes**: Safelisted dynamic class names to fix flashcard borders/highlights in production. Corrected tab transition indicators and populated a live friend activity feed.
 
 ## What's New in v8.2 (The PWA & Stability Update)
 * **Bulletproof PWA Offline Capabilities**: Revamped service worker with dynamic asset caching (JS, CSS, images, fonts), secure root scoping (`/`), and safety checks bypassing third-party/extension fetch requests.
