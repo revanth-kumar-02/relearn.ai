@@ -14,10 +14,7 @@
   to = "/.netlify/functions/groq-proxy?path=:splat"
   status = 200
 
-[[redirects]]
-  from = "/api/openai/*"
-  to = "/.netlify/functions/openai-proxy?path=:splat"
-  status = 200
+
 
 [[redirects]]
   from = "/api/feedback/*"

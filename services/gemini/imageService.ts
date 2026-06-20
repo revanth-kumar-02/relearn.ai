@@ -78,41 +78,7 @@ const generateWithNanoBanana = async (topic: string, signal?: AbortSignal): Prom
   return null;
 };
 
-const generateWithOpenAI = async (topic: string, signal?: AbortSignal): Promise<string | null> => {
-  try {
-    console.log(`[CoverGen] [Tier 2] Calling OpenAI DALL-E 3 for: ${topic}...`);
 
-    const response = await fetch('/api/openai/v1/images/generations', {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        ...getAuthHeaders()
-      },
-      signal: signal,
-      body: JSON.stringify({
-        model: "dall-e-3",
-        prompt: `A beautiful, modern 3D isometric illustration of "${topic}" for a learning platform. High quality, soft lighting, vibrant colors, premium design aesthetic.`,
-        n: 1,
-        size: "1024x1024",
-      })
-    });
-
-    if (!response.ok) throw new Error(`OpenAI Proxy error: ${response.status}`);
-
-    const data = await response.json();
-    const url = data.data?.[0]?.url;
-
-    if (url) {
-      console.log('[CoverGen] ✅ OpenAI success!');
-      return url;
-    }
-  } catch (error: any) {
-    if (error.name === "AbortError") throw error;
-    console.warn(`[CoverGen] ⚠️ OpenAI failed: ${error.message}`);
-  }
-
-  return null;
-};
 
 const generateWithDynamicFallback = (topic: string): string => {
   console.log(`[CoverGen] [Tier 3] Providing Dynamic Fallback (FLUX) for: ${topic}...`);
