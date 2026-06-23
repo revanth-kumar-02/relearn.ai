@@ -121,24 +121,28 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
 }) => {
     const [selectedUser, setSelectedUser] = useState<UserAdminData | null>(null);
     const [activities, setActivities] = useState<any[]>([]);
+    const [analytics, setAnalytics] = useState<any | null>(null);
     const [loadingActivities, setLoadingActivities] = useState(false);
 
     useEffect(() => {
         if (selectedUser) {
             setLoadingActivities(true);
-            adminService.getUserActivities(selectedUser.id)
-                .then(data => {
-                    setActivities(data);
-                })
-                .catch(err => {
-                    console.error("Failed to load user activities:", err);
-                    setActivities([]);
-                })
-                .finally(() => {
-                    setLoadingActivities(false);
-                });
+            Promise.all([
+                adminService.getUserActivities(selectedUser.id).catch(() => []),
+                adminService.getUserProfileAnalytics(selectedUser.id).catch(() => null)
+            ]).then(([acts, analyticData]) => {
+                setActivities(acts);
+                setAnalytics(analyticData);
+            }).catch(err => {
+                console.error("Failed to load user analytics/activities:", err);
+                setActivities([]);
+                setAnalytics(null);
+            }).finally(() => {
+                setLoadingActivities(false);
+            });
         } else {
             setActivities([]);
+            setAnalytics(null);
         }
     }, [selectedUser]);
 
@@ -352,19 +356,19 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
                                 })()}
                             </div>
 
-                            {/* Vitals Grid */}
+                             {/* Vitals Grid */}
                             <div className="grid grid-cols-2 gap-4 bg-gray-50 dark:bg-stone-900/50 p-4 rounded-2xl border border-border-light dark:border-border-dark">
                                 <div className="space-y-1">
-                                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Last Seen</span>
-                                    <p className="text-xs font-bold text-slate-700 dark:text-stone-200">{formatActiveTimestamp(selectedUser.last_active_at || selectedUser.last_seen)}</p>
+                                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Last Seen / Active</span>
+                                    <p className="text-xs font-bold text-slate-700 dark:text-stone-200">{formatActiveTimestamp(analytics?.lastActive || selectedUser.last_active_at || selectedUser.last_seen)}</p>
                                 </div>
                                 <div className="space-y-1">
                                     <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Last Login</span>
-                                    <p className="text-xs font-bold text-slate-700 dark:text-stone-200">{formatActiveTimestamp(selectedUser.last_login_at || selectedUser.last_login)}</p>
+                                    <p className="text-xs font-bold text-slate-700 dark:text-stone-200">{formatActiveTimestamp(analytics?.lastLogin || selectedUser.last_login_at || selectedUser.last_login)}</p>
                                 </div>
                                 <div className="space-y-1 col-span-2 border-t border-border-light dark:border-border-dark pt-3">
                                     <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Account Created</span>
-                                    <p className="text-xs font-bold text-slate-700 dark:text-stone-200">{selectedUser.createdAt ? formatActiveTimestamp(selectedUser.createdAt) : 'No activity recorded'}</p>
+                                    <p className="text-xs font-bold text-slate-700 dark:text-stone-200">{formatActiveTimestamp(analytics?.joinedDate || selectedUser.createdAt)}</p>
                                 </div>
                             </div>
 
@@ -386,6 +390,41 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
                                     </div>
                                 </div>
                             </div>
+
+                            {/* User Engagement Analytics */}
+                            <div className="space-y-3">
+                                <h5 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Engagement Analytics</h5>
+                                <div className="grid grid-cols-2 gap-3 text-center">
+                                    <div className="bg-gray-50/50 dark:bg-stone-900/30 p-3 rounded-xl border border-border-light dark:border-border-dark flex items-center justify-between px-4">
+                                        <div className="text-[9px] font-black uppercase tracking-widest text-slate-400">Total Sessions</div>
+                                        <div className="text-sm font-black text-indigo-600">{analytics?.totalSessions ?? 1}</div>
+                                    </div>
+                                    <div className="bg-gray-50/50 dark:bg-stone-900/30 p-3 rounded-xl border border-border-light dark:border-border-dark flex items-center justify-between px-4">
+                                        <div className="text-[9px] font-black uppercase tracking-widest text-slate-400">Plans Created</div>
+                                        <div className="text-sm font-black text-purple-600">{analytics?.plansCreated ?? 0}</div>
+                                    </div>
+                                    <div className="bg-gray-50/50 dark:bg-stone-900/30 p-3 rounded-xl border border-border-light dark:border-border-dark flex items-center justify-between px-4">
+                                        <div className="text-[9px] font-black uppercase tracking-widest text-slate-400">Rooms Joined</div>
+                                        <div className="text-sm font-black text-amber-600">{analytics?.roomsJoined ?? 0}</div>
+                                    </div>
+                                    <div className="bg-gray-50/50 dark:bg-stone-900/30 p-3 rounded-xl border border-border-light dark:border-border-dark flex items-center justify-between px-4">
+                                        <div className="text-[9px] font-black uppercase tracking-widest text-slate-400">Friends Count</div>
+                                        <div className="text-sm font-black text-emerald-600">{analytics?.friendCount ?? 0}</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Most Recent Activity Highlight */}
+                            {activities.length > 0 && (
+                                <div className="bg-indigo-50/30 dark:bg-indigo-950/10 p-4 rounded-2xl border border-indigo-100/50 dark:border-indigo-900/20 space-y-1">
+                                    <span className="text-[9px] font-black uppercase tracking-widest text-indigo-550">Most Recent Activity</span>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <Icon name={activities[0].icon || 'star'} className={`text-sm ${activities[0].color || 'text-indigo-650'}`} />
+                                        <p className="text-xs font-bold text-slate-700 dark:text-stone-300">{activities[0].title}</p>
+                                    </div>
+                                    <p className="text-[8px] font-bold text-slate-400 text-right">{formatRelativeTime(activities[0].time)}</p>
+                                </div>
+                            )}
 
                             {/* Activity Timeline */}
                             <div className="space-y-4">

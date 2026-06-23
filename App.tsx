@@ -9,6 +9,7 @@ import { TutorialProvider } from './contexts/TutorialContext';
 import { useAuth } from './contexts/AuthContext';
 import { supabase } from './services/supabase';
 import { friendService } from './services/friendService';
+import { addActivity } from './services/dataService';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 import OfflineIndicator from './components/OfflineIndicator';
@@ -165,6 +166,74 @@ const AppContent: React.FC = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isAdmin]);
+
+  // Automatic page view analytics tracking
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const path = location.pathname;
+    let pageName = '';
+    let title = '';
+    let icon = 'visibility';
+    let color = 'text-blue-500';
+    let bg = 'bg-blue-500/10';
+    let activityType = 'open_page';
+
+    if (path === '/dashboard') {
+      pageName = 'dashboard';
+      title = 'Opened Dashboard';
+      icon = 'dashboard';
+    } else if (path === '/learning-workspace') {
+      pageName = 'workspace';
+      title = 'Opened Learning Workspace';
+      icon = 'menu_book';
+    } else if (path === '/collaboration') {
+      pageName = 'collaboration_hub';
+      title = 'Opened Collaboration Hub';
+      icon = 'groups';
+    } else if (path === '/profile') {
+      pageName = 'profile';
+      title = 'Opened Profile';
+      icon = 'person';
+    } else if (path === '/admin') {
+      pageName = 'admin_dashboard';
+      title = 'Opened Admin Dashboard';
+      icon = 'admin_panel_settings';
+      color = 'text-indigo-500';
+      bg = 'bg-indigo-500/10';
+    } else if (path === '/progress') {
+      pageName = 'progress';
+      title = 'Opened Progress Charts';
+      icon = 'bar_chart';
+    } else if (path === '/settings') {
+      pageName = 'settings';
+      title = 'Opened Settings';
+      icon = 'settings';
+      color = 'text-slate-500';
+      bg = 'bg-slate-500/10';
+    } else if (path === '/diary') {
+      pageName = 'learning_diary';
+      title = 'Opened Learning Diary';
+      icon = 'book';
+    }
+
+    if (pageName) {
+      const lastLogged = sessionStorage.getItem('last_logged_page');
+      if (lastLogged !== pageName) {
+        sessionStorage.setItem('last_logged_page', pageName);
+        addActivity(user.id, {
+          id: crypto.randomUUID(),
+          title,
+          time: new Date().toISOString(),
+          icon,
+          color,
+          bg,
+          activity_type: activityType,
+          page_name: pageName
+        }).catch(console.error);
+      }
+    }
+  }, [location.pathname, user?.id]);
 
   const toggleSidebar = () => {
     const newState = !isSidebarExpanded;

@@ -45,6 +45,42 @@ export const studyPactService = {
       time: new Date().toISOString()
     });
 
+    // 5. Log "Proposed Study Pact" activity
+    try {
+      await supabase
+        .from('activity')
+        .insert({
+          id: crypto.randomUUID(),
+          userId: pact.creator_id,
+          title: `Proposed a Study Pact with ${pact.target_name}`,
+          time: new Date().toISOString(),
+          icon: 'handshake',
+          color: 'text-indigo-500',
+          bg: 'bg-indigo-500/10',
+          activity_type: 'use_collaboration',
+          page_name: 'collaboration_hub',
+          metadata: { sub_feature: 'create_study_pact' }
+        });
+    } catch (e) {
+      console.warn('[StudyPactService] Failed to insert pact activity in DB:', e);
+    }
+    
+    try {
+      const cached = JSON.parse(localStorage.getItem(`relearn_activity_${pact.creator_id}`) || '[]');
+      cached.unshift({
+        id: crypto.randomUUID(),
+        title: `Proposed a Study Pact with ${pact.target_name}`,
+        time: new Date().toISOString(),
+        icon: 'handshake',
+        color: 'text-indigo-500',
+        bg: 'bg-indigo-500/10',
+        activity_type: 'use_collaboration',
+        page_name: 'collaboration_hub',
+        metadata: { sub_feature: 'create_study_pact' }
+      });
+      localStorage.setItem(`relearn_activity_${pact.creator_id}`, JSON.stringify(cached.slice(0, 50)));
+    } catch {}
+
     return data as StudyPact;
   },
 

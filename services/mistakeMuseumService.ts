@@ -7,21 +7,7 @@
 
 import { QuizQuestion } from './gemini/quizService';
 import { createMistake, updateMistake, deleteMistake } from './dataService';
-
-export interface MistakeEntry {
-  id: string;
-  question: string;
-  options: string[];
-  correctIndex: number;
-  explanation: string;
-  userAnswer: number;
-  topic: string;
-  planId?: string;
-  timestamp: string;
-  reviewCount: number;
-  lastReviewedAt?: string;
-  mastered: boolean;
-}
+import { MistakeEntry } from '../types';
 
 const SESSION_KEY = 'relearn_session';
 

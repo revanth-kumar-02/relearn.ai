@@ -21,7 +21,24 @@ export interface Plan {
   isTeamPlan?: boolean;
   teamMembers?: string[];
   isImported?: boolean;
+  userId?: string;
 }
+
+export interface MistakeEntry {
+  id: string;
+  question: string;
+  options: string[];
+  correctIndex: number;
+  explanation: string;
+  userAnswer: number;
+  topic: string;
+  planId?: string;
+  timestamp: string;
+  reviewCount: number;
+  lastReviewedAt?: string;
+  mastered: boolean;
+}
+
 
 export interface Task {
   id: string;
@@ -55,6 +72,10 @@ export interface Activity {
   icon: string;
   color: string;
   bg: string;
+  activity_type?: string;
+  page_name?: string;
+  metadata?: Record<string, any>;
+  userId?: string;
 }
 
 export interface Notification {

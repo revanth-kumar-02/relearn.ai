@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
 import { User, UserPreferences } from '../types';
 import { supabase, supabaseAvailable } from '../services/supabase';
-import { getUserProfile, saveUserProfile } from '../services/dataService';
+import { getUserProfile, saveUserProfile, addActivity } from '../services/dataService';
 import { requestNotificationPermission } from '../services/notificationService';
 import { setServiceAuthToken } from '../services/utils/auth';
 import { logAuthDiagnostic } from '../utils/authDiagnostics';
@@ -235,7 +235,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 time: new Date().toISOString(),
                 icon: 'login',
                 color: 'text-indigo-500',
-                bg: 'bg-indigo-500/10'
+                bg: 'bg-indigo-500/10',
+                activity_type: 'login',
+                page_name: 'login'
               });
               localStorage.setItem(`relearn_activity_${profile.id}`, JSON.stringify(cached.slice(0, 50)));
               supabase.from('activity').insert({
@@ -245,8 +247,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 time: new Date().toISOString(),
                 icon: 'login',
                 color: 'text-indigo-500',
-                bg: 'bg-indigo-500/10'
-              }).catch(err => {
+                bg: 'bg-indigo-500/10',
+                activity_type: 'login',
+                page_name: 'login'
+              }).then(undefined, err => {
                 console.error('[AuthContext] syncSupabaseUser activity insert failed:', err);
               });
             }
@@ -350,7 +354,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             time: new Date().toISOString(),
             icon: 'login',
             color: 'text-indigo-500',
-            bg: 'bg-indigo-500/10'
+            bg: 'bg-indigo-500/10',
+            activity_type: 'login',
+            page_name: 'login'
           });
           localStorage.setItem(`relearn_activity_${data.user.id}`, JSON.stringify(cached.slice(0, 50)));
           supabase.from('activity').insert({
@@ -360,8 +366,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             time: new Date().toISOString(),
             icon: 'login',
             color: 'text-indigo-500',
-            bg: 'bg-indigo-500/10'
-          }).catch(err => {
+            bg: 'bg-indigo-500/10',
+            activity_type: 'login',
+            page_name: 'login'
+          }).then(undefined, err => {
             console.error('[AuthContext] login activity insert failed:', err);
           });
         } catch (e) {
@@ -492,7 +500,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         time: new Date().toISOString(),
         icon: 'login',
         color: 'text-indigo-500',
-        bg: 'bg-indigo-500/10'
+        bg: 'bg-indigo-500/10',
+        activity_type: 'login',
+        page_name: 'login'
       });
       localStorage.setItem(`relearn_activity_${finalUserId}`, JSON.stringify(cached.slice(0, 50)));
       supabase.from('activity').insert({
@@ -502,8 +512,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         time: new Date().toISOString(),
         icon: 'login',
         color: 'text-indigo-500',
-        bg: 'bg-indigo-500/10'
-      }).catch(err => {
+        bg: 'bg-indigo-500/10',
+        activity_type: 'login',
+        page_name: 'login'
+      }).then(undefined, err => {
         console.error('[AuthContext] signup activity insert failed:', err);
       });
     } catch (e) {
@@ -528,6 +540,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     // Save using dataService
     await saveUserProfile(user.id, updatedUser as unknown as Record<string, unknown>);
+
+    // Log Profile Update activity
+    try {
+      addActivity(user.id, {
+        id: crypto.randomUUID(),
+        title: 'Updated Profile Settings',
+        time: new Date().toISOString(),
+        icon: 'person',
+        color: 'text-indigo-500',
+        bg: 'bg-indigo-500/10',
+        activity_type: 'update_profile',
+        page_name: 'profile'
+      }).catch(console.error);
+    } catch (e) {
+      console.warn('[AuthContext] Failed to log updateProfile activity:', e);
+    }
 
     return { success: true };
   };

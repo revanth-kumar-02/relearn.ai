@@ -37,6 +37,7 @@ const AdminDashboard: React.FC = () => {
     const [systemStatus, setSystemStatus] = useState<SystemStatus | null>(null);
     const [auditLogs, setAuditLogs] = useState<any[]>([]);
     const [growthData, setGrowthData] = useState<any[]>([]);
+    const [analytics, setAnalytics] = useState<any | null>(null);
     const [planScores, setPlanScores] = useState<Record<string, QualityScore>>({});
     const [isLoading, setIsLoading] = useState(true);
 
@@ -80,14 +81,19 @@ const AdminDashboard: React.FC = () => {
     const loadAllData = async () => {
         setIsLoading(true);
         try {
-            const [s, sys, growth] = await Promise.all([
+            const [s, sys, growth, analyticData] = await Promise.all([
                 adminService.getGlobalStats(),
                 systemService.getSystemStatus(),
                 adminService.getGrowthData(),
+                adminService.getAnalyticsDashboard().catch(err => {
+                    console.error("Failed to load analytics dashboard data:", err);
+                    return null;
+                })
             ]);
             setStats(s);
             setSystemStatus(sys);
             setGrowthData(growth);
+            setAnalytics(analyticData);
             await loadTabData(activeTab, 1, verificationFilter);
         } catch (error) {
             console.error('Admin data load failed:', error);
@@ -272,7 +278,7 @@ const AdminDashboard: React.FC = () => {
                     transition={{ duration: 0.2 }}
                 >
                     {activeTab === 'overview' && (
-                        <OverviewPanel stats={stats} growthData={growthData} setActiveTab={setActiveTab} setVerificationFilter={setVerificationFilter} />
+                        <OverviewPanel stats={stats} growthData={growthData} analytics={analytics} setActiveTab={setActiveTab} setVerificationFilter={setVerificationFilter} />
                     )}
 
                     {activeTab === 'users' && (

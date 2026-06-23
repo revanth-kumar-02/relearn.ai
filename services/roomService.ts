@@ -65,7 +65,9 @@ export const roomService = {
             time: new Date().toISOString(),
             icon: 'hub',
             color: 'text-amber-500',
-            bg: 'bg-amber-500/10'
+            bg: 'bg-amber-500/10',
+            activity_type: 'join_room',
+            page_name: 'study_room'
           });
       } catch {}
       try {
@@ -76,7 +78,9 @@ export const roomService = {
           time: new Date().toISOString(),
           icon: 'hub',
           color: 'text-amber-500',
-          bg: 'bg-amber-500/10'
+          bg: 'bg-amber-500/10',
+          activity_type: 'join_room',
+          page_name: 'study_room'
         });
         localStorage.setItem(`relearn_activity_${hostId}`, JSON.stringify(cached.slice(0, 50)));
       } catch {}
@@ -134,7 +138,9 @@ export const roomService = {
           time: new Date().toISOString(),
           icon: 'hub',
           color: 'text-amber-500',
-          bg: 'bg-amber-500/10'
+          bg: 'bg-amber-500/10',
+          activity_type: 'join_room',
+          page_name: 'study_room'
         });
     } catch {}
     try {
@@ -145,7 +151,9 @@ export const roomService = {
         time: new Date().toISOString(),
         icon: 'hub',
         color: 'text-amber-500',
-        bg: 'bg-amber-500/10'
+        bg: 'bg-amber-500/10',
+        activity_type: 'join_room',
+        page_name: 'study_room'
       });
       localStorage.setItem(`relearn_activity_${userId}`, JSON.stringify(cached.slice(0, 50)));
     } catch {}

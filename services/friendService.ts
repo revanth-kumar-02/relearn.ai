@@ -120,6 +120,39 @@ export const friendService = {
         time: new Date().toISOString(),
         read: false
       });
+
+    // 5. Log "Sent Friend Request" activity for requester
+    try {
+      await supabase
+        .from('activity')
+        .insert({
+          id: crypto.randomUUID(),
+          userId: requesterId,
+          title: `Sent Friend Request to @${username}`,
+          time: new Date().toISOString(),
+          icon: 'person_add',
+          color: 'text-blue-500',
+          bg: 'bg-blue-500/10',
+          activity_type: 'send_friend_request',
+          page_name: 'collaboration_hub'
+        });
+    } catch (e) {
+      console.warn('[FriendService] Failed to log send request activity in DB:', e);
+    }
+    try {
+      const cached = JSON.parse(localStorage.getItem(`relearn_activity_${requesterId}`) || '[]');
+      cached.unshift({
+        id: crypto.randomUUID(),
+        title: `Sent Friend Request to @${username}`,
+        time: new Date().toISOString(),
+        icon: 'person_add',
+        color: 'text-blue-500',
+        bg: 'bg-blue-500/10',
+        activity_type: 'send_friend_request',
+        page_name: 'collaboration_hub'
+      });
+      localStorage.setItem(`relearn_activity_${requesterId}`, JSON.stringify(cached.slice(0, 50)));
+    } catch {}
   },
 
   async acceptFriendRequest(requestId: string) {
@@ -167,7 +200,9 @@ export const friendService = {
           time: new Date().toISOString(),
           icon: 'person_add',
           color: 'text-indigo-500',
-          bg: 'bg-indigo-500/10'
+          bg: 'bg-indigo-500/10',
+          activity_type: 'accept_friend_request',
+          page_name: 'collaboration_hub'
         });
     } catch (e) {
       console.warn('[FriendService] Failed to insert accept activity in DB:', e);
@@ -182,7 +217,9 @@ export const friendService = {
         time: new Date().toISOString(),
         icon: 'person_add',
         color: 'text-indigo-500',
-        bg: 'bg-indigo-500/10'
+        bg: 'bg-indigo-500/10',
+        activity_type: 'accept_friend_request',
+        page_name: 'collaboration_hub'
       });
       localStorage.setItem(`relearn_activity_${request.receiver_id}`, JSON.stringify(cached.slice(0, 50)));
     } catch {}

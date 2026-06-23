@@ -111,6 +111,23 @@ export async function createPlan(userId: string, plan: Plan): Promise<void> {
       if (typeof payload.progress === 'number') payload.progress = Math.round(payload.progress);
       const { error } = await supabase.from('plans').insert(payload);
       if (error) throw error;
+      
+      // Log plan creation activity
+      try {
+        await addActivity(userId, {
+          id: crypto.randomUUID(),
+          title: `Created a Learning Plan: ${plan.title}`,
+          time: new Date().toISOString(),
+          icon: 'auto_awesome',
+          color: 'text-purple-500',
+          bg: 'bg-purple-500/10',
+          activity_type: 'create_plan',
+          page_name: 'create_plan'
+        });
+      } catch (actErr) {
+        console.warn('[DataService] Activity logging failed in createPlan:', actErr);
+      }
+      
       return;
     } catch (err) {
       console.warn('[DataService] Supabase createPlan failed:', err);
@@ -124,6 +141,22 @@ export async function createPlan(userId: string, plan: Plan): Promise<void> {
     data: storagePlan as unknown as Record<string, unknown>,
     userId,
   });
+
+  // Log activity for offline/local flow
+  try {
+    addActivity(userId, {
+      id: crypto.randomUUID(),
+      title: `Created a Learning Plan: ${plan.title}`,
+      time: new Date().toISOString(),
+      icon: 'auto_awesome',
+      color: 'text-purple-500',
+      bg: 'bg-purple-500/10',
+      activity_type: 'create_plan',
+      page_name: 'create_plan'
+    }).catch(console.error);
+  } catch (actErr) {
+    console.warn('[DataService] Local activity logging failed in createPlan:', actErr);
+  }
 }
 
 export async function updatePlan(userId: string, planId: string, updates: Partial<Plan>): Promise<void> {

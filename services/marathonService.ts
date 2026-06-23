@@ -24,6 +24,43 @@ export const marathonService = {
       .single();
 
     if (error) throw error;
+
+    // Log "Joined Marathon" activity
+    try {
+      await supabase
+        .from('activity')
+        .insert({
+          id: crypto.randomUUID(),
+          userId: userId,
+          title: 'Joined a Community Learning Marathon',
+          time: new Date().toISOString(),
+          icon: 'emoji_events',
+          color: 'text-purple-500',
+          bg: 'bg-purple-500/10',
+          activity_type: 'use_collaboration',
+          page_name: 'collaboration_hub',
+          metadata: { sub_feature: 'join_marathon', marathon_id: marathonId }
+        });
+    } catch (e) {
+      console.warn('[MarathonService] Failed to insert marathon activity in DB:', e);
+    }
+    
+    try {
+      const cached = JSON.parse(localStorage.getItem(`relearn_activity_${userId}`) || '[]');
+      cached.unshift({
+        id: crypto.randomUUID(),
+        title: 'Joined a Community Learning Marathon',
+        time: new Date().toISOString(),
+        icon: 'emoji_events',
+        color: 'text-purple-500',
+        bg: 'bg-purple-500/10',
+        activity_type: 'use_collaboration',
+        page_name: 'collaboration_hub',
+        metadata: { sub_feature: 'join_marathon', marathon_id: marathonId }
+      });
+      localStorage.setItem(`relearn_activity_${userId}`, JSON.stringify(cached.slice(0, 50)));
+    } catch {}
+
     return data as MarathonParticipant;
   },
 
