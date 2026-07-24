@@ -1,0 +1,310 @@
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
+import { useData } from '../../contexts/DataContext';
+import ConfirmationModal from '../../components/common/ConfirmationModal';
+import {
+  VIDEO_LANGUAGE_OPTIONS,
+  VideoLanguageCode,
+  LanguageCode
+} from '../../services/api/youtubeService';
+import { SyncIndicator } from '../../components/common/SyncIndicator';
+
+const AI_PERSONA_OPTIONS = [
+  { label: 'Chill Friend', value: 'Chill Friend' },
+  { label: 'Strict Professor', value: 'Strict Professor' },
+  { label: 'Hype Coach', value: 'Hype Coach' },
+  { label: 'Socratic Questioner', value: 'Socratic Questioner' },
+];
+
+const LEARNING_STYLE_OPTIONS = [
+  { label: 'Standard', value: 'Standard' },
+  { label: 'Pirate', value: 'Pirate' },
+  { label: 'Bollywood Narrator', value: 'Bollywood Narrator' },
+  { label: 'Explainer (5-year-old)', value: '5-year-old' },
+  { label: 'Detective Story', value: 'Detective' },
+];
+
+const Settings: React.FC = () => {
+  const navigate = useNavigate();
+  const { user, deleteAccount, logout } = useAuth();
+  const { 
+    refreshData, 
+    videoLanguage, updateVideoLanguage, 
+    contentLanguage, updateContentLanguage,
+    aiPersona, updateAiPersona,
+    learningStyle, updateLearningStyle
+  } = useData();
+  
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+
+
+  const handleRefresh = async () => {
+      setIsRefreshing(true);
+      await refreshData();
+      setTimeout(() => setIsRefreshing(false), 800);
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
+
+  const handleClearData = () => {
+    setShowClearConfirm(true);
+  };
+
+  const confirmClearData = () => {
+    deleteAccount();
+    navigate('/');
+  };
+
+  const userInitial = user?.name?.charAt(0).toUpperCase() || 'L';
+
+  return (
+    <div className="min-h-screen bg-background-light dark:bg-background-dark animate-fade-in pb-24">
+      {/* Header */}
+      <header className="sticky top-0 z-20 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-sm p-4 flex items-center border-b border-border-light dark:border-border-dark">
+         <button onClick={() => navigate(-1)} className="w-10 h-10 flex items-center justify-start rounded-full text-text-primary-light dark:text-text-primary-dark transition-colors">
+             <span className="material-symbols-outlined font-bold">arrow_back</span>
+         </button>
+         <h1 className="flex-1 text-center text-lg font-bold text-text-primary-light dark:text-text-primary-dark pr-10 tracking-tight">Settings</h1>
+      </header>
+
+      <div className="p-4 space-y-6">
+          {/* Profile Card */}
+          <div 
+            onClick={() => navigate('/profile')}
+            className="bg-white dark:bg-surface-dark rounded-3xl p-6 border border-border-light dark:border-border-dark shadow-sm flex flex-col items-center cursor-pointer hover:shadow-md transition-all active:scale-[0.98]"
+          >
+              <div className="w-20 h-20 rounded-full bg-primary/10 text-primary flex items-center justify-center border-4 border-background-light dark:border-background-dark shadow-inner mb-3">
+                  <span className="text-3xl font-black">{userInitial}</span>
+              </div>
+              <h2 className="text-xl font-bold text-text-primary-light dark:text-text-primary-dark">{user?.name}</h2>
+              <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark">{user?.email}</p>
+          </div>
+
+
+          {/* AI Tutor Customization */}
+          <div className="space-y-3">
+              <h3 className="px-2 text-[11px] font-black text-text-secondary-light/60 dark:text-text-secondary-dark/60 uppercase tracking-[0.15em]">AI Tutor</h3>
+              <div className="bg-white dark:bg-surface-dark rounded-2xl overflow-hidden border border-border-light dark:border-border-dark shadow-sm">
+                  {/* Persona Selector */}
+                  <div className="w-full flex items-center justify-between p-5 border-b border-border-light dark:border-border-dark">
+                      <div className="flex items-center gap-4">
+                          <div className="text-[#334155] dark:text-text-secondary-dark">
+                              <span className="material-symbols-outlined text-2xl">psychology</span>
+                          </div>
+                          <div>
+                              <span className="font-bold text-text-primary-light dark:text-text-primary-dark text-base">Study Buddy Persona</span>
+                              <p className="text-[11px] text-text-secondary-light dark:text-text-secondary-dark mt-0.5">Determines the AI's tone and behavior</p>
+                          </div>
+                      </div>
+                      <select
+                          id="ai-persona-select"
+                          value={aiPersona}
+                          onChange={(e) => updateAiPersona(e.target.value)}
+                          className="bg-stone-100 dark:bg-stone-800 text-text-primary-light dark:text-text-primary-dark text-sm font-bold rounded-xl px-3 py-2 border border-border-light dark:border-border-dark outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer transition-all hover:bg-stone-200 dark:hover:bg-stone-700"
+                      >
+                          {AI_PERSONA_OPTIONS.map(opt => (
+                              <option key={opt.value} value={opt.value}>{opt.label}</option>
+                          ))}
+                      </select>
+                  </div>
+
+                  {/* Learning Style Selector */}
+                  <div className="w-full flex items-center justify-between p-5">
+                      <div className="flex items-center gap-4">
+                          <div className="text-[#334155] dark:text-text-secondary-dark">
+                              <span className="material-symbols-outlined text-2xl">auto_awesome</span>
+                          </div>
+                          <div>
+                              <span className="font-bold text-text-primary-light dark:text-text-primary-dark text-base">Explanation Format</span>
+                              <p className="text-[11px] text-text-secondary-light dark:text-text-secondary-dark mt-0.5">Choose how lessons are presented</p>
+                          </div>
+                      </div>
+                      <select
+                          id="learning-style-select"
+                          value={learningStyle}
+                          onChange={(e) => updateLearningStyle(e.target.value)}
+                          className="bg-stone-100 dark:bg-stone-800 text-text-primary-light dark:text-text-primary-dark text-sm font-bold rounded-xl px-3 py-2 border border-border-light dark:border-border-dark outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer transition-all hover:bg-stone-200 dark:hover:bg-stone-700"
+                      >
+                          {LEARNING_STYLE_OPTIONS.map(opt => (
+                              <option key={opt.value} value={opt.value}>{opt.label}</option>
+                          ))}
+                      </select>
+                  </div>
+              </div>
+          </div>
+
+          {/* Preferences Section */}
+          <div className="space-y-3">
+              <h3 className="px-2 text-[11px] font-black text-text-secondary-light/60 dark:text-text-secondary-dark/60 uppercase tracking-[0.15em]">Language</h3>
+              <div className="bg-white dark:bg-surface-dark rounded-2xl overflow-hidden border border-border-light dark:border-border-dark shadow-sm">
+                  {/* Video Language Selector */}
+                  <div className="w-full flex items-center justify-between p-5 border-b border-border-light dark:border-border-dark">
+                      <div className="flex items-center gap-4">
+                          <div className="text-[#334155] dark:text-text-secondary-dark">
+                              <span className="material-symbols-outlined text-2xl">smart_display</span>
+                          </div>
+                          <div>
+                              <span className="font-bold text-text-primary-light dark:text-text-primary-dark text-base">Video Language</span>
+                              <p className="text-[11px] text-text-secondary-light dark:text-text-secondary-dark mt-0.5">Tutorial videos will be in this language</p>
+                          </div>
+                      </div>
+                      <select
+                          id="video-language-select"
+                          value={videoLanguage}
+                          onChange={(e) => updateVideoLanguage(e.target.value as VideoLanguageCode)}
+                          className="bg-stone-100 dark:bg-stone-800 text-text-primary-light dark:text-text-primary-dark text-sm font-bold rounded-xl px-3 py-2 border border-border-light dark:border-border-dark outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer transition-all hover:bg-stone-200 dark:hover:bg-stone-700"
+                      >
+                          {VIDEO_LANGUAGE_OPTIONS.map(opt => (
+                              <option key={opt.value} value={opt.value}>{opt.label}</option>
+                          ))}
+                      </select>
+                  </div>
+
+                  {/* Text Language Selector */}
+                  <div className="w-full flex items-center justify-between p-5">
+                      <div className="flex items-center gap-4">
+                          <div className="text-[#334155] dark:text-text-secondary-dark">
+                              <span className="material-symbols-outlined text-2xl">translate</span>
+                          </div>
+                          <div>
+                              <span className="font-bold text-text-primary-light dark:text-text-primary-dark text-base">Text Language</span>
+                              <p className="text-[11px] text-text-secondary-light dark:text-text-secondary-dark mt-0.5">AI study content will be in this language</p>
+                          </div>
+                      </div>
+                      <select
+                          id="content-language-select"
+                          value={contentLanguage}
+                          onChange={(e) => updateContentLanguage(e.target.value as LanguageCode)}
+                          className="bg-stone-100 dark:bg-stone-800 text-text-primary-light dark:text-text-primary-dark text-sm font-bold rounded-xl px-3 py-2 border border-border-light dark:border-border-dark outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer transition-all hover:bg-stone-200 dark:hover:bg-stone-700"
+                      >
+                          {VIDEO_LANGUAGE_OPTIONS.map(opt => (
+                              <option key={opt.value} value={opt.value}>{opt.label}</option>
+                          ))}
+                      </select>
+                  </div>
+              </div>
+          </div>
+
+          {/* General Section */}
+          <div className="space-y-3">
+              <h3 className="px-2 text-[11px] font-black text-text-secondary-light/60 dark:text-text-secondary-dark/60 uppercase tracking-[0.15em]">General</h3>
+              <div className="bg-white dark:bg-surface-dark rounded-2xl overflow-hidden border border-border-light dark:border-border-dark shadow-sm">
+                  <SettingItem 
+                    icon="inventory_2" 
+                    label="Archived Plans" 
+                    onClick={() => navigate('/archived')} 
+                  />
+                  <SettingItem 
+                    icon="notifications" 
+                    label="Notifications" 
+                    onClick={() => navigate('/notification-settings')} 
+                    isLast
+                  />
+              </div>
+          </div>
+
+          {/* Support Section */}
+          <div className="space-y-3">
+              <h3 className="px-2 text-[11px] font-black text-text-secondary-light/60 dark:text-text-secondary-dark/60 uppercase tracking-[0.15em]">Support</h3>
+              <div className="bg-white dark:bg-surface-dark rounded-2xl overflow-hidden border border-border-light dark:border-border-dark shadow-sm">
+                  <SettingItem 
+                    icon="help" 
+                    label="Help Center" 
+                    onClick={() => navigate('/help-center')} 
+                  />
+                  <SettingItem 
+                    icon="auto_awesome" 
+                    label="Re-enable Help Prompt" 
+                    onClick={() => {
+                        localStorage.removeItem('relearn_help_prompt_dismissed');
+                        navigate('/dashboard');
+                    }} 
+                  />
+                  <SettingItem 
+                    icon="chat" 
+                    label="Send Feedback" 
+                    onClick={() => navigate('/feedback')} 
+                    isLast
+                  />
+              </div>
+          </div>
+
+          {/* Actions Section */}
+          <div className="space-y-3 pt-4">
+            <div className="flex flex-col items-center gap-2">
+                <button 
+                    onClick={handleLogout}
+                    className="w-full max-w-sm flex items-center justify-center gap-2 bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 text-text-primary-light dark:text-text-primary-dark font-bold py-4 rounded-2xl transition-all active:scale-[0.98] shadow-sm"
+                >
+                    <span className="material-symbols-outlined">logout</span>
+                    <span>Log Out</span>
+                </button>
+
+                <button 
+                    onClick={handleClearData}
+                    className="flex items-center gap-2 px-6 py-3 text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 transition-colors group active:scale-95 mt-2"
+                >
+                    <span className="material-symbols-outlined text-xl">delete_sweep</span>
+                    <span className="text-sm font-bold tracking-tight">Clear All Local Data</span>
+                </button>
+            </div>
+          </div>
+
+          {/* Version Footer */}
+          <div className="text-center pt-8 space-y-1">
+              <p className="text-[10px] font-black text-text-secondary-light/30 dark:text-text-secondary-dark/30 uppercase tracking-[0.2em]">
+                RELEARN.AI V8.1
+              </p>
+              <div className="space-y-0.5 px-4">
+                  <p className="text-[9px] font-bold text-text-secondary-light/40 dark:text-text-secondary-dark/40 tracking-tight leading-relaxed">
+                    © 2026 ReLearn.ai . All rights reserved to Revanth.
+                  </p>
+                  <p className="text-[9px] font-bold text-text-secondary-light/40 dark:text-text-secondary-dark/40 tracking-tight leading-relaxed">
+                    Released on 9 May 2026.
+                  </p>
+              </div>
+          </div>
+      </div>
+      
+      <ConfirmationModal
+        isOpen={showClearConfirm}
+        title="Wipe Local Data?"
+        message="This will permanently delete all your learning plans, status markers, and progress history."
+        actionLabel="Delete Everything"
+        icon="delete_forever"
+        isDanger
+        onConfirm={confirmClearData}
+        onCancel={() => setShowClearConfirm(false)}
+      />
+    </div>
+  );
+};
+
+interface SettingItemProps {
+    icon: string;
+    label: string;
+    onClick: () => void;
+    isLast?: boolean;
+}
+
+const SettingItem: React.FC<SettingItemProps> = ({ icon, label, onClick, isLast }) => (
+    <button 
+        onClick={onClick} 
+        className={`w-full flex items-center justify-between p-5 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group ${!isLast ? 'border-b border-border-light dark:border-border-dark' : ''}`}
+    >
+        <div className="flex items-center gap-4">
+            <div className="text-[#334155] dark:text-text-secondary-dark group-hover:text-primary transition-colors">
+                <span className="material-symbols-outlined text-2xl">{icon}</span>
+            </div>
+            <span className="font-bold text-text-primary-light dark:text-text-primary-dark text-base">{label}</span>
+        </div>
+        <span className="material-symbols-outlined text-text-secondary-light/40 text-xl font-bold">chevron_right</span>
+    </button>
+);
+
+export default Settings;

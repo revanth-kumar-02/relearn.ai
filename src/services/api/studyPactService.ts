@@ -1,0 +1,132 @@
+import { supabase } from '../../lib/supabase';
+import { StudyPact } from '../../types/index';
+
+export const studyPactService = {
+  async createPact(pact: Omit<StudyPact, 'id' | 'created_at' | 'status'>) {
+    // 1. Validation Logic
+    if (pact.creator_id === pact.target_id) {
+      throw new Error("You cannot challenge yourself!");
+    }
+
+    const deadlineDate = new Date(pact.deadline);
+    if (deadlineDate <= new Date()) {
+      throw new Error("Deadline must be in the future.");
+    }
+
+    // 2. Check for existing active pacts (limit 3)
+    const { count } = await supabase
+      .from('study_pacts')
+      .select('*', { count: 'exact', head: true })
+      .eq('creator_id', pact.creator_id)
+      .in('status', ['pending', 'accepted']);
+
+    if (count !== null && count >= 3) {
+      throw new Error("You can only have 3 active/pending pacts at a time.");
+    }
+
+    // 3. Insert Pact
+    const { data, error } = await supabase
+      .from('study_pacts')
+      .insert({
+        ...pact,
+        status: 'pending'
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    // 4. Create Notification
+    await supabase.from('notifications').insert({
+      userId: pact.target_id,
+      type: 'social',
+      title: 'New Study Pact Proposal',
+      message: `${pact.creator_name} has challenged you to: ${pact.goal_description}`,
+      time: new Date().toISOString()
+    });
+
+    // 5. Log "Proposed Study Pact" activity
+    try {
+      await supabase
+        .from('activity')
+        .insert({
+          id: crypto.randomUUID(),
+          userId: pact.creator_id,
+          title: `Proposed a Study Pact with ${pact.target_name}`,
+          time: new Date().toISOString(),
+          icon: 'handshake',
+          color: 'text-indigo-500',
+          bg: 'bg-indigo-500/10',
+          activity_type: 'use_collaboration',
+          page_name: 'collaboration_hub',
+          metadata: { sub_feature: 'create_study_pact' }
+        });
+    } catch (e) {
+      console.warn('[StudyPactService] Failed to insert pact activity in DB:', e);
+    }
+    
+    try {
+      const cached = JSON.parse(localStorage.getItem(`relearn_activity_${pact.creator_id}`) || '[]');
+      cached.unshift({
+        id: crypto.randomUUID(),
+        title: `Proposed a Study Pact with ${pact.target_name}`,
+        time: new Date().toISOString(),
+        icon: 'handshake',
+        color: 'text-indigo-500',
+        bg: 'bg-indigo-500/10',
+        activity_type: 'use_collaboration',
+        page_name: 'collaboration_hub',
+        metadata: { sub_feature: 'create_study_pact' }
+      });
+      localStorage.setItem(`relearn_activity_${pact.creator_id}`, JSON.stringify(cached.slice(0, 50)));
+    } catch {}
+
+    return data as StudyPact;
+  },
+
+  async getUserPacts(userId: string) {
+    const { data, error } = await supabase
+      .from('study_pacts')
+      .select('*')
+      .or(`creator_id.eq.${userId},target_id.eq.${userId}`)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data as StudyPact[];
+  },
+
+  async updatePactStatus(pactId: string, status: StudyPact['status']) {
+    const updateData: any = { status };
+    if (status === 'completed') {
+      updateData.completed_at = new Date().toISOString();
+    }
+
+    const { data, error } = await supabase
+      .from('study_pacts')
+      .update(updateData)
+      .eq('id', pactId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data as StudyPact;
+  },
+
+  subscribeToPacts(userId: string, callback: () => void) {
+    return supabase
+      .channel(`pacts_${userId}`)
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'study_pacts',
+        filter: `creator_id=eq.${userId}`
+      }, callback)
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'study_pacts',
+        filter: `target_id=eq.${userId}`
+      }, callback)
+      .subscribe();
+  }
+};
