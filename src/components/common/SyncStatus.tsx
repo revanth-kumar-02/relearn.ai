@@ -37,59 +37,8 @@ const SyncStatus: React.FC = () => {
         setIsRetrying(false);
     };
 
-    if (health.pendingCount === 0) return null;
-
-    return (
-        <div className="fixed bottom-6 left-6 z-[60] print:hidden">
-            <AnimatePresence>
-                {!showDetails ? (
-                    <motion.button
-                        layoutId="sync-pill"
-                        onClick={() => setShowDetails(true)}
-                        initial={{ opacity: 0, y: 20, scale: 0.8 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.8 }}
-                        className="flex items-center gap-2 px-4 py-2 rounded-full shadow-lg backdrop-blur-md border transition-all bg-stone-900/90 border-stone-700 text-stone-300"
-                    >
-                        <Icon name="sync" className="text-sm animate-spin" />
-                        <span className="text-xs font-medium">Syncing {health.pendingCount}...</span>
-                    </motion.button>
-                ) : (
-                    <motion.div
-                        layoutId="sync-pill"
-                        initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                        className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-2xl shadow-2xl w-80 overflow-hidden"
-                    >
-                        <div className="p-4 flex items-center justify-between bg-stone-100 dark:bg-stone-800">
-                            <div className="flex items-center gap-2">
-                                <Icon name="sync" className="animate-spin" />
-                                <h3 className="text-sm font-bold uppercase tracking-wider">Synchronization</h3>
-                            </div>
-                            <button onClick={() => setShowDetails(false)} className="hover:bg-white/20 p-1 rounded-full transition-colors flex items-center justify-center">
-                                <Icon name="close" className="text-lg" />
-                            </button>
-                        </div>
-
-                        <div className="p-4 space-y-4 text-stone-900 dark:text-stone-100">
-                            <div className="flex items-center gap-3 p-3 bg-stone-50 dark:bg-stone-800/50 rounded-xl">
-                                <Icon name="progress_activity" className="animate-spin text-primary" />
-                                <p className="text-xs text-stone-600 dark:text-stone-400">
-                                    Pushing <span className="font-bold text-stone-900 dark:text-stone-100">{health.pendingCount}</span> local update{health.pendingCount > 1 ? 's' : ''} to cloud storage...
-                                </p>
-                            </div>
-
-                            <div className="flex items-center gap-2 text-[10px] text-stone-400 uppercase font-bold tracking-widest px-1">
-                                <Icon name="wifi_off" className="text-xs" />
-                                <span>Offline-first mode active</span>
-                            </div>
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-        </div>
-    );
+    // Suppress visual popup UI as per user requirement, while preserving background sync listeners and health status updates
+    return null;
 };
 
 export default SyncStatus;

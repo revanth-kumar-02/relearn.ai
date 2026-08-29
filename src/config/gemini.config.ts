@@ -15,8 +15,8 @@ export const AI_MODELS = {
   /** Fast Groq model for quick tasks, quizzes, flashcards, and safety validation */
   FAST_LITE: import.meta.env.VITE_LLM_MODEL_FAST || 'openai/gpt-oss-20b',
 
-  /** Flagship reasoning model for chat and complex tutoring */
-  CHAT: import.meta.env.VITE_LLM_MODEL_CHAT || 'gemini-pro',
+  /** Primary Groq model for chat and interactive tutoring */
+  CHAT: import.meta.env.VITE_LLM_MODEL_CHAT || 'openai/gpt-oss-120b',
 
   /** Premium image generation model */
   IMAGE: 'imagen-3.0-generate-001',
@@ -26,7 +26,6 @@ export const AI_MODELS = {
     import.meta.env.VITE_LLM_MODEL_PRIMARY || 'openai/gpt-oss-120b',
     import.meta.env.VITE_LLM_MODEL_FAST || 'openai/gpt-oss-20b',
     'gemini-2.0-flash',
-    import.meta.env.VITE_LLM_MODEL_CHAT || 'gemini-pro',
     'gemini-1.5-flash',
   ],
 } as const;

@@ -5,10 +5,11 @@
  * "How is X similar to Y?" Forces cross-domain thinking.
  */
 
-import { AI_MODELS, isRetryableError } from '../../config/gemini.config';
+import { AI_MODELS, IS_GROQ_MODEL, isRetryableError } from '../../config/gemini.config';
 import { getProxyConfiguredGenAI } from './genai';
 import { sanitizeInput } from '../../utils/sanitize';
 import { safeParseAIResponse } from '../../utils/aiUtils';
+import { getAuthHeaders } from '../../utils/authUtils';
 
 export interface ConceptCollision {
   topicA: string;
@@ -50,11 +51,52 @@ export const generateConceptCollision = async (
 
   for (const currentModel of modelsToTry) {
     try {
-      const response = await ai.models.generateContent({
-        model: currentModel,
-        contents: [{
-          role: 'user',
-          parts: [{ text: `Create a "Concept Collision" challenge. 
+      let text = "";
+
+      if (IS_GROQ_MODEL(currentModel)) {
+        const response = await fetch('/api/groq/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...getAuthHeaders()
+          },
+          body: JSON.stringify({
+            model: currentModel,
+            messages: [
+              {
+                role: 'system',
+                content: `You are a creative educator who finds unexpected connections between different fields. Your goal is to make students think across domains. Be creative, surprising, and educational. Response MUST be valid JSON: { "topicA": "string", "topicB": "string", "question": "string", "hint": "string", "sampleAnswer": "string" }.`
+              },
+              {
+                role: 'user',
+                content: `Create a "Concept Collision" challenge. 
+
+Topic A: <topic_input>${sanitizeInput(topicA)}</topic_input>
+Topic B: <topic_input>${sanitizeInput(topicB)}</topic_input>
+
+Generate a thought-provoking question that connects these two seemingly unrelated topics. 
+Include a subtle hint and a sample answer.
+Write everything in ${language}. Keep it fun and mind-bending.`
+              }
+            ],
+            response_format: { type: 'json_object' },
+            temperature: 0.7
+          })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error?.message || `Groq API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        text = data.choices?.[0]?.message?.content || "";
+      } else {
+        const response = await ai.models.generateContent({
+          model: currentModel,
+          contents: [{
+            role: 'user',
+            parts: [{ text: `Create a "Concept Collision" challenge. 
 
 Topic A: <topic_input>${sanitizeInput(topicA)}</topic_input>
 Topic B: <topic_input>${sanitizeInput(topicB)}</topic_input>
@@ -64,14 +106,16 @@ Include a subtle hint and a sample answer.
 Write everything in ${language}. Keep it fun and mind-bending.
 
 Return ONLY valid JSON: { "topicA": "...", "topicB": "...", "question": "...", "hint": "...", "sampleAnswer": "..." }` }]
-        }],
-        config: {
-          systemInstruction: `You are a creative educator who finds unexpected connections between different fields. Your goal is to make students think across domains. Be creative, surprising, and educational.`,
-          responseMimeType: "application/json",
-        }
-      });
+          }],
+          config: {
+            systemInstruction: `You are a creative educator who finds unexpected connections between different fields. Your goal is to make students think across domains. Be creative, surprising, and educational.`,
+            responseMimeType: "application/json",
+          }
+        });
 
-      const text = response.text;
+        text = response.text || "";
+      }
+
       if (text) {
         const parsed = safeParseAIResponse<Partial<ConceptCollision>>(text);
         return {

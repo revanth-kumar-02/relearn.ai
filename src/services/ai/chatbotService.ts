@@ -1,6 +1,7 @@
-import { AI_MODELS, isRetryableError } from "../../config/gemini.config";
+import { AI_MODELS, IS_GROQ_MODEL, isRetryableError } from "../../config/gemini.config";
 import { getProxyConfiguredGenAI } from "./genai";
 import { sanitizeInput } from "../../utils/sanitize";
+import { getAuthHeaders } from "../../utils/authUtils";
 
 /**
  * Non-streaming chatbot
@@ -17,19 +18,55 @@ export const sendChatMessage = async (
 
   for (const currentModel of modelsToTry) {
     try {
-      const chat = ai.chats.create({
-        model: currentModel,
-        config: {
-          systemInstruction: `You are ReLearn.ai, a helpful AI study assistant. 
-              ${userContext ? `User Profile Context: ${userContext}` : ''}
-              Be concise, encouraging, and professional.
-              IMPORTANT: ALWAYS RESPOND IN ${language}. However, technical terms should remain in English for educational clarity.`,
-        },
-        history: history
-      });
+      if (IS_GROQ_MODEL(currentModel)) {
+        const groqHistory = history.map(h => ({
+          role: h.role === 'model' ? 'assistant' : 'user',
+          content: h.parts.map(p => p.text).join('')
+        }));
 
-      const response = await chat.sendMessage({ message: sanitizeInput(message) });
-      return response.text || "I'm sorry, I couldn't process that.";
+        const response = await fetch('/api/groq/chat/completions', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            ...getAuthHeaders()
+          },
+          body: JSON.stringify({
+            model: currentModel,
+            messages: [
+              { 
+                role: 'system', 
+                content: `You are ReLearn.ai, a helpful AI study assistant. ${userContext ? `User Profile Context: ${userContext}` : ''} Be concise, encouraging, and professional. IMPORTANT: ALWAYS RESPOND IN ${language}. However, technical terms should remain in English for educational clarity.` 
+              },
+              ...groqHistory,
+              { role: 'user', content: sanitizeInput(message) }
+            ],
+            temperature: 0.7
+          })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error?.message || `Groq API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const text = data.choices?.[0]?.message?.content;
+        if (text) return text;
+      } else {
+        const chat = ai.chats.create({
+          model: currentModel,
+          config: {
+            systemInstruction: `You are ReLearn.ai, a helpful AI study assistant. 
+                ${userContext ? `User Profile Context: ${userContext}` : ''}
+                Be concise, encouraging, and professional.
+                IMPORTANT: ALWAYS RESPOND IN ${language}. However, technical terms should remain in English for educational clarity.`,
+          },
+          history: history
+        });
+
+        const response = await chat.sendMessage({ message: sanitizeInput(message) });
+        if (response.text) return response.text;
+      }
     } catch (error: any) {
       lastError = error;
       console.warn(`[ChatBot] Model ${currentModel} failed:`, error?.message || error);
@@ -67,13 +104,77 @@ IMPORTANT: ALWAYS RESPOND IN ${language}. However, technical terms should remain
   const contents = [
     ...history.map(h => ({
       role: h.role,
-      parts: h.parts // history should ideally be sanitized too, but it's safe to assume it's sanitized when coming in
+      parts: h.parts
     })),
     { role: 'user' as const, parts: [{ text: sanitizeInput(message) }] }
   ];
 
   for (const currentModel of modelsToTry) {
-      try {
+    try {
+      if (IS_GROQ_MODEL(currentModel)) {
+        const groqHistory = history.map(h => ({
+          role: h.role === 'model' ? 'assistant' : 'user',
+          content: h.parts.map(p => p.text).join('')
+        }));
+
+        const response = await fetch('/api/groq/chat/completions', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            ...getAuthHeaders()
+          },
+          body: JSON.stringify({
+            model: currentModel,
+            messages: [
+              { role: 'system', content: systemInstruction },
+              ...groqHistory,
+              { role: 'user', content: sanitizeInput(message) }
+            ],
+            stream: true,
+            temperature: 0.7
+          })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error?.message || `Groq API error: ${response.status}`);
+        }
+
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
+        let accumulated = '';
+
+        if (reader) {
+          let done = false;
+          let buffer = '';
+          while (!done) {
+            const { value, done: doneReading } = await reader.read();
+            done = doneReading;
+            if (value) {
+              buffer += decoder.decode(value, { stream: true });
+              const lines = buffer.split('\n');
+              buffer = lines.pop() || '';
+              for (const line of lines) {
+                const trimmed = line.trim();
+                if (trimmed.startsWith('data: ')) {
+                  const jsonStr = trimmed.replace(/^data:\s*/, '');
+                  if (jsonStr === '[DONE]') continue;
+                  try {
+                    const parsed = JSON.parse(jsonStr);
+                    const chunkText = parsed.choices?.[0]?.delta?.content || '';
+                    if (chunkText) {
+                      accumulated += chunkText;
+                      onChunk(accumulated);
+                    }
+                  } catch (e) {}
+                }
+              }
+            }
+          }
+        }
+
+        if (accumulated) return accumulated;
+      } else {
         const stream = await ai.models.generateContentStream({
           model: currentModel,
           contents,
@@ -82,16 +183,17 @@ IMPORTANT: ALWAYS RESPOND IN ${language}. However, technical terms should remain
           }
         });
 
-      let accumulated = '';
-      for await (const chunk of stream) {
-        const text = chunk.text;
-        if (text) {
-          accumulated += text;
-          onChunk(accumulated);
+        let accumulated = '';
+        for await (const chunk of stream) {
+          const text = chunk.text;
+          if (text) {
+            accumulated += text;
+            onChunk(accumulated);
+          }
         }
-      }
 
-      return accumulated || "I'm sorry, I couldn't process that.";
+        if (accumulated) return accumulated;
+      }
     } catch (error: any) {
       lastError = error;
       console.warn(`[ChatBotStream] Model ${currentModel} failed:`, error?.message || error);

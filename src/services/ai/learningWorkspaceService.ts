@@ -197,7 +197,7 @@ Do not include markdown code fences (like \`\`\`json) outside the JSON structure
 
     throw lastError || new Error("All models failed");
   } catch (error) {
-    console.error("Gemini Session Generation Error:", error);
+    console.error("Session Generation Error:", error);
     throw error;
   }
 };

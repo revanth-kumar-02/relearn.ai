@@ -55,43 +55,62 @@ Tasks: ${plan.tasks?.map((t: any) => t.title).join(', ') || 'No tasks'}
 
 Provide a detailed quality score.`;
 
-    const currentModel = AI_MODELS.PRIMARY;
+    const modelsToTry = [AI_MODELS.PRIMARY, ...AI_MODELS.FALLBACK_CHAIN.filter(m => m !== AI_MODELS.PRIMARY)];
+    let lastError: any = null;
 
-    if (IS_GROQ_MODEL(currentModel)) {
-      const response = await fetch('/api/groq/chat/completions', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          ...getAuthHeaders()
-        },
-        body: JSON.stringify({
-          model: currentModel,
-          messages: [
-            { role: 'system', content: systemInstruction },
-            { role: 'user', content: prompt }
-          ],
-          response_format: { type: 'json_object' },
-          temperature: 0.3,
-        })
-      });
+    for (const currentModel of modelsToTry) {
+      try {
+        if (IS_GROQ_MODEL(currentModel)) {
+          const response = await fetch('/api/groq/chat/completions', {
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json',
+              ...getAuthHeaders()
+            },
+            body: JSON.stringify({
+              model: currentModel,
+              messages: [
+                { role: 'system', content: systemInstruction },
+                { role: 'user', content: prompt }
+              ],
+              response_format: { type: 'json_object' },
+              temperature: 0.3,
+            })
+          });
 
-      if (!response.ok) throw new Error(`Groq API error: ${response.status}`);
-      const data = await response.json();
-      const content = data.choices[0].message.content;
-      return safeParseAIResponse<QualityScore>(content);
-    } else {
-      const result = await ai.models.generateContent({
-        model: currentModel,
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        config: {
-          systemInstruction,
-          responseMimeType: "application/json",
-          responseSchema
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error?.message || `Groq API error: ${response.status}`);
+          }
+
+          const data = await response.json();
+          const content = data.choices[0]?.message?.content;
+          if (content) {
+            return safeParseAIResponse<QualityScore>(content);
+          }
+        } else {
+          const result = await ai.models.generateContent({
+            model: currentModel,
+            contents: [{ role: 'user', parts: [{ text: prompt }] }],
+            config: {
+              systemInstruction,
+              responseMimeType: "application/json",
+              responseSchema
+            }
+          });
+
+          if (result.text) {
+            return safeParseAIResponse<QualityScore>(result.text);
+          }
         }
-      });
-
-      return safeParseAIResponse<QualityScore>(result.text);
+      } catch (err: any) {
+        lastError = err;
+        console.warn(`[QualityScoring] Model ${currentModel} failed:`, err?.message || err);
+        continue;
+      }
     }
+
+    throw lastError || new Error("All models failed to score quality");
   } catch (error) {
     console.error('[QualityScoring] Failed to score plan:', error);
     return {
