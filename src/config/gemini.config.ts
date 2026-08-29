@@ -30,7 +30,8 @@ export const AI_MODELS = {
   ],
 } as const;
 
-export const IS_GROQ_MODEL = (model: string) => model.includes('gpt-oss') || model.startsWith('openai/') || model.includes('groq');
+export const IS_GROQ_MODEL = (model?: any): boolean => 
+  typeof model === 'string' && (model.includes('gpt-oss') || model.startsWith('openai/') || model.includes('groq'));
 
 export const isNetworkError = (error: any): boolean => {
   const message = (error?.message || error?.toString() || '').toLowerCase();

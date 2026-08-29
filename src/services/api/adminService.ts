@@ -558,23 +558,35 @@ export const adminService = {
     try {
       const raw = localStorage.getItem('relearn_users');
       if (raw) {
-        const users = JSON.parse(raw);
-        if (users[userId]) {
-          users[userId].last_seen = timestamp;
-          users[userId].last_active_at = timestamp;
-          localStorage.setItem('relearn_users', JSON.stringify(users));
+        try {
+          const users = JSON.parse(raw);
+          if (users && typeof users === 'object' && users[userId]) {
+            users[userId].last_seen = timestamp;
+            users[userId].last_active_at = timestamp;
+            localStorage.setItem('relearn_users', JSON.stringify(users));
+          }
+        } catch {
+          localStorage.removeItem('relearn_users');
         }
       }
       // Also update current active session user cache if it exists
       const rawUser = localStorage.getItem(`relearn_user_${userId}`);
       if (rawUser) {
-        const user = JSON.parse(rawUser);
-        user.last_seen = timestamp;
-        user.last_active_at = timestamp;
-        localStorage.setItem(`relearn_user_${userId}`, JSON.stringify(user));
+        try {
+          const user = JSON.parse(rawUser);
+          if (user && typeof user === 'object') {
+            user.last_seen = timestamp;
+            user.last_active_at = timestamp;
+            localStorage.setItem(`relearn_user_${userId}`, JSON.stringify(user));
+          } else {
+            localStorage.removeItem(`relearn_user_${userId}`);
+          }
+        } catch {
+          localStorage.removeItem(`relearn_user_${userId}`);
+        }
       }
-    } catch (e) {
-      console.error('[AdminService] updatePresence cache update failed:', e);
+    } catch {
+      // Silently ignore storage errors to avoid interrupting user flows
     }
   },
 
@@ -601,22 +613,34 @@ export const adminService = {
     try {
       const raw = localStorage.getItem('relearn_users');
       if (raw) {
-        const users = JSON.parse(raw);
-        if (users[userId]) {
-          users[userId].last_login = timestamp;
-          users[userId].last_login_at = timestamp;
-          localStorage.setItem('relearn_users', JSON.stringify(users));
+        try {
+          const users = JSON.parse(raw);
+          if (users && typeof users === 'object' && users[userId]) {
+            users[userId].last_login = timestamp;
+            users[userId].last_login_at = timestamp;
+            localStorage.setItem('relearn_users', JSON.stringify(users));
+          }
+        } catch {
+          localStorage.removeItem('relearn_users');
         }
       }
       const rawUser = localStorage.getItem(`relearn_user_${userId}`);
       if (rawUser) {
-        const user = JSON.parse(rawUser);
-        user.last_login = timestamp;
-        user.last_login_at = timestamp;
-        localStorage.setItem(`relearn_user_${userId}`, JSON.stringify(user));
+        try {
+          const user = JSON.parse(rawUser);
+          if (user && typeof user === 'object') {
+            user.last_login = timestamp;
+            user.last_login_at = timestamp;
+            localStorage.setItem(`relearn_user_${userId}`, JSON.stringify(user));
+          } else {
+            localStorage.removeItem(`relearn_user_${userId}`);
+          }
+        } catch {
+          localStorage.removeItem(`relearn_user_${userId}`);
+        }
       }
-    } catch (e) {
-      console.error('[AdminService] updateLastLogin cache update failed:', e);
+    } catch {
+      // Silently ignore storage errors
     }
   },
 

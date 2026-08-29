@@ -38,7 +38,7 @@ const generateWithNanoBanana = async (topic: string, signal?: AbortSignal): Prom
     const result = await Promise.race([
       (async () => {
         const responsePromise = ai.models.generateContent({
-          model: AI_MODELS.PRIMARY, // S5: Use centralized model ID
+          model: AI_MODELS.IMAGE, // Use Gemini image model, never Groq GPT model
           contents: [{ role: 'user', parts: [{ text: prompt }] }],
           config: {
             responseModalities: ['TEXT'],
