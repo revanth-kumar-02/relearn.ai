@@ -24,7 +24,7 @@ ReLearn.ai is a premium, AI-native learning platform designed to help users orga
 
 ## Core Features
 
-- **AI-Powered Plan Generation** — Near-instant roadmaps generated via Groq (Llama 3.3) with intelligent milestone expansion.
+- **AI-Powered Plan Generation** — Near-instant roadmaps generated via Groq (GPT-OSS 120B) with intelligent milestone expansion.
 - **Live Collaboration Hub** — Real-time social learning with StudyPacts and Community Marathons via Supabase Realtime and Row Level Security (RLS).
 - **Interactive Quiz Module** — AI-generated multiple-choice assessments that test genuine understanding, complete with detailed explanations.
 - **Mistake Museum & Concept Collision** — Turn failures into fuel by cataloging learning mistakes, and connect distinct ideas for deeper mastery.
@@ -38,7 +38,7 @@ ReLearn.ai is a premium, AI-native learning platform designed to help users orga
 ## Tech Stack
 
 - **Frontend**: React 19, TypeScript, Tailwind CSS
-- **AI Services**: Groq (Llama 3.3), Google Gemini (Pro & Flash), Pollinations (FLUX)
+- **AI Services**: Groq (GPT-OSS 120B & 20B), Google Gemini (Pro & Flash), Pollinations (FLUX)
 - **Backend & Auth**: Supabase (Auth, PostgreSQL DB, Realtime, RLS Policies)
 - **State Management**: React Context + "Self-healing" DataService
 - **Video API**: YouTube Data API v3

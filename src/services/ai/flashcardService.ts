@@ -1,5 +1,5 @@
 import { Type } from "@google/genai";
-import { AI_MODELS } from "../../config/gemini.config";
+import { AI_MODELS, IS_GROQ_MODEL } from "../../config/gemini.config";
 import { getProxyConfiguredGenAI } from "./genai";
 import { sanitizeInput } from "../../utils/sanitize";
 import { getAuthHeaders } from "../../utils/authUtils";
@@ -18,14 +18,14 @@ export const generateFlashcards = async (
   language: string = 'English'
 ): Promise<Flashcard[]> => {
   const ai = getProxyConfiguredGenAI('learning');
-  const modelsToTry = [AI_MODELS.PRIMARY, ...AI_MODELS.FALLBACK_CHAIN.filter(m => m !== AI_MODELS.PRIMARY)];
+  const modelsToTry = [AI_MODELS.FAST_LITE, ...AI_MODELS.FALLBACK_CHAIN.filter(m => m !== AI_MODELS.FAST_LITE)];
   let lastError: any = null;
 
   for (const currentModel of modelsToTry) {
     try {
       let text = "";
       
-      if (currentModel.startsWith('llama') || currentModel.startsWith('mixtral') || currentModel.includes('groq')) {
+      if (IS_GROQ_MODEL(currentModel)) {
         const response = await fetch('/api/groq/chat/completions', {
           method: 'POST',
           headers: { 

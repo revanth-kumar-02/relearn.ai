@@ -9,11 +9,11 @@
  */
 
 export const AI_MODELS = {
-  /** Primary stable model — fastest Groq production model */
-  PRIMARY: import.meta.env.VITE_LLM_MODEL_PRIMARY || 'llama-3-70b-v',
+  /** Primary Groq model for complex reasoning and roadmap/content generation */
+  PRIMARY: import.meta.env.VITE_LLM_MODEL_PRIMARY || 'openai/gpt-oss-120b',
 
-  /** Ultra-high efficiency model for lightweight tasks */
-  FAST_LITE: 'gemini-1.5-flash',
+  /** Fast Groq model for quick tasks, quizzes, flashcards, and safety validation */
+  FAST_LITE: import.meta.env.VITE_LLM_MODEL_FAST || 'openai/gpt-oss-20b',
 
   /** Flagship reasoning model for chat and complex tutoring */
   CHAT: import.meta.env.VITE_LLM_MODEL_CHAT || 'gemini-pro',
@@ -23,14 +23,15 @@ export const AI_MODELS = {
 
   /** Ordered fallback chain for peak demand */
   FALLBACK_CHAIN: [
-    import.meta.env.VITE_LLM_MODEL_PRIMARY || 'llama-3-70b-v',
+    import.meta.env.VITE_LLM_MODEL_PRIMARY || 'openai/gpt-oss-120b',
+    import.meta.env.VITE_LLM_MODEL_FAST || 'openai/gpt-oss-20b',
     'gemini-2.0-flash',
     import.meta.env.VITE_LLM_MODEL_CHAT || 'gemini-pro',
     'gemini-1.5-flash',
   ],
 } as const;
 
-export const IS_GROQ_MODEL = (model: string) => model.startsWith('llama') || model.startsWith('mixtral') || model.includes('groq');
+export const IS_GROQ_MODEL = (model: string) => model.includes('gpt-oss') || model.startsWith('openai/') || model.includes('groq');
 
 export const isNetworkError = (error: any): boolean => {
   const message = (error?.message || error?.toString() || '').toLowerCase();

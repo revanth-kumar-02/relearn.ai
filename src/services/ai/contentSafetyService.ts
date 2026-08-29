@@ -1,6 +1,6 @@
 import { Type } from "@google/genai";
 import { getProxyConfiguredGenAI } from "./genai";
-import { AI_MODELS } from "../../config/gemini.config";
+import { AI_MODELS, IS_GROQ_MODEL } from "../../config/gemini.config";
 import { sanitizeInput } from "../../utils/sanitize";
 import { getAuthHeaders } from "../../utils/authUtils";
 
@@ -72,7 +72,7 @@ export const validateTopicSafety = async (
       try {
         let text = "";
 
-        if (currentModel.startsWith('llama') || currentModel.startsWith('mixtral') || currentModel.includes('groq')) {
+        if (IS_GROQ_MODEL(currentModel)) {
           // Groq Integration
           const response = await fetch('/api/groq/chat/completions', {
             method: 'POST',
