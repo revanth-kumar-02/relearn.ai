@@ -148,8 +148,10 @@ Guidance: ~20 words in ${language}.` },
         });
 
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error?.message || `Groq error: ${response.status}`);
+          const errorData = await response.json().catch(() => ({}));
+          const customError: any = new Error(errorData.error?.message || `Groq API error: ${response.status}`);
+          customError.status = response.status;
+          throw customError;
         }
 
         const data = await response.json();
@@ -193,12 +195,25 @@ Guidance: ~20 words in ${language}.` },
 
       lastError = error;
       const errorMsg = (error?.message || error?.toString() || '').toLowerCase();
-      console.warn(`[PlanGenerator] Model ${currentModel} failed:`, errorMsg);
+      const status = error?.status || (errorMsg.match(/\b(400|401|403|429|500|502|503|504)\b/)?.[1] ? Number(errorMsg.match(/\b(400|401|403|429|500|502|503|504)\b/)[1]) : undefined);
+      console.warn(`[PlanGenerator] Model ${currentModel} failed (status: ${status || 'unknown'}):`, error.message);
 
-      // Specific handling for Key Expiration - suggest redeploy
-      if (errorMsg.includes("api key expired") || errorMsg.includes("invalid_argument") || errorMsg.includes("400")) {
-        console.error(`[PlanGenerator] API Key issue detected. Suggesting redeploy.`);
-        throw new Error("Your API key is expired or invalid. PLEASE REDEPLOY YOUR SITE ON NETLIFY to sync your new keys.");
+      // Status 401: Invalid or expired API Key
+      if (status === 401 || errorMsg.includes("invalid api key") || errorMsg.includes("api key expired")) {
+        console.error(`[PlanGenerator] Unauthorized API key for ${currentModel}.`);
+        throw new Error("Your AI API key is missing or invalid. Please check your API key settings or Netlify configuration.");
+      }
+
+      // Status 403: Forbidden / Permission error
+      if (status === 403) {
+        console.error(`[PlanGenerator] Access forbidden for ${currentModel}.`);
+        throw new Error("Access forbidden. Please check your API key permissions.");
+      }
+
+      // Status 400: Bad Request / Invalid format / Model mismatch -> log internally and fallback to next model
+      if (status === 400) {
+        console.warn(`[PlanGenerator] Model ${currentModel} returned Bad Request (400): ${error.message}. Fallback to next model...`);
+        continue;
       }
 
       if (isRetryableError(error)) {

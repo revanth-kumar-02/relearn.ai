@@ -93,7 +93,9 @@ export const validateTopicSafety = async (
 
           if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.error?.message || `Groq API error: ${response.status}`);
+            const err: any = new Error(errorData.error?.message || `Groq API error: ${response.status}`);
+            err.status = response.status;
+            throw err;
           }
 
           const data = await response.json();
@@ -125,12 +127,21 @@ export const validateTopicSafety = async (
         clearTimeout(timeoutId);
         
         const errorMessage = (error.message || "").toLowerCase();
+        const status = error?.status || (errorMessage.match(/\b(400|401|403|429|500|502|503|504)\b/)?.[1] ? Number(errorMessage.match(/\b(400|401|403|429|500|502|503|504)\b/)[1]) : undefined);
         
-        // Handle specific key errors
-        if (errorMessage.includes("api key expired") || errorMessage.includes("invalid_argument")) {
+        // Handle 401 Unauthorized API key issues
+        if (status === 401 || errorMessage.includes("api key expired") || errorMessage.includes("invalid api key")) {
           console.error(`[SafetyService] API Key issue detected for ${currentModel}. Trying local fallback...`);
           lastError = new Error("API_KEY_EXPIRED_OR_INVALID");
+          (lastError as any).status = 401;
           continue; 
+        }
+
+        // Handle 400 Bad Request
+        if (status === 400) {
+          console.warn(`[SafetyService] Model ${currentModel} returned 400 Bad Request: ${error.message}. Trying next model...`);
+          lastError = error;
+          continue;
         }
 
         if (error.name === 'AbortError' || errorMessage.includes('aborterror')) {
@@ -173,9 +184,9 @@ export const validateTopicSafety = async (
     };
   }
 
-  // If even the local check is unsure and the key is expired
-  if (lastError?.message === "API_KEY_EXPIRED_OR_INVALID" || lastError?.status === 400) {
-    throw new Error("Your API key is expired or invalid. PLEASE REDEPLOY YOUR SITE ON NETLIFY to sync your new keys.");
+  // If even the local check is unsure and the key is invalid
+  if (lastError?.message === "API_KEY_EXPIRED_OR_INVALID" || lastError?.status === 401) {
+    throw new Error("Your AI API key is missing or invalid. Please check your API key settings or Netlify configuration.");
   }
 
   console.error(`[SafetyService] All validation attempts failed. Last error:`, lastError);
