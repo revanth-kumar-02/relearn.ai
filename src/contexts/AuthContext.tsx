@@ -304,16 +304,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  // Theme effect
-  useEffect(() => {
-    const theme = user?.preferences?.theme || 'system';
-    const root = window.document.documentElement;
-    root.classList.remove('dark');
-
-    if (theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-      root.classList.add('dark');
-    }
-  }, [user]);
 
   const login = async (email: string, pass: string) => {
     if (supabaseAvailable && navigator.onLine) {

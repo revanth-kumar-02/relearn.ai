@@ -9,6 +9,7 @@ import {
   LanguageCode
 } from '../../services/api/youtubeService';
 import { SyncIndicator } from '../../components/common/SyncIndicator';
+import { ThemeToggle } from '../../components/common/ThemeToggle';
 
 const AI_PERSONA_OPTIONS = [
   { label: 'Chill Friend', value: 'Chill Friend' },
@@ -135,6 +136,23 @@ const Settings: React.FC = () => {
                           ))}
                       </select>
                   </div>
+              </div>
+          </div>
+
+          {/* Appearance Section */}
+          <div className="space-y-3">
+              <h3 className="px-2 text-[11px] font-black text-text-secondary-light/60 dark:text-text-secondary-dark/60 uppercase tracking-[0.15em]">Appearance</h3>
+              <div className="bg-white dark:bg-surface-dark rounded-2xl overflow-hidden border border-border-light dark:border-border-dark shadow-sm p-5 flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                      <div className="text-[#334155] dark:text-text-secondary-dark">
+                          <span className="material-symbols-outlined text-2xl">palette</span>
+                      </div>
+                      <div>
+                          <span className="font-bold text-text-primary-light dark:text-text-primary-dark text-base">Interface Theme</span>
+                          <p className="text-[11px] text-text-secondary-light dark:text-text-secondary-dark mt-0.5">Select Light, Dark, or System preference</p>
+                      </div>
+                  </div>
+                  <ThemeToggle variant="segmented" showLabels />
               </div>
           </div>
 

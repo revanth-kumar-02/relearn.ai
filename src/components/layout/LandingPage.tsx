@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { motion, AnimatePresence } from 'motion/react';
 import Icon from '../ui/Icon';
 import { supabase } from '../../lib/supabase';
+import { ThemeToggle } from '../common/ThemeToggle';
 
 // Rotating words in hero section
 const HERO_PHRASES = [
@@ -484,6 +485,7 @@ export const LandingPage: React.FC = () => {
 
           {/* Desktop Nav CTAs */}
           <div className="hidden md:flex items-center gap-4">
+            <ThemeToggle variant="icon" />
             {user ? (
               <button 
                 onClick={() => navigate('/dashboard')}
@@ -553,7 +555,12 @@ export const LandingPage: React.FC = () => {
                 );
               })}
               
-              <div className="h-[1px] bg-border-light dark:bg-border-dark my-2" />
+              <div className="flex items-center justify-between py-2 border-t border-border-light dark:border-border-dark">
+                <span className="text-xs font-bold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-wider">Appearance</span>
+                <ThemeToggle variant="segmented" showLabels />
+              </div>
+              
+              <div className="h-[1px] bg-border-light dark:bg-border-dark my-1" />
               
               {user ? (
                 <button 

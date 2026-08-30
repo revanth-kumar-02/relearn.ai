@@ -26,6 +26,7 @@ import { CommandPalette } from '../features/dashboard/admin/CommandPalette';
 import { GlobalCommandPalette } from '../components/common/GlobalCommandPalette';
 import SyncStatus from '../components/common/SyncStatus';
 import XPDropAnimation from '../components/ui/XPDropAnimation';
+import { ThemeProvider } from '../contexts/ThemeContext';
 
 const KeyboardShortcutsModal = lazy(() => import('../components/common/KeyboardShortcutsModal'));
 
@@ -706,18 +707,20 @@ const App: React.FC = () => {
   return (
     <ConnectionProvider>
       <AuthProvider>
-        <DataProvider>
-          <TutorialProvider>
-            <ToastProvider>
-              <ErrorBoundary>
-                <StorageWarningToast />
-                <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-                  <AppContent />
-                </HashRouter>
-              </ErrorBoundary>
-            </ToastProvider>
-          </TutorialProvider>
-        </DataProvider>
+        <ThemeProvider>
+          <DataProvider>
+            <TutorialProvider>
+              <ToastProvider>
+                <ErrorBoundary>
+                  <StorageWarningToast />
+                  <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+                    <AppContent />
+                  </HashRouter>
+                </ErrorBoundary>
+              </ToastProvider>
+            </TutorialProvider>
+          </DataProvider>
+        </ThemeProvider>
       </AuthProvider>
     </ConnectionProvider>
   );
