@@ -11,6 +11,7 @@ import ConceptCollisionWidget from '../ai/ConceptCollisionWidget';
 import { getWarmUpQuestions } from '../../services/api/mistakeMuseumService';
 import { discoverMentors } from '../../services/api/dataService';
 import { User } from '../../types/index';
+import { ThemeToggle } from '../../components/common/ThemeToggle';
 
 const Dashboard: React.FC = () => {
     const navigate = useNavigate();
@@ -160,6 +161,10 @@ const Dashboard: React.FC = () => {
                     </div>
                     
                     <div className="flex items-center gap-2.5 shrink-0 pt-5 md:pt-0">
+                        <ThemeToggle 
+                            variant="icon"
+                            className="w-10 h-10 md:w-12 md:h-12 rounded-2xl glass-card noise-overlay flex items-center justify-center text-stone-600 dark:text-stone-300 relative shadow-xl"
+                        />
                         <motion.button 
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}

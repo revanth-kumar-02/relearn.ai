@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'motion/react';
 import { useTheme, Theme } from '../../contexts/ThemeContext';
 import Icon from '../ui/Icon';
 
@@ -53,28 +54,32 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
     );
   }
 
-  // Default 'icon' variant toggle
+  // Compact Icon variant
   const isDark = resolvedTheme === 'dark';
+  // Light mode -> Sun icon (light_mode); Dark mode -> Moon icon (dark_mode)
+  const iconName = isDark ? 'dark_mode' : 'light_mode';
   const labelText = isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode';
 
   return (
-    <button
+    <motion.button
       type="button"
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
       onClick={toggleTheme}
       title={labelText}
       aria-label={labelText}
-      className={`p-2.5 rounded-xl text-text-secondary-light dark:text-text-secondary-dark hover:text-primary dark:hover:text-primary hover:bg-stone-100 dark:hover:bg-white/5 border border-transparent hover:border-border-light dark:hover:border-border-dark transition-all active:scale-95 flex items-center justify-center ${className}`}
+      className={`p-2.5 rounded-xl text-stone-600 dark:text-stone-300 hover:text-primary dark:hover:text-primary transition-all flex items-center justify-center ${className}`}
     >
       <Icon
-        name={isDark ? 'light_mode' : 'dark_mode'}
-        className="text-xl transition-transform duration-300 transform group-hover:rotate-45"
+        name={iconName}
+        className="text-lg md:text-xl transition-transform duration-300"
       />
       {showLabels && (
         <span className="ml-2 text-xs font-semibold">
-          {isDark ? 'Light Mode' : 'Dark Mode'}
+          {isDark ? 'Dark Mode' : 'Light Mode'}
         </span>
       )}
-    </button>
+    </motion.button>
   );
 };
 
