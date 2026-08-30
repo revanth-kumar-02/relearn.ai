@@ -176,6 +176,12 @@ export const NotFound: React.FC = () => {
                   <stop offset="100%" stopColor="#6D28D9" />
                 </linearGradient>
 
+                {/* Origami Paper Airplane Gradient */}
+                <linearGradient id="paperPlaneGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#A78BFA" />
+                  <stop offset="100%" stopColor="#7C3AED" />
+                </linearGradient>
+
                 {/* Soft Glow Filter */}
                 <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
                   <feGaussianBlur stdDeviation="6" result="blur" />

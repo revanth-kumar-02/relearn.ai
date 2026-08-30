@@ -27,6 +27,7 @@ import { GlobalCommandPalette } from '../components/common/GlobalCommandPalette'
 import SyncStatus from '../components/common/SyncStatus';
 import XPDropAnimation from '../components/ui/XPDropAnimation';
 import { ThemeProvider } from '../contexts/ThemeContext';
+import NotFound from '../components/common/NotFound';
 
 const KeyboardShortcutsModal = lazy(() => import('../components/common/KeyboardShortcutsModal'));
 
@@ -57,7 +58,6 @@ const RoomView = lazy(() => import('../features/learning/RoomView'));
 const AdminDashboard = lazy(() => import('../features/dashboard/AdminDashboard'));
 const CollaborationHub = lazy(() => import('../features/learning/CollaborationHub'));
 const GratitudeLog = lazy(() => import('../features/learning/GratitudeLog'));
-const NotFound = lazy(() => import('../components/common/NotFound'));
 
 const PageLoader = () => (
   <div className="p-4 space-y-6 animate-pulse">
