@@ -55,6 +55,7 @@ const CreateAccount: React.FC = () => {
     }, [user, navigate]);
 
     const handleGoogleLogin = async () => {
+        if (loading) return;
         setError('');
         setLoading(true);
         const result = await loginWithGoogle();
@@ -66,6 +67,7 @@ const CreateAccount: React.FC = () => {
 
     const handleSignup = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (loading) return;
         if (!name || !email || !password) {
             setError('All fields are required.');
             return;
@@ -147,9 +149,16 @@ const CreateAccount: React.FC = () => {
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full py-4 mt-2 rounded-2xl bg-primary text-white font-bold text-lg hover:bg-primary/90 transition-all shadow-xl shadow-primary/25 active:scale-[0.98] disabled:opacity-60"
+                        className="w-full py-4 mt-2 rounded-2xl bg-primary text-white font-bold text-lg hover:bg-primary/90 transition-all shadow-xl shadow-primary/25 active:scale-[0.98] disabled:opacity-60 flex items-center justify-center gap-2"
                     >
-                        {loading ? 'Creating Account...' : 'Sign Up'}
+                        {loading ? (
+                            <>
+                                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                <span>Creating Account...</span>
+                            </>
+                        ) : (
+                            'Sign Up'
+                        )}
                     </button>
                 </form>
 
@@ -165,15 +174,19 @@ const CreateAccount: React.FC = () => {
                     disabled={loading}
                     className="w-full py-4 px-6 rounded-2xl bg-white dark:bg-surface-dark border border-gray-200 dark:border-border-dark hover:border-gray-300 dark:hover:border-stone-700 text-text-primary-light dark:text-text-primary-dark font-bold text-base transition-all flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-60 shadow-sm"
                 >
-                    <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24" width="24" height="24" xmlns="http://www.w3.org/2000/svg">
-                        <g transform="matrix(1, 0, 0, 1, 0, 0)">
-                            <path d="M21.35,11.1H12v2.7h5.38c-0.24,1.28 -0.96,2.37 -2.04,3.1v2.6h3.28c1.92,-1.78 3.03,-4.4 3.03,-7.4C21.65,11.8 21.55,11.4 21.35,11.1z" fill="#4285F4" />
-                            <path d="M12,20.7c2.6,0 4.8,-0.9 6.4,-2.4l-3.28,-2.6c-0.9,0.6 -2.06,1 -3.12,1 -2.4,0 -4.43,-1.6 -5.16,-3.8H3.45v2.7C5.05,18.7 8.35,20.7 12,20.7z" fill="#34A853" />
-                            <path d="M6.84,12.9c-0.2,-0.6 -0.3,-1.2 -0.3,-1.9s0.1,-1.3 0.3,-1.9V6.4H3.45C2.85,7.6 2.5,9 2.5,11s0.35,3.4 0.95,4.6L6.84,12.9z" fill="#FBBC05" />
-                            <path d="M12,5.3c1.4,0 2.7,0.5 3.7,1.4l2.77,-2.7C16.8,2.5 14.6,1.5 12,1.5c-3.65,0 -6.95,2 -8.55,5.2l3.39,2.7C7.57,6.9 9.6,5.3 12,5.3z" fill="#EA4335" />
-                        </g>
-                    </svg>
-                    Continue with Google
+                    {loading ? (
+                        <div className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                    ) : (
+                        <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24" width="24" height="24" xmlns="http://www.w3.org/2000/svg">
+                            <g transform="matrix(1, 0, 0, 1, 0, 0)">
+                                <path d="M21.35,11.1H12v2.7h5.38c-0.24,1.28 -0.96,2.37 -2.04,3.1v2.6h3.28c1.92,-1.78 3.03,-4.4 3.03,-7.4C21.65,11.8 21.55,11.4 21.35,11.1z" fill="#4285F4" />
+                                <path d="M12,20.7c2.6,0 4.8,-0.9 6.4,-2.4l-3.28,-2.6c-0.9,0.6 -2.06,1 -3.12,1 -2.4,0 -4.43,-1.6 -5.16,-3.8H3.45v2.7C5.05,18.7 8.35,20.7 12,20.7z" fill="#34A853" />
+                                <path d="M6.84,12.9c-0.2,-0.6 -0.3,-1.2 -0.3,-1.9s0.1,-1.3 0.3,-1.9V6.4H3.45C2.85,7.6 2.5,9 2.5,11s0.35,3.4 0.95,4.6L6.84,12.9z" fill="#FBBC05" />
+                                <path d="M12,5.3c1.4,0 2.7,0.5 3.7,1.4l2.77,-2.7C16.8,2.5 14.6,1.5 12,1.5c-3.65,0 -6.95,2 -8.55,5.2l3.39,2.7C7.57,6.9 9.6,5.3 12,5.3z" fill="#EA4335" />
+                            </g>
+                        </svg>
+                    )}
+                    <span>Continue with Google</span>
                 </button>
 
                 <div className="text-center mt-10">

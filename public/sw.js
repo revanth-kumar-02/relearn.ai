@@ -1,4 +1,4 @@
-const CACHE_NAME = 'relearn-v4'; // v4: Fix icon FOUT + font bypass
+const CACHE_NAME = 'relearn-v5'; // v5: Added Web Push Support
 const ASSETS = [
     '/',
     '/index.html',
@@ -114,6 +114,64 @@ self.addEventListener('fetch', (event) => {
                 console.warn('[SW] Fetch failed:', event.request.url);
                 return new Response('Network error', { status: 503, statusText: 'Service Unavailable' });
             });
+        })
+    );
+});
+
+// ==========================================
+// Web Push Notifications Event Handlers
+// ==========================================
+
+self.addEventListener('push', (event) => {
+    let payload = {
+        title: 'Relearn.ai Notification',
+        body: 'You have a new update in Relearn.ai!',
+        icon: '/logo.png',
+        url: '/'
+    };
+
+    if (event.data) {
+        try {
+            const parsed = event.data.json();
+            payload = { ...payload, ...parsed };
+        } catch (e) {
+            payload.body = event.data.text();
+        }
+    }
+
+    const options = {
+        body: payload.body,
+        icon: payload.icon || '/logo.png',
+        badge: '/logo.png',
+        data: { url: payload.url || '/' },
+        vibrate: [100, 50, 100],
+        tag: payload.tag || 'relearn-push-notification',
+        renotify: true
+    };
+
+    event.waitUntil(
+        self.registration.showNotification(payload.title, options)
+    );
+});
+
+self.addEventListener('notificationclick', (event) => {
+    event.notification.close();
+    const targetUrl = event.notification.data?.url || '/';
+
+    event.waitUntil(
+        self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+            for (const client of clientList) {
+                if (client.url.includes(self.location.origin) && 'focus' in client) {
+                    client.focus();
+                    if (client.navigate && targetUrl !== '/') {
+                        client.navigate(targetUrl);
+                    }
+                    return;
+                }
+            }
+            if (self.clients.openWindow) {
+                return self.clients.openWindow(targetUrl);
+            }
         })
     );
 });

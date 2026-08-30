@@ -10,7 +10,7 @@ function getSupabase() {
   const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || "";
   
   if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error("Supabase environment variables (SUPABASE_URL / VITE_SUPABASE_URL and SUPABASE_ANON_KEY / VITE_SUPABASE_ANON_KEY) are missing in the Netlify environment.");
+    throw new Error("Supabase configuration is missing.");
   }
   
   supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
@@ -54,7 +54,7 @@ export default async (req: Request, context: Context) => {
     supabase = getSupabase();
   } catch (err: any) {
     console.error("[gemini-proxy] Configuration Error:", err.message);
-    return new Response(JSON.stringify({ error: err.message }), {
+    return new Response(JSON.stringify({ error: "Service configuration error." }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -100,11 +100,10 @@ export default async (req: Request, context: Context) => {
   if (uniqueKeys.length === 0) {
     console.error(`[gemini-proxy] Deployment Error: No valid API keys found for useCase: ${useCase}.`);
     return new Response(JSON.stringify({
-      error: "API Key Configuration Error. Please check your .env or Netlify settings.",
-      useCase
+      error: "API Key Configuration Error."
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }
 
@@ -122,13 +121,10 @@ export default async (req: Request, context: Context) => {
       const googleEndpoint = new URL(`https://generativelanguage.googleapis.com${cleanPath}`);
       googleEndpoint.searchParams.set('key', apiKey);
 
-      console.log(`[gemini-proxy] [Attempt] ${req.method} to Google with key prefix ${apiKey.substring(0, 6)}... for useCase: ${useCase}`);
-
       const response = await fetch(googleEndpoint.toString(), {
         method: req.method,
         headers: {
           'Content-Type': req.headers.get('Content-Type') || 'application/json',
-          // Also send key in header for extra redundancy
           'x-goog-api-key': apiKey,
         },
         body: requestBodyText
@@ -137,36 +133,30 @@ export default async (req: Request, context: Context) => {
       const responseText = await response.text();
 
       // If successful or a non-retryable error, return immediately
-      // 429 (Rate Limit) and 403 (Invalid Key/Quota issues) are retryable with a different key
       if (response.ok || (response.status !== 429 && response.status !== 403)) {
         return new Response(responseText, {
           status: response.status,
           headers: {
             ...corsHeaders,
-            "Content-Type": response.headers.get("Content-Type") || "application/json",
-            "X-Proxy-Debug-Key-Prefix": apiKey.substring(0, 6),
-            "X-Proxy-Attempt-Success": "true"
+            "Content-Type": response.headers.get("Content-Type") || "application/json"
           },
         });
       }
 
-      console.warn(`[gemini-proxy] Key ${apiKey.substring(0, 6)} failed with status ${response.status}. Trying next available key...`);
+      console.warn(`[gemini-proxy] Key failed with status ${response.status}. Trying next available key...`);
       lastResponse = new Response(responseText, { 
         status: response.status, 
         headers: {
           ...corsHeaders,
-          "Content-Type": response.headers.get("Content-Type") || "application/json",
-          "X-Proxy-Failed-Key": `${apiKey.substring(0, 6)}...${apiKey.slice(-4)}`
+          "Content-Type": response.headers.get("Content-Type") || "application/json"
         }
       });
 
     } catch (error: any) {
-      console.error(`[gemini-proxy] Fatal error with key ${apiKey.substring(0, 6)}:`, error);
-      // Continue to next key if fetch itself failed (network issue)
+      console.error(`[gemini-proxy] Fatal error:`, error.message);
     }
   }
 
-  // If we reach here, all keys failed. Return the last response received.
   if (lastResponse) {
     return lastResponse;
   }

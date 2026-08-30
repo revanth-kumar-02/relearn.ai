@@ -57,6 +57,7 @@ const RoomView = lazy(() => import('../features/learning/RoomView'));
 const AdminDashboard = lazy(() => import('../features/dashboard/AdminDashboard'));
 const CollaborationHub = lazy(() => import('../features/learning/CollaborationHub'));
 const GratitudeLog = lazy(() => import('../features/learning/GratitudeLog'));
+const NotFound = lazy(() => import('../components/common/NotFound'));
 
 const PageLoader = () => (
   <div className="p-4 space-y-6 animate-pulse">
@@ -245,8 +246,24 @@ const AppContent: React.FC = () => {
 
   usePresence(user?.id, location.pathname);
 
+  const validRoutePrefixes = [
+    '/', '/login', '/signup', '/dashboard', '/progress', '/plan-details',
+    '/learning-workspace', '/add-task', '/edit-task', '/notifications',
+    '/notification-settings', '/settings', '/profile', '/diary', '/create-plan',
+    '/templates', '/shared/', '/help-center', '/feedback', '/archived',
+    '/rooms', '/collaboration', '/gratitude', '/admin'
+  ];
+
+  const isKnownRoute = (path: string) => {
+    if (validRoutePrefixes.includes(path)) return true;
+    if (path.startsWith('/shared/') || path.startsWith('/rooms/')) return true;
+    return false;
+  };
+
+  const isNotFound = !isKnownRoute(location.pathname);
+
   const authPaths = ['/', '/login', '/signup'];
-  const isAuthPage = authPaths.includes(location.pathname);
+  const isAuthPage = authPaths.includes(location.pathname) || isNotFound;
 
   const hideMobileNavPaths = [
     ...authPaths,
@@ -265,11 +282,11 @@ const AppContent: React.FC = () => {
     '/rooms/'
   ];
 
-  const showMobileNav = !hideMobileNavPaths.some(path => 
+  const showMobileNav = !isNotFound && !hideMobileNavPaths.some(path => 
     path === '/' ? location.pathname === '/' : location.pathname.startsWith(path)
   );
 
-  const showSidebar = !hideSidebarPaths.some(path => 
+  const showSidebar = !isNotFound && !hideSidebarPaths.some(path => 
     path === '/' ? location.pathname === '/' : location.pathname.startsWith(path)
   );
 
@@ -480,6 +497,7 @@ const AppContent: React.FC = () => {
                         <Route path="/collaboration" element={<ProtectedRoute><CollaborationHub /></ProtectedRoute>} />
                         <Route path="/gratitude" element={<ProtectedRoute><GratitudeLog /></ProtectedRoute>} />
                         <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+                        <Route path="*" element={<NotFound />} />
                     </Routes>
                     </Suspense>
                 </motion.div>

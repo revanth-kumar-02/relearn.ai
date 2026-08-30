@@ -12,16 +12,17 @@ export interface Flashcard {
   mnemonic?: string;
 }
 
+const MODELS_TO_TRY = [AI_MODELS.FAST_LITE, ...AI_MODELS.FALLBACK_CHAIN.filter(m => m !== AI_MODELS.FAST_LITE)];
+
 export const generateFlashcards = async (
   topic: string,
   content: string,
   language: string = 'English'
 ): Promise<Flashcard[]> => {
   const ai = getProxyConfiguredGenAI('learning');
-  const modelsToTry = [AI_MODELS.FAST_LITE, ...AI_MODELS.FALLBACK_CHAIN.filter(m => m !== AI_MODELS.FAST_LITE)];
   let lastError: any = null;
 
-  for (const currentModel of modelsToTry) {
+  for (const currentModel of MODELS_TO_TRY) {
     try {
       let text = "";
       

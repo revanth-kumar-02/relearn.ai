@@ -13,6 +13,7 @@
     "@google/genai": "^1.30.0",
     "@netlify/functions": "^5.2.0",
     "@supabase/supabase-js": "^2.49.1",
+    "@types/web-push": "^3.6.4",
     "jspdf": "^4.2.1",
     "lucide-react": "^0.577.0",
     "motion": "^12.34.5",
@@ -23,6 +24,7 @@
     "react-router-dom": "^6.24.0",
     "recharts": "^2.12.0",
     "tailwind-merge": "^3.5.0",
+    "web-push": "^3.6.7",
     "zod": "^4.4.3"
   },
   "devDependencies": {

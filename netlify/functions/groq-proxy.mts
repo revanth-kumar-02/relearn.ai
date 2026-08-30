@@ -10,7 +10,7 @@ function getSupabase() {
   const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || "";
   
   if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error("Supabase environment variables (SUPABASE_URL / VITE_SUPABASE_URL and SUPABASE_ANON_KEY / VITE_SUPABASE_ANON_KEY) are missing in the Netlify environment.");
+    throw new Error("Supabase configuration is missing.");
   }
   
   supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
@@ -54,7 +54,7 @@ export default async (req: Request, context: Context) => {
     supabase = getSupabase();
   } catch (err: any) {
     console.error("[groq-proxy] Configuration Error:", err.message);
-    return new Response(JSON.stringify({ error: err.message }), {
+    return new Response(JSON.stringify({ error: "Service configuration error." }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -76,7 +76,7 @@ export default async (req: Request, context: Context) => {
   if (!apiKey) {
     return new Response(JSON.stringify({ error: "Groq API Key not configured." }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }
 
@@ -105,7 +105,6 @@ export default async (req: Request, context: Context) => {
           "Content-Type": "text/event-stream",
           "Cache-Control": "no-cache",
           "Connection": "keep-alive",
-          "Access-Control-Allow-Origin": corsHeaders["Access-Control-Allow-Origin"],
           ...corsHeaders
         },
       });
@@ -117,12 +116,12 @@ export default async (req: Request, context: Context) => {
       status: response.status,
       headers: {
         "Content-Type": response.headers.get("Content-Type") || "application/json",
-        "Access-Control-Allow-Origin": corsHeaders["Access-Control-Allow-Origin"],
         ...corsHeaders
       },
     });
   } catch (error: any) {
-    return new Response(JSON.stringify({ error: error.message }), {
+    console.error("[groq-proxy] Fetch Error:", error.message);
+    return new Response(JSON.stringify({ error: "Proxy connection error." }), {
       status: 500,
       headers: { 'Content-Type': 'application/json', ...corsHeaders }
     });

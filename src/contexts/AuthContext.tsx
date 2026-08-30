@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useRe
 import { User, UserPreferences } from '../types/index';
 import { supabase, supabaseAvailable } from '../lib/supabase';
 import { getUserProfile, saveUserProfile, addActivity } from '../services/api/dataService';
-import { requestNotificationPermission } from '../services/api/notificationService';
+import { requestNotificationPermission, unsubscribeUserFromPush } from '../services/api/notificationService';
 import { setServiceAuthToken } from '../utils/authUtils';
 import { logAuthDiagnostic } from '../utils/authDiagnostics';
 import { adminService } from '../services/api/adminService';
@@ -515,6 +515,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const logout = async () => {
+    if (user?.id) {
+      unsubscribeUserFromPush(user.id).catch(err => {
+        console.error('[AuthContext] Push unsubscribe on logout failed:', err);
+      });
+    }
     if (supabaseAvailable && navigator.onLine) {
       await supabase.auth.signOut();
     }

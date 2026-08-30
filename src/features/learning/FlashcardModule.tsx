@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Flashcard, generateFlashcards } from '../../services/ai/flashcardService';
 import { 
@@ -25,16 +25,68 @@ interface FlashcardModuleProps {
 
 type Confidence = 'hard' | 'good' | 'easy';
 
+const GRADE_CONFIG = {
+  hard: {
+    type: 'hard' as Confidence,
+    icon: RotateCcw,
+    label: 'Recall Fail',
+    buttonClass: 'bg-rose-500/10 border-rose-500/20 hover:bg-rose-500/20',
+    iconClass: 'bg-rose-500 shadow-rose-500/40 text-white',
+    textClass: 'text-rose-600 dark:text-rose-400',
+    statTextClass: 'text-rose-500'
+  },
+  good: {
+    type: 'good' as Confidence,
+    icon: CheckCircle2,
+    label: 'Encoded',
+    buttonClass: 'bg-amber-500/10 border-amber-500/20 hover:bg-amber-500/20',
+    iconClass: 'bg-amber-500 shadow-amber-500/40 text-white',
+    textClass: 'text-amber-600 dark:text-amber-400',
+    statTextClass: 'text-amber-500'
+  },
+  easy: {
+    type: 'easy' as Confidence,
+    icon: Zap,
+    label: 'Mastered',
+    buttonClass: 'bg-emerald-500/10 border-emerald-500/20 hover:bg-emerald-500/20',
+    iconClass: 'bg-emerald-500 shadow-emerald-500/40 text-white',
+    textClass: 'text-emerald-600 dark:text-emerald-400',
+    statTextClass: 'text-emerald-500'
+  }
+};
+
+const FlashcardLoadingState: React.FC = React.memo(() => (
+  <div className="glass-card noise-overlay p-12 rounded-3xl flex flex-col items-center justify-center gap-6 overflow-hidden transform-gpu">
+    <div className="relative">
+      <motion.div 
+        className="absolute inset-0 bg-primary/20 blur-2xl rounded-full transform-gpu"
+        animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.6, 0.3] }}
+        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+        style={{ willChange: "transform, opacity" }}
+      />
+      <Loader2 className="animate-spin text-primary relative z-10 transform-gpu" size={48} />
+    </div>
+    <div className="text-center space-y-2 relative z-10">
+      <p className="text-lg font-black tracking-tight">Quantum Memory Synthesis</p>
+      <p className="text-xs text-stone-500 font-bold uppercase tracking-widest animate-pulse">
+        Encoding concepts into active recall nodes...
+      </p>
+    </div>
+  </div>
+));
+
+FlashcardLoadingState.displayName = 'FlashcardLoadingState';
+
 const FlashcardModule: React.FC<FlashcardModuleProps> = ({ topic, content }) => {
   const { contentLanguage } = useData();
   const [cards, setCards] = useState<(Flashcard & { confidence?: Confidence })[]>([]);
   const [loading, setLoading] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
-  const [error, setError] = useState('');
+  const [, setError] = useState('');
   const [showSummary, setShowSummary] = useState(false);
 
-  const handleGenerate = async () => {
+  const handleGenerate = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
@@ -49,13 +101,17 @@ const FlashcardModule: React.FC<FlashcardModuleProps> = ({ topic, content }) => 
     } finally {
       setLoading(false);
     }
-  };
+  }, [topic, content, contentLanguage]);
 
-  const handleGrade = (confidence: Confidence) => {
+  const handleGrade = useCallback((confidence: Confidence) => {
     triggerHaptic(confidence === 'easy' ? 'success' : 'light');
-    const updatedCards = [...cards];
-    updatedCards[currentIndex] = { ...updatedCards[currentIndex], confidence };
-    setCards(updatedCards);
+    setCards(prevCards => {
+      const updated = [...prevCards];
+      if (updated[currentIndex]) {
+        updated[currentIndex] = { ...updated[currentIndex], confidence };
+      }
+      return updated;
+    });
 
     if (currentIndex < cards.length - 1) {
       setTimeout(() => {
@@ -65,33 +121,29 @@ const FlashcardModule: React.FC<FlashcardModuleProps> = ({ topic, content }) => 
     } else {
       setTimeout(() => setShowSummary(true), 500);
     }
-  };
+  }, [currentIndex, cards.length]);
 
-  const resetDeck = () => {
-    setCards(cards.map(c => ({ ...c, confidence: undefined })));
+  const resetDeck = useCallback(() => {
+    setCards(prevCards => prevCards.map(c => ({ ...c, confidence: undefined })));
     setCurrentIndex(0);
     setIsFlipped(false);
     setShowSummary(false);
     triggerHaptic('medium');
-  };
+  }, []);
+
+  const summaryData = useMemo(() => {
+    if (!showSummary || cards.length === 0) {
+      return { easyCount: 0, goodCount: 0, hardCount: 0, mastery: 0 };
+    }
+    const easyCount = cards.filter(c => c.confidence === 'easy').length;
+    const goodCount = cards.filter(c => c.confidence === 'good').length;
+    const hardCount = cards.filter(c => c.confidence === 'hard').length;
+    const mastery = Math.round((easyCount * 100 + goodCount * 60 + hardCount * 20) / cards.length);
+    return { easyCount, goodCount, hardCount, mastery };
+  }, [showSummary, cards]);
 
   if (loading) {
-    return (
-      <div className="glass-card noise-overlay p-12 rounded-3xl flex flex-col items-center justify-center gap-6 overflow-hidden">
-        <div className="relative">
-          <motion.div 
-            className="absolute inset-0 bg-primary/20 blur-2xl rounded-full"
-            animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.6, 0.3] }}
-            transition={{ duration: 2, repeat: Infinity }}
-          />
-          <Loader2 className="animate-spin text-primary relative z-10" size={48} />
-        </div>
-        <div className="text-center space-y-2">
-          <p className="text-lg font-black tracking-tight">Quantum Memory Synthesis</p>
-          <p className="text-xs text-stone-500 font-bold uppercase tracking-widest animate-pulse">Encoding concepts into active recall nodes...</p>
-        </div>
-      </div>
-    );
+    return <FlashcardLoadingState />;
   }
 
   if (cards.length === 0) {
@@ -99,7 +151,7 @@ const FlashcardModule: React.FC<FlashcardModuleProps> = ({ topic, content }) => 
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="group relative overflow-hidden glass-card noise-overlay p-10 rounded-[3rem] border-primary/10 transition-all hover:shadow-2xl hover:shadow-primary/5"
+        className="group relative overflow-hidden glass-card noise-overlay p-10 rounded-[3rem] border-primary/10 transition-all hover:shadow-2xl hover:shadow-primary/5 transform-gpu"
       >
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
         
@@ -117,7 +169,7 @@ const FlashcardModule: React.FC<FlashcardModuleProps> = ({ topic, content }) => 
           whileHover={{ scale: 1.02, y: -2 }}
           whileTap={{ scale: 0.98 }}
           onClick={handleGenerate}
-          className="w-full py-6 bg-gradient-to-r from-primary to-secondary text-white font-black rounded-[2rem] shadow-2xl shadow-primary/30 flex items-center justify-center gap-4 overflow-hidden relative group/btn"
+          className="w-full py-6 bg-gradient-to-r from-primary to-secondary text-white font-black rounded-[2rem] shadow-2xl shadow-primary/30 flex items-center justify-center gap-4 overflow-hidden relative group/btn transform-gpu"
         >
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover/btn:translate-x-full transition-transform duration-1000" />
           <Sparkles size={22} className="glow-primary" /> 
@@ -128,16 +180,13 @@ const FlashcardModule: React.FC<FlashcardModuleProps> = ({ topic, content }) => 
   }
 
   if (showSummary) {
-    const easyCount = cards.filter(c => c.confidence === 'easy').length;
-    const goodCount = cards.filter(c => c.confidence === 'good').length;
-    const hardCount = cards.filter(c => c.confidence === 'hard').length;
-    const mastery = Math.round((easyCount * 100 + goodCount * 60 + hardCount * 20) / cards.length);
+    const { easyCount, goodCount, hardCount, mastery } = summaryData;
 
     return (
       <motion.div 
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        className="glass-card noise-overlay p-10 rounded-[3rem] text-center space-y-10 relative overflow-hidden"
+        className="glass-card noise-overlay p-10 rounded-[3rem] text-center space-y-10 relative overflow-hidden transform-gpu"
       >
         <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent pointer-events-none" />
         
@@ -151,12 +200,12 @@ const FlashcardModule: React.FC<FlashcardModuleProps> = ({ topic, content }) => 
 
         <div className="grid grid-cols-3 gap-4 relative">
           {[
-            { label: 'Mastered', count: easyCount, color: 'emerald', icon: Zap },
-            { label: 'Encoded', count: goodCount, color: 'amber', icon: CheckCircle2 },
-            { label: 'Recall Fail', count: hardCount, color: 'rose', icon: RotateCcw }
+            { label: 'Mastered', count: easyCount, config: GRADE_CONFIG.easy },
+            { label: 'Encoded', count: goodCount, config: GRADE_CONFIG.good },
+            { label: 'Recall Fail', count: hardCount, config: GRADE_CONFIG.hard }
           ].map((stat) => (
             <div key={stat.label} className="p-6 rounded-3xl bg-white/50 dark:bg-white/5 border border-white/20 dark:border-white/5 shadow-xl">
-              <p className={`text-3xl font-black text-${stat.color}-500 mb-1`}>{stat.count}</p>
+              <p className={`text-3xl font-black ${stat.config.statTextClass} mb-1`}>{stat.count}</p>
               <p className="text-[9px] font-black uppercase text-slate-400 tracking-tighter">{stat.label}</p>
             </div>
           ))}
@@ -182,7 +231,7 @@ const FlashcardModule: React.FC<FlashcardModuleProps> = ({ topic, content }) => 
             whileHover={{ scale: 1.02, x: -5 }}
             whileTap={{ scale: 0.98 }}
             onClick={resetDeck}
-            className="flex-1 py-5 bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-white/10 transition-all flex items-center justify-center gap-3"
+            className="flex-1 py-5 bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-white/10 transition-all flex items-center justify-center gap-3 transform-gpu"
           >
             <History size={18} /> Re-run Neural Loop
           </motion.button>
@@ -190,7 +239,7 @@ const FlashcardModule: React.FC<FlashcardModuleProps> = ({ topic, content }) => 
             whileHover={{ scale: 1.02, x: 5 }}
             whileTap={{ scale: 0.98 }}
             onClick={handleGenerate}
-            className="flex-1 py-5 bg-gradient-to-r from-primary to-secondary text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-2xl shadow-primary/20 flex items-center justify-center gap-3"
+            className="flex-1 py-5 bg-gradient-to-r from-primary to-secondary text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-2xl shadow-primary/20 flex items-center justify-center gap-3 transform-gpu"
           >
             <Zap size={18} /> New Matrix
           </motion.button>
@@ -215,7 +264,7 @@ const FlashcardModule: React.FC<FlashcardModuleProps> = ({ topic, content }) => 
                   width: i === currentIndex ? 24 : 8,
                   backgroundColor: i === currentIndex ? '#13a4ec' : c.confidence ? '#10b981' : 'rgba(148, 163, 184, 0.2)'
                 }}
-                className="h-2 rounded-full border border-white/10 dark:border-white/5"
+                className="h-2 rounded-full border border-white/10 dark:border-white/5 transform-gpu"
               />
             ))}
           </div>
@@ -227,7 +276,7 @@ const FlashcardModule: React.FC<FlashcardModuleProps> = ({ topic, content }) => 
           whileHover={{ rotate: 180, scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
           onClick={resetDeck}
-          className="p-2 rounded-xl bg-slate-100 dark:bg-white/5 text-slate-400 hover:text-primary transition-colors"
+          className="p-2 rounded-xl bg-slate-100 dark:bg-white/5 text-slate-400 hover:text-primary transition-colors transform-gpu"
         >
           <RotateCcw size={16} />
         </motion.button>
@@ -235,11 +284,11 @@ const FlashcardModule: React.FC<FlashcardModuleProps> = ({ topic, content }) => 
 
       {/* 3D Flashcard */}
       <div 
-        className="relative h-96 w-full perspective-1000 cursor-pointer group"
+        className="relative h-96 w-full perspective-1000 cursor-pointer group transform-gpu"
         onClick={() => { setIsFlipped(!isFlipped); triggerHaptic('light'); }}
       >
         <motion.div
-          className="w-full h-full relative"
+          className="w-full h-full relative transform-gpu"
           initial={false}
           animate={{ 
             rotateY: isFlipped ? 180 : 0,
@@ -251,7 +300,7 @@ const FlashcardModule: React.FC<FlashcardModuleProps> = ({ topic, content }) => 
         >
           {/* Front */}
           <div 
-            className="absolute inset-0 w-full h-full bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 noise-overlay rounded-[3rem] p-12 flex flex-col items-center justify-center text-center backface-hidden shadow-xl"
+            className="absolute inset-0 w-full h-full bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 noise-overlay rounded-[3rem] p-12 flex flex-col items-center justify-center text-center backface-hidden shadow-xl transform-gpu"
           >
             <div className="absolute top-10 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-1.5 bg-primary/10 rounded-full border border-primary/20">
               <Brain size={12} className="text-primary" />
@@ -259,7 +308,7 @@ const FlashcardModule: React.FC<FlashcardModuleProps> = ({ topic, content }) => 
             </div>
             
             <p className="text-3xl font-black text-slate-800 dark:text-white leading-tight tracking-tight">
-              {currentCard.front}
+              {currentCard?.front}
             </p>
             
             <div className="absolute bottom-10 flex items-center gap-2 text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] animate-pulse">
@@ -269,7 +318,7 @@ const FlashcardModule: React.FC<FlashcardModuleProps> = ({ topic, content }) => 
 
           {/* Back */}
           <div 
-            className="absolute inset-0 w-full h-full bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 noise-overlay bg-gradient-to-br from-primary/5 to-secondary/5 rounded-[3rem] p-12 flex flex-col items-center justify-center text-center backface-hidden shadow-inner overflow-hidden"
+            className="absolute inset-0 w-full h-full bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 noise-overlay bg-gradient-to-br from-primary/5 to-secondary/5 rounded-[3rem] p-12 flex flex-col items-center justify-center text-center backface-hidden shadow-inner overflow-hidden transform-gpu"
             style={{ transform: 'rotateY(180deg)' }}
           >
             <div className="absolute top-10 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-1.5 bg-emerald-500/10 rounded-full border border-emerald-500/20">
@@ -279,15 +328,15 @@ const FlashcardModule: React.FC<FlashcardModuleProps> = ({ topic, content }) => 
 
             <div className="max-h-52 overflow-y-auto no-scrollbar scroll-smooth">
               <p className="text-xl font-bold text-slate-800 dark:text-slate-100 leading-relaxed">
-                {currentCard.back}
+                {currentCard?.back}
               </p>
             </div>
             
-            {currentCard.mnemonic && (
+            {currentCard?.mnemonic && (
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="mt-8 p-5 bg-white/40 dark:bg-black/20 rounded-[2rem] flex items-start gap-4 text-xs text-slate-700 dark:text-slate-300 font-bold text-left border border-white/20 dark:border-white/5 shadow-xl backdrop-blur-md"
+                className="mt-8 p-5 bg-white/40 dark:bg-black/20 rounded-[2rem] flex items-start gap-4 text-xs text-slate-700 dark:text-slate-300 font-bold text-left border border-white/20 dark:border-white/5 shadow-xl backdrop-blur-md transform-gpu"
               >
                 <div className="p-2 rounded-2xl bg-amber-500/20">
                     <Lightbulb size={18} className="shrink-0 text-amber-500 glow-secondary" />
@@ -311,14 +360,14 @@ const FlashcardModule: React.FC<FlashcardModuleProps> = ({ topic, content }) => 
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 1.05 }}
-              className="flex gap-4"
+              className="flex gap-4 transform-gpu"
             >
               <motion.button
                 whileHover={{ x: -5 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={() => { setCurrentIndex(prev => Math.max(0, prev - 1)); setIsFlipped(false); }}
                 disabled={currentIndex === 0}
-                className="flex-1 py-5 glass-card text-slate-400 rounded-2xl font-black text-xs uppercase tracking-widest disabled:opacity-20 transition-colors duration-200"
+                className="flex-1 py-5 glass-card text-slate-400 rounded-2xl font-black text-xs uppercase tracking-widest disabled:opacity-20 transition-colors duration-200 transform-gpu"
               >
                 <ChevronLeft size={20} className="mx-auto" />
               </motion.button>
@@ -326,7 +375,7 @@ const FlashcardModule: React.FC<FlashcardModuleProps> = ({ topic, content }) => 
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => { setIsFlipped(true); triggerHaptic('light'); }}
-                className="flex-[3] py-5 bg-gradient-to-r from-primary to-secondary text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-primary/30"
+                className="flex-[3] py-5 bg-gradient-to-r from-primary to-secondary text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-primary/30 transform-gpu"
               >
                 Show Synthesis
               </motion.button>
@@ -335,7 +384,7 @@ const FlashcardModule: React.FC<FlashcardModuleProps> = ({ topic, content }) => 
                 whileTap={{ scale: 0.9 }}
                 onClick={() => { setCurrentIndex(prev => Math.min(cards.length - 1, prev + 1)); setIsFlipped(false); }}
                 disabled={currentIndex === cards.length - 1}
-                className="flex-1 py-5 glass-card text-slate-400 rounded-2xl font-black text-xs uppercase tracking-widest disabled:opacity-20 transition-colors duration-200"
+                className="flex-1 py-5 glass-card text-slate-400 rounded-2xl font-black text-xs uppercase tracking-widest disabled:opacity-20 transition-colors duration-200 transform-gpu"
               >
                 <ChevronRight size={20} className="mx-auto" />
               </motion.button>
@@ -346,28 +395,27 @@ const FlashcardModule: React.FC<FlashcardModuleProps> = ({ topic, content }) => 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="grid grid-cols-3 gap-4"
+              className="grid grid-cols-3 gap-4 transform-gpu"
             >
-              {[
-                { type: 'hard', color: 'rose', icon: RotateCcw, label: 'Recall Fail' },
-                { type: 'good', color: 'amber', icon: CheckCircle2, label: 'Encoded' },
-                { type: 'easy', color: 'emerald', icon: Zap, label: 'Mastered' }
-              ].map((grade) => (
-                <motion.button
-                  key={grade.type}
-                  whileHover={{ y: -5 }}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => handleGrade(grade.type as Confidence)}
-                  className={`group flex flex-col items-center gap-3 p-6 bg-${grade.color}-500/10 border border-${grade.color}-500/20 rounded-[2rem] transition-colors duration-200 hover:bg-${grade.color}-500/20`}
-                >
-                  <div className={`w-12 h-12 rounded-full bg-${grade.color}-500 text-white flex items-center justify-center shadow-2xl shadow-${grade.color}-500/40`}>
-                    <grade.icon size={20} />
-                  </div>
-                  <span className={`text-[10px] font-black uppercase tracking-widest text-${grade.color}-600 dark:text-${grade.color}-400`}>
-                    {grade.label}
-                  </span>
-                </motion.button>
-              ))}
+              {[GRADE_CONFIG.hard, GRADE_CONFIG.good, GRADE_CONFIG.easy].map((grade) => {
+                const Icon = grade.icon;
+                return (
+                  <motion.button
+                    key={grade.type}
+                    whileHover={{ y: -5 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => handleGrade(grade.type)}
+                    className={`group flex flex-col items-center gap-3 p-6 border rounded-[2rem] transition-colors duration-200 ${grade.buttonClass} transform-gpu`}
+                  >
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center shadow-2xl ${grade.iconClass}`}>
+                      <Icon size={20} />
+                    </div>
+                    <span className={`text-[10px] font-black uppercase tracking-widest ${grade.textClass}`}>
+                      {grade.label}
+                    </span>
+                  </motion.button>
+                );
+              })}
             </motion.div>
           )}
         </AnimatePresence>

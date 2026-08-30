@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
 import Icon from '../../components/ui/Icon';
+import { TableSkeleton } from '../../components/ui/Skeleton';
 import { adminService, GlobalStats, UserAdminData } from '../../services/api/adminService';
 import { systemService, SystemStatus } from '../../services/api/systemService';
 import { logAdminAction, migrateLocalAuditLogs } from '../../services/analytics/auditLogService';
@@ -41,6 +42,7 @@ const AdminDashboard: React.FC = () => {
     const [analytics, setAnalytics] = useState<any | null>(null);
     const [planScores, setPlanScores] = useState<Record<string, QualityScore>>({});
     const [isLoading, setIsLoading] = useState(true);
+    const [isTabLoading, setIsTabLoading] = useState(false);
 
     const [announcements, setAnnouncements] = useState<any[]>([]);
     const [newAnnouncement, setNewAnnouncement] = useState('');
@@ -104,6 +106,7 @@ const AdminDashboard: React.FC = () => {
     };
 
     const loadTabData = async (tab: AdminTab, page: number, filter?: string) => {
+        setIsTabLoading(true);
         try {
             if (tab === 'users') {
                 const { data, count } = await adminService.getAllUsers(page, ITEMS_PER_PAGE, filter);
@@ -132,6 +135,8 @@ const AdminDashboard: React.FC = () => {
             }
         } catch (err) {
             console.error(`Failed to load ${tab} data:`, err);
+        } finally {
+            setIsTabLoading(false);
         }
     };
 
@@ -279,81 +284,87 @@ const AdminDashboard: React.FC = () => {
                     exit={{ opacity: 0, y: -10 }}
                     transition={{ duration: 0.2 }}
                 >
-                    {activeTab === 'overview' && (
-                        <OverviewPanel stats={stats} growthData={growthData} analytics={analytics} setActiveTab={setActiveTab} setVerificationFilter={setVerificationFilter} />
-                    )}
+                    {isTabLoading && ['users', 'plans', 'rooms', 'feedback', 'system', 'audit'].includes(activeTab) ? (
+                        <TableSkeleton rows={6} />
+                    ) : (
+                        <>
+                            {activeTab === 'overview' && (
+                                <OverviewPanel stats={stats} growthData={growthData} analytics={analytics} setActiveTab={setActiveTab} setVerificationFilter={setVerificationFilter} />
+                            )}
 
-                    {activeTab === 'users' && (
-                        <UserManagementPanel 
-                            users={users} 
-                            totalItems={totalItems}
-                            verificationFilter={verificationFilter}
-                            setVerificationFilter={setVerificationFilter}
-                            activeActionMenu={activeActionMenu}
-                            setActiveActionMenu={setActiveActionMenu}
-                            handleForceVerify={async (id, email) => {
-                                await adminService.forceVerifyUser(id);
-                                setUsers(users.map(u => u.id === id ? { ...u, is_verified: true } : u));
-                                setToast({ message: 'User verified', type: 'success' });
-                            }}
-                            handleResendConfirmation={async (email) => {
-                                await adminService.resendConfirmationEmail(email);
-                                setToast({ message: 'Email sent', type: 'success' });
-                            }}
-                            handlePasswordReset={async (email) => {
-                                await adminService.sendPasswordResetEmail(email);
-                                setToast({ message: 'Reset link sent', type: 'success' });
-                            }}
-                            handleRoleChange={async (id, role) => {
-                                await adminService.updateUserRole(id, role);
-                                setUsers(users.map(u => u.id === id ? { ...u, role } : u));
-                                setToast({ message: 'Role updated', type: 'success' });
-                            }}
-                            setDeleteModalUser={setDeleteModalUser}
-                        />
-                    )}
+                            {activeTab === 'users' && (
+                                <UserManagementPanel 
+                                    users={users} 
+                                    totalItems={totalItems}
+                                    verificationFilter={verificationFilter}
+                                    setVerificationFilter={setVerificationFilter}
+                                    activeActionMenu={activeActionMenu}
+                                    setActiveActionMenu={setActiveActionMenu}
+                                    handleForceVerify={async (id, email) => {
+                                        await adminService.forceVerifyUser(id);
+                                        setUsers(users.map(u => u.id === id ? { ...u, is_verified: true } : u));
+                                        setToast({ message: 'User verified', type: 'success' });
+                                    }}
+                                    handleResendConfirmation={async (email) => {
+                                        await adminService.resendConfirmationEmail(email);
+                                        setToast({ message: 'Email sent', type: 'success' });
+                                    }}
+                                    handlePasswordReset={async (email) => {
+                                        await adminService.sendPasswordResetEmail(email);
+                                        setToast({ message: 'Reset link sent', type: 'success' });
+                                    }}
+                                    handleRoleChange={async (id, role) => {
+                                        await adminService.updateUserRole(id, role);
+                                        setUsers(users.map(u => u.id === id ? { ...u, role } : u));
+                                        setToast({ message: 'Role updated', type: 'success' });
+                                    }}
+                                    setDeleteModalUser={setDeleteModalUser}
+                                />
+                            )}
 
-                    {activeTab === 'plans' && (
-                        <PlanModerationPanel 
-                            plans={plans} 
-                            planScores={planScores} 
-                            handleScorePlan={handleScorePlan} 
-                            triggerHaptic={triggerHaptic} 
-                        />
-                    )}
+                            {activeTab === 'plans' && (
+                                <PlanModerationPanel 
+                                    plans={plans} 
+                                    planScores={planScores} 
+                                    handleScorePlan={handleScorePlan} 
+                                    triggerHaptic={triggerHaptic} 
+                                />
+                            )}
 
-                    {activeTab === 'rooms' && (
-                        <StudyRoomPanel rooms={rooms} totalItems={totalItems} setRooms={setRooms} />
-                    )}
+                            {activeTab === 'rooms' && (
+                                <StudyRoomPanel rooms={rooms} totalItems={totalItems} setRooms={setRooms} />
+                            )}
 
-                    {activeTab === 'feedback' && (
-                        <FeedbackPanel feedback={feedback} />
-                    )}
+                            {activeTab === 'feedback' && (
+                                <FeedbackPanel feedback={feedback} />
+                            )}
 
-                    {activeTab === 'system' && (
-                        <SystemStatusPanel 
-                            systemStatus={systemStatus} 
-                            handleSystemUpdate={handleSystemUpdate}
-                            announcements={announcements}
-                            newAnnouncement={newAnnouncement}
-                            setNewAnnouncement={setNewAnnouncement}
-                            announcementType={announcementType}
-                            setAnnouncementType={setAnnouncementType}
-                            handlePostAnnouncement={handlePostAnnouncement}
-                            handleDeleteAnnouncement={handleDeleteAnnouncement}
-                        />
-                    )}
+                            {activeTab === 'system' && (
+                                <SystemStatusPanel 
+                                    systemStatus={systemStatus} 
+                                    handleSystemUpdate={handleSystemUpdate}
+                                    announcements={announcements}
+                                    newAnnouncement={newAnnouncement}
+                                    setNewAnnouncement={setNewAnnouncement}
+                                    announcementType={announcementType}
+                                    setAnnouncementType={setAnnouncementType}
+                                    handlePostAnnouncement={handlePostAnnouncement}
+                                    handleDeleteAnnouncement={handleDeleteAnnouncement}
+                                />
+                            )}
 
-                    {activeTab === 'broadcast' && (
-                        <BroadcastPanel setToast={setToast} />
-                    )}
+                            {activeTab === 'broadcast' && (
+                                <BroadcastPanel setToast={setToast} />
+                            )}
 
-                    {activeTab === 'audit' && (
-                        <AuditLogPanel auditLogs={auditLogs} />
-                    )}
+                            {activeTab === 'audit' && (
+                                <AuditLogPanel auditLogs={auditLogs} />
+                            )}
 
-                    {activeTab === 'marathons' && (
-                        <MarathonManager />
+                            {activeTab === 'marathons' && (
+                                <MarathonManager />
+                            )}
+                        </>
                     )}
 
                     {/* Pagination */}

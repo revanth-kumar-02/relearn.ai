@@ -174,11 +174,46 @@ const QuizModule: React.FC<QuizModuleProps> = ({
   // ── Loading State ──
   if (quizState === 'loading') {
     return (
-      <div className="bg-gradient-to-br from-indigo-50 to-violet-50 dark:from-indigo-950/30 dark:to-violet-950/30 p-8 rounded-2xl border border-indigo-200/60 dark:border-indigo-800/40 flex flex-col items-center gap-4">
-        <Loader2 className="animate-spin text-indigo-500" size={32} />
-        <div className="text-center">
-          <p className="font-bold text-sm text-stone-700 dark:text-stone-300">Generating your quiz...</p>
-          <p className="text-xs text-stone-500 mt-1">AI is crafting questions from your lesson content</p>
+      <div className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-200 dark:border-stone-800 shadow-sm overflow-hidden animate-pulse">
+        {/* Skeleton Progress Bar */}
+        <div className="h-1.5 bg-indigo-500/40 w-1/3 animate-pulse" />
+
+        <div className="p-6 space-y-6">
+          {/* Question Counter & Meta Skeleton */}
+          <div className="flex items-center justify-between">
+            <div className="h-4 w-28 bg-stone-200 dark:bg-stone-800 rounded-md" />
+            <div className="h-6 w-20 bg-indigo-50 dark:bg-indigo-950/60 rounded-full flex items-center justify-center gap-1.5 px-2.5">
+              <Sparkles size={12} className="text-indigo-500 animate-spin" />
+              <div className="h-2.5 w-10 bg-indigo-200 dark:bg-indigo-800 rounded" />
+            </div>
+          </div>
+
+          {/* Question Text Skeleton */}
+          <div className="space-y-2.5 py-1">
+            <div className="h-5 w-11/12 bg-stone-200 dark:bg-stone-800 rounded-lg" />
+            <div className="h-5 w-3/4 bg-stone-200 dark:bg-stone-800 rounded-lg" />
+          </div>
+
+          {/* Options Skeleton List */}
+          <div className="space-y-3 pt-2">
+            {[1, 2, 3, 4].map((i) => (
+              <div
+                key={i}
+                className="w-full p-4 rounded-xl border border-stone-200/80 dark:border-stone-800 flex items-center justify-between bg-stone-50/50 dark:bg-stone-800/30"
+              >
+                <div className="flex items-center gap-3 w-full">
+                  <div className="w-6 h-6 rounded-full bg-stone-200 dark:bg-stone-800 shrink-0" />
+                  <div className={`h-4 bg-stone-200 dark:bg-stone-800 rounded-md ${i % 2 === 0 ? 'w-2/3' : 'w-4/5'}`} />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Footer Status */}
+          <div className="pt-2 flex items-center justify-center gap-2 text-stone-500 dark:text-stone-400 text-xs font-medium">
+            <Loader2 className="animate-spin text-indigo-500" size={14} />
+            <span>AI is crafting questions from your lesson content...</span>
+          </div>
         </div>
       </div>
     );
