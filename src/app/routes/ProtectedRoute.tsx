@@ -8,7 +8,7 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const { user, loading } = useAuth();
+  const { user, loading, isPasswordRecovery } = useAuth();
 
   if (loading) {
     return (
@@ -18,7 +18,12 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     );
   }
 
-  logAuthDiagnostic('Route Protection Check', { isAuthenticated: !!user, isVerified: user?.isVerified });
+  logAuthDiagnostic('Route Protection Check', { isAuthenticated: !!user, isVerified: user?.isVerified, isPasswordRecovery });
+
+  if (isPasswordRecovery) {
+    logAuthDiagnostic('Route Protection: Recovery session blocked from protected route -> redirecting to /reset-password');
+    return <Navigate to="/reset-password" replace />;
+  }
 
   if (!user) {
     logAuthDiagnostic('Route Protection Redirect to /login');

@@ -154,18 +154,31 @@ STRICT ARCHITECTURAL RULES:
               createdAt: new Date().toISOString()
             });
           } else {
-            // Smart filler: Find previous milestone to provide context
+            // Progressive filler: Generate distinct pedagogical steps across gap days
             const prevMilestone = [...selectedTemplate.days].reverse().find(d => d.day < i);
+            const gapOffset = prevMilestone ? i - prevMilestone.day : i;
+            const baseTopic = prevMilestone?.topic || selectedTemplate.title;
+
+            const modalities = [
+              { prefix: 'Hands-on Implementation', desc: 'Build a targeted project module and test core logic for', type: 'coding' as const },
+              { prefix: 'Deep Dive & Architecture', desc: 'Explore advanced patterns, optimization, and edge cases in', type: 'reading' as const },
+              { prefix: 'Practical Lab & Mini-Project', desc: 'Integrate and apply a complete practical workflow for', type: 'coding' as const },
+              { prefix: 'Assessment & Problem Solving', desc: 'Complete conceptual review and solve challenges on', type: 'quiz' as const },
+              { prefix: 'Best Practices & Standards', desc: 'Audit code structure, security guidelines, and production standards for', type: 'reading' as const },
+            ];
+
+            const modality = modalities[(gapOffset - 1) % modalities.length];
+
             allTasks.push({
               id: crypto.randomUUID(),
               planId: fallbackPlan.id,
-              title: `Practice: ${prevMilestone?.topic || selectedTemplate.title}`,
-              description: `Deepen your understanding and apply the concepts learned in the previous lessons.`,
+              title: `${modality.prefix}: ${baseTopic}`,
+              description: `${modality.desc} ${baseTopic.toLowerCase()}.`,
               durationMinutes: selectedTemplate.dailyGoalMins,
               status: 'Not Started' as const,
               dueDate: new Date(Date.now() + (i - 1) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-              tags: [selectedTemplate.subject, selectedTemplate.category, 'practice'],
-              type: 'coding' as const,
+              tags: [selectedTemplate.subject, selectedTemplate.category],
+              type: modality.type,
               createdAt: new Date().toISOString()
             });
           }

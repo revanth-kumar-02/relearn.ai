@@ -487,7 +487,7 @@ export const adminService = {
   // Trigger password reset email (Admin initiated)
   sendPasswordResetEmail: async (email: string) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: `${window.location.origin}/#/reset-password`,
     });
     if (error) throw error;
   },

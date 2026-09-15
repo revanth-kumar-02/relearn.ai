@@ -803,15 +803,15 @@ const LearningWorkspace: React.FC = () => {
 
                 {/* Notes Area */}
                 <div className="space-y-6 pt-8 border-t border-stone-200 dark:border-stone-800">
-                    <div className="bg-white dark:bg-stone-900 glass-card noise-overlay p-8 rounded-[2.5rem] border border-stone-200 dark:border-stone-800 shadow-2xl h-[700px] flex flex-col relative group transition-all hover:shadow-primary/5">
-                    <div className="flex items-center justify-between mb-6">
+                    <div className="bg-white dark:bg-stone-900 glass-card noise-overlay p-6 sm:p-8 rounded-[2rem] border border-stone-200 dark:border-stone-800 shadow-xl min-h-[280px] max-h-[480px] flex flex-col relative group transition-all hover:shadow-primary/5">
+                    <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-stone-100 dark:bg-stone-800 flex items-center justify-center text-stone-500">
+                        <div className="w-10 h-10 rounded-xl bg-stone-100 dark:bg-stone-800 flex items-center justify-center text-stone-600 dark:text-stone-300">
                           <FileText size={20} />
                         </div>
                         <div>
-                          <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-stone-500">Neural Codex</h2>
-                          <p className="text-xs font-bold">Personal Study Insights</p>
+                          <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-stone-500 dark:text-stone-400">Neural Codex</h2>
+                          <p className="text-xs font-bold text-stone-800 dark:text-stone-100">Personal Study Insights</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
@@ -838,7 +838,7 @@ const LearningWorkspace: React.FC = () => {
                                <span className="status-dot-outer" />
                                <span className="status-dot-inner w-2.5 h-2.5" />
                              </span>
-                             <span className="text-[9px] font-black uppercase tracking-widest opacity-60">Secured</span>
+                             <span className="text-[10px] font-bold uppercase tracking-wider">Secured</span>
                            </motion.div>
                         )}
                       </div>
@@ -847,30 +847,30 @@ const LearningWorkspace: React.FC = () => {
                       value={notes}
                       onChange={handleNoteChange}
                       placeholder="Start capturing your insights, mental models, or key takeaways..."
-                      className="flex-1 w-full bg-transparent resize-none outline-none text-lg leading-relaxed placeholder-stone-300 dark:placeholder-stone-700 font-serif selection:bg-primary/20"
+                      className="flex-1 w-full bg-transparent resize-none outline-none text-base sm:text-lg leading-relaxed placeholder-stone-400 dark:placeholder-stone-500 font-serif selection:bg-primary/20 text-stone-800 dark:text-stone-100"
                     />
-                    <div className="pt-6 border-t border-stone-100 dark:border-stone-800 flex items-center justify-between mt-4">
+                    <div className="pt-4 border-t border-stone-100 dark:border-stone-800 flex items-center justify-between mt-2">
                       <div className="flex items-center gap-4">
                         <div className="flex flex-col">
-                          <span className="text-lg font-black tracking-tighter tabular-nums">
+                          <span className="text-base font-black tracking-tighter tabular-nums text-stone-800 dark:text-stone-100">
                             {notes.split(/\s+/).filter(Boolean).length}
                           </span>
-                          <span className="text-[8px] font-black text-stone-400 uppercase tracking-widest">
+                          <span className="text-[9px] font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider">
                             Words
                           </span>
                         </div>
-                        <div className="w-px h-6 bg-stone-200 dark:bg-stone-800" />
+                        <div className="w-px h-5 bg-stone-200 dark:border-stone-800" />
                         <div className="flex flex-col">
-                          <span className="text-lg font-black tracking-tighter tabular-nums">
+                          <span className="text-base font-black tracking-tighter tabular-nums text-stone-800 dark:text-stone-100">
                             {Math.ceil(notes.length / 500) || 1}
                           </span>
-                          <span className="text-[8px] font-black text-stone-400 uppercase tracking-widest">
+                          <span className="text-[9px] font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider">
                             Nodes
                           </span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 text-[9px] font-black text-stone-400 uppercase tracking-[0.2em] opacity-40">
-                        <Save size={12} /> Quantum Persistence Active
+                      <div className="flex items-center gap-2 text-[10px] font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider">
+                        <Save size={13} className="text-primary" /> Auto-Saved
                       </div>
                     </div>
                   </div>

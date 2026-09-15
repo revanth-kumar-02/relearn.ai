@@ -35,6 +35,7 @@ const KeyboardShortcutsModal = lazy(() => import('../components/common/KeyboardS
 const LandingPage = lazy(() => import('../components/layout/LandingPage'));
 const Login = lazy(() => import('../features/auth/Login'));
 const CreateAccount = lazy(() => import('../features/auth/CreateAccount'));
+const ResetPassword = lazy(() => import('../features/auth/ResetPassword'));
 const Dashboard = lazy(() => import('../features/dashboard/Dashboard'));
 const Progress = lazy(() => import('../features/learning/Progress'));
 const PlanDetails = lazy(() => import('../features/learning/PlanDetails'));
@@ -247,7 +248,7 @@ const AppContent: React.FC = () => {
   usePresence(user?.id, location.pathname);
 
   const validRoutePrefixes = [
-    '/', '/login', '/signup', '/dashboard', '/progress', '/plan-details',
+    '/', '/login', '/signup', '/reset-password', '/dashboard', '/progress', '/plan-details',
     '/learning-workspace', '/add-task', '/edit-task', '/notifications',
     '/notification-settings', '/settings', '/profile', '/diary', '/create-plan',
     '/templates', '/shared/', '/help-center', '/feedback', '/archived',
@@ -262,7 +263,7 @@ const AppContent: React.FC = () => {
 
   const isNotFound = !isKnownRoute(location.pathname);
 
-  const authPaths = ['/', '/login', '/signup'];
+  const authPaths = ['/', '/login', '/signup', '/reset-password'];
   const isAuthPage = authPaths.includes(location.pathname) || isNotFound;
 
   const hideMobileNavPaths = [
@@ -473,6 +474,7 @@ const AppContent: React.FC = () => {
                         <Route path="/" element={<LandingPage />} />
                         <Route path="/login" element={<Login />} />
                         <Route path="/signup" element={<CreateAccount />} />
+                        <Route path="/reset-password" element={<ResetPassword />} />
 
                         {/* Protected Routes */}
                         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />

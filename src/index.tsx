@@ -15,31 +15,49 @@
     console.log(`[Auth Diagnostic] [${event}]`, details ? JSON.stringify(details) : '');
   };
 
+  const pathname = window.location.pathname;
   const hash = window.location.hash;
-  if (hash) {
-    // 1. Handle query parameters inside hash (e.g. #/dashboard?code=xxx)
-    if (hash.includes('?')) {
-      const parts = hash.split('?');
+  const search = window.location.search;
+
+  // Check if incoming URL has password recovery intent
+  if (hash.includes('type=recovery') || search.includes('type=recovery') || pathname === '/reset-password') {
+    logDiagnostic('Password Recovery intent detected in URL', { pathname, hash, search });
+    sessionStorage.setItem('is_password_recovery', 'true');
+    sessionStorage.setItem('oauth_redirect_path', '/reset-password');
+  }
+
+  // Normalize pathname if browser accessed /reset-password directly (SPA fallback)
+  if (pathname === '/reset-password') {
+    const targetHash = '#/reset-password' + (hash ? (hash.startsWith('#') ? hash : '#' + hash) : '');
+    const newUrl = window.location.origin + '/' + search + targetHash;
+    window.history.replaceState(null, '', newUrl);
+  }
+
+  const currentHash = window.location.hash;
+  if (currentHash) {
+    // 1. Handle query parameters inside hash (e.g. #/dashboard?code=xxx or #/reset-password?code=xxx)
+    if (currentHash.includes('?')) {
+      const parts = currentHash.split('?');
       const rawPath = parts[0];
       const query = parts[1];
       if (query && (query.includes('code=') || query.includes('access_token=') || query.includes('refresh_token='))) {
-        const path = rawPath.replace(/^#/, '');
-        logDiagnostic('OAuth Callback Redirect (PKCE)', { originalHash: hash, parsedPath: path });
+        const path = rawPath.replace(/^#/, '') || '/dashboard';
+        logDiagnostic('Auth Callback Redirect (PKCE)', { originalHash: currentHash, parsedPath: path });
         sessionStorage.setItem('oauth_redirect_path', path);
         const newUrl = window.location.origin + window.location.pathname + '?' + query;
         window.history.replaceState(null, '', newUrl);
       } else if (query && query.includes('error=')) {
-        logDiagnostic('OAuth Callback Redirect Error', { query });
+        logDiagnostic('Auth Callback Redirect Error', { query });
       }
     }
-    // 2. Handle secondary hash fragments (e.g. #/dashboard#access_token=xxx)
-    else if (hash.includes('#', 1)) {
-      const secondHashIndex = hash.indexOf('#', 1);
-      const rawPath = hash.substring(0, secondHashIndex);
-      const tokenFragment = hash.substring(secondHashIndex + 1);
+    // 2. Handle secondary hash fragments (e.g. #/reset-password#access_token=xxx)
+    else if (currentHash.includes('#', 1)) {
+      const secondHashIndex = currentHash.indexOf('#', 1);
+      const rawPath = currentHash.substring(0, secondHashIndex);
+      const tokenFragment = currentHash.substring(secondHashIndex + 1);
       if (tokenFragment && (tokenFragment.includes('access_token=') || tokenFragment.includes('refresh_token='))) {
-        const path = rawPath.replace(/^#/, '');
-        logDiagnostic('OAuth Callback Redirect (Implicit)', { originalHash: hash, parsedPath: path });
+        const path = rawPath.replace(/^#/, '') || '/dashboard';
+        logDiagnostic('Auth Callback Redirect (Implicit)', { originalHash: currentHash, parsedPath: path });
         sessionStorage.setItem('oauth_redirect_path', path);
         const newUrl = window.location.origin + window.location.pathname + '#' + tokenFragment;
         window.history.replaceState(null, '', newUrl);

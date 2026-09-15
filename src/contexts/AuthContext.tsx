@@ -14,12 +14,15 @@ interface AuthContextType {
   logout: () => void;
   updateProfile: (updates: Partial<User>) => Promise<{ success: boolean; message?: string }>;
   changePassword: (newPass: string) => Promise<{ success: boolean; message?: string }>;
+  resetPasswordWithToken: (newPass: string) => Promise<{ success: boolean; message?: string }>;
+  clearRecoveryState: () => Promise<void>;
   deleteAccount: () => void;
   checkVerification: () => Promise<boolean>;
   resendVerification: () => Promise<{ success: boolean; message?: string }>;
   forgotPassword: (email: string) => Promise<{ success: boolean; message?: string }>;
   loginWithGoogle: () => Promise<{ success: boolean; message?: string }>;
   loading: boolean;
+  isPasswordRecovery: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -79,40 +82,102 @@ async function hashPassword(password: string): Promise<string> {
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState<boolean>(() => {
+    try {
+      return sessionStorage.getItem('is_password_recovery') === 'true';
+    } catch {
+      return false;
+    }
+  });
   const syncLock = useRef<string | null>(null);
 
   useEffect(() => {
     // 1. Initial check: load session from local storage immediately for fast UI
-    const sessionUserId = getSession();
-    logAuthDiagnostic('Session Restoration - Initial check', { sessionUserId });
-    if (sessionUserId) {
-      const users = getStoredUsers();
-      const stored = users[sessionUserId];
-      if (stored) {
-        logAuthDiagnostic('Session Restoration - Loaded cached user', { userId: stored.id });
-        setUser(stored);
+    const isRecoveryInitial = (() => {
+      try {
+        return sessionStorage.getItem('is_password_recovery') === 'true' ||
+               window.location.hash.includes('type=recovery') ||
+               window.location.href.includes('type=recovery');
+      } catch {
+        return false;
       }
+    })();
+
+    if (!isRecoveryInitial) {
+      const sessionUserId = getSession();
+      logAuthDiagnostic('Session Restoration - Initial check', { sessionUserId });
+      if (sessionUserId) {
+        const users = getStoredUsers();
+        const stored = users[sessionUserId];
+        if (stored) {
+          logAuthDiagnostic('Session Restoration - Loaded cached user', { userId: stored.id });
+          setUser(stored);
+        }
+      }
+    } else {
+      logAuthDiagnostic('Initial check: Recovery session detected. Skipping normal cached user load.');
     }
     
     // 2. Hydrate from Supabase if completely available
     if (supabaseAvailable) {
       logAuthDiagnostic('Supabase available, fetching session');
+      const isRecoverySession = sessionStorage.getItem('is_password_recovery') === 'true' || 
+                                window.location.hash.includes('type=recovery') ||
+                                window.location.href.includes('type=recovery');
+
       supabase.auth.getSession().then(({ data: { session } }) => {
-        logAuthDiagnostic('Supabase getSession resolved', { hasSession: !!session });
+        logAuthDiagnostic('Supabase getSession resolved', { hasSession: !!session, isRecoverySession });
         if (session && session.user) {
-          setServiceAuthToken(session.access_token);
-          syncSupabaseUser(session.user.id, session.user);
+          if (isRecoverySession) {
+            setServiceAuthToken(session.access_token);
+            setIsPasswordRecovery(true);
+            sessionStorage.setItem('is_password_recovery', 'true');
+            setUser(null);
+            clearSession();
+            setLoading(false);
+            if (!window.location.hash.startsWith('#/reset-password')) {
+              window.location.hash = '#/reset-password';
+            }
+          } else {
+            setServiceAuthToken(session.access_token);
+            syncSupabaseUser(session.user.id, session.user);
+          }
         } else {
+          if (isRecoverySession) {
+            sessionStorage.removeItem('is_password_recovery');
+            setIsPasswordRecovery(false);
+          }
           setLoading(false);
         }
       });
 
       const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
         logAuthDiagnostic('Supabase onAuthStateChange', { event, hasSession: !!session });
-        if (session && session.user) {
+        if (event === 'PASSWORD_RECOVERY') {
+          logAuthDiagnostic('PASSWORD_RECOVERY event received');
+          sessionStorage.setItem('is_password_recovery', 'true');
+          setIsPasswordRecovery(true);
+          setServiceAuthToken(session?.access_token || null);
+          setUser(null);
+          clearSession();
+          setLoading(false);
+          window.location.hash = '#/reset-password';
+        } else if (session && session.user) {
+          // If we are in password recovery mode, do not treat other events as regular sign-in
+          if (sessionStorage.getItem('is_password_recovery') === 'true') {
+            logAuthDiagnostic('Ignored regular sync during active recovery session');
+            setServiceAuthToken(session.access_token);
+            setIsPasswordRecovery(true);
+            setUser(null);
+            clearSession();
+            setLoading(false);
+            return;
+          }
           setServiceAuthToken(session.access_token);
           syncSupabaseUser(session.user.id, session.user);
         } else if (event === 'SIGNED_OUT') {
+          sessionStorage.removeItem('is_password_recovery');
+          setIsPasswordRecovery(false);
           setServiceAuthToken(null);
           setUser(null);
           clearSession();
@@ -271,6 +336,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         setUser(updatedProfile);
         setSession(profile.id);
+        setIsPasswordRecovery(false);
+        sessionStorage.removeItem('is_password_recovery');
         
         const users = getStoredUsers();
         users[profile.id] = updatedProfile;
@@ -288,7 +355,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           // 2. Set the hash which triggers the hashchange event and routes the user
           window.location.hash = '#' + redirectPath;
           logAuthDiagnostic('OAuth Redirect applied', { target: redirectPath });
-        } else if (!currentHash || currentHash === '#' || currentHash === '#/' || currentHash === '#/login' || currentHash === '#/signup') {
+        } else if (!currentHash || currentHash === '#' || currentHash === '#/' || currentHash === '#/login' || currentHash === '#/signup' || currentHash === '#/reset-password') {
           // 1. Clear search query parameters (?code=...) without triggering a reload
           window.history.replaceState(null, '', window.location.pathname);
           // 2. Redirect to dashboard
@@ -578,6 +645,45 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return { success: true };
   };
 
+  const resetPasswordWithToken = async (newPass: string) => {
+    if (!supabaseAvailable || !navigator.onLine) {
+      return { success: false, message: 'Network connection required to update password.' };
+    }
+
+    logAuthDiagnostic('resetPasswordWithToken starting');
+    const { error } = await supabase.auth.updateUser({ password: newPass });
+    if (error) {
+      logAuthDiagnostic('resetPasswordWithToken error', { error: error.message });
+      return { success: false, message: error.message };
+    }
+
+    logAuthDiagnostic('resetPasswordWithToken success - invalidating recovery session');
+    // Invalidate recovery session so user cannot automatically use it as an authenticated session
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.warn('[AuthContext] Sign out after password reset error:', e);
+    }
+
+    sessionStorage.removeItem('is_password_recovery');
+    setIsPasswordRecovery(false);
+    setUser(null);
+    clearSession();
+    setServiceAuthToken(null);
+
+    return { success: true };
+  };
+
+  const clearRecoveryState = async () => {
+    sessionStorage.removeItem('is_password_recovery');
+    setIsPasswordRecovery(false);
+    if (supabaseAvailable && navigator.onLine) {
+      try {
+        await supabase.auth.signOut();
+      } catch {}
+    }
+  };
+
   const deleteAccount = async () => {
     if (!user) return;
     
@@ -679,12 +785,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       logout,
       updateProfile,
       changePassword,
+      resetPasswordWithToken,
+      clearRecoveryState,
       deleteAccount,
       checkVerification,
       resendVerification,
       forgotPassword,
       loginWithGoogle,
-      loading
+      loading,
+      isPasswordRecovery
     }}>
       {!loading && children}
     </AuthContext.Provider>
