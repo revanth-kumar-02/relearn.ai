@@ -32,3 +32,7 @@ dist-ssr
 
 # Local workspace
 scratch/
+
+# Test artifacts
+test-results/
+playwright-report/

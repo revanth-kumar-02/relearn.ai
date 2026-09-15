@@ -38,6 +38,32 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           rewrite: (path: string) => path.replace(/^\/api\/feedback/, ''),
         },
+
+        // Dev Proxy for Local Ollama runtime
+        '/api/ai/ollama': {
+          target: env.AI_OLLAMA_SERVER_URL || env.VITE_AI_OLLAMA_BASE_URL || 'http://localhost:11434',
+          changeOrigin: true,
+          rewrite: (path: string) => path.replace(/^\/api\/ai\/ollama/, ''),
+        },
+
+        // Dev Proxy for Local vLLM runtime
+        '/api/ai/vllm': {
+          target: env.AI_VLLM_SERVER_URL || env.VITE_AI_VLLM_BASE_URL || 'http://localhost:8000',
+          changeOrigin: true,
+          rewrite: (path: string) => path.replace(/^\/api\/ai\/vllm/, ''),
+        },
+
+        // Dev Proxy for Hugging Face Inference API
+        '/api/ai/hf': {
+          target: env.AI_HF_SERVER_URL || env.HF_BASE_URL || 'https://router.huggingface.co/v1',
+          changeOrigin: true,
+          rewrite: (path: string) => path.replace(/^\/api\/ai\/hf/, ''),
+          headers: {
+            ...(env.HF_API_KEY || env.HUGGINGFACE_API_KEY
+              ? { 'Authorization': `Bearer ${env.HF_API_KEY || env.HUGGINGFACE_API_KEY}` }
+              : {}),
+          },
+        },
       },
     },
     plugins: [react()],

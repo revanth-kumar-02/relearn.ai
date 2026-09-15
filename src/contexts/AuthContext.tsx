@@ -112,10 +112,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (session && session.user) {
           setServiceAuthToken(session.access_token);
           syncSupabaseUser(session.user.id, session.user);
-        } else {
+        } else if (event === 'SIGNED_OUT') {
           setServiceAuthToken(null);
           setUser(null);
           clearSession();
+          setLoading(false);
+        } else {
+          setServiceAuthToken(null);
+          const localId = getSession();
+          if (localId && getStoredUsers()[localId]) {
+            setUser(getStoredUsers()[localId]);
+          } else {
+            setUser(null);
+            clearSession();
+          }
           setLoading(false);
         }
       });

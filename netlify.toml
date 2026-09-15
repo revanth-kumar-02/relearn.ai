@@ -14,6 +14,11 @@
   to = "/.netlify/functions/groq-proxy?path=:splat"
   status = 200
 
+[[redirects]]
+  from = "/api/ai/*"
+  to = "/.netlify/functions/ai-proxy?path=:splat"
+  status = 200
+
 
 
 [[redirects]]
