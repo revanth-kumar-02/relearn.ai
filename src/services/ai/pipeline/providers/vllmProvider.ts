@@ -83,7 +83,7 @@ export class VLLMProvider implements AIInferenceProvider {
       request.options.signal.addEventListener('abort', onAbort);
     }
 
-    const runtimeModel = resolveRuntimeModelName(modelDef.id);
+    const runtimeModel = resolveRuntimeModelName(modelDef.id, undefined, 'vllm');
     const messages = this.buildMessages(request);
     const payload: Record<string, unknown> = {
       model: runtimeModel,
@@ -183,7 +183,7 @@ export class VLLMProvider implements AIInferenceProvider {
       request.options.signal.addEventListener('abort', onAbort);
     }
 
-    const runtimeModel = resolveRuntimeModelName(modelDef.id);
+    const runtimeModel = resolveRuntimeModelName(modelDef.id, undefined, 'vllm');
     const messages = this.buildMessages(request);
     const payload: Record<string, unknown> = {
       model: runtimeModel,

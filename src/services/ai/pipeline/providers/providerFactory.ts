@@ -83,3 +83,11 @@ export function ensureActiveProvider(): AIInferenceProvider {
   }
   return getActiveProvider();
 }
+
+// Auto-initialize default provider on module load
+try {
+  initializeDefaultProvider();
+} catch {
+  // Silent fallback in test/mocking environments
+}
+

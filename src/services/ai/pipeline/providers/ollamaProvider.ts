@@ -81,7 +81,7 @@ export class OllamaProvider implements AIInferenceProvider {
       request.options.signal.addEventListener('abort', onAbort);
     }
 
-    const runtimeModel = resolveRuntimeModelName(modelDef.id);
+    const runtimeModel = resolveRuntimeModelName(modelDef.id, undefined, 'ollama');
     const messages = this.buildMessages(request);
     const payload = {
       model: runtimeModel,
@@ -175,7 +175,7 @@ export class OllamaProvider implements AIInferenceProvider {
       request.options.signal.addEventListener('abort', onAbort);
     }
 
-    const runtimeModel = resolveRuntimeModelName(modelDef.id);
+    const runtimeModel = resolveRuntimeModelName(modelDef.id, undefined, 'ollama');
     const messages = this.buildMessages(request);
     const payload = {
       model: runtimeModel,
