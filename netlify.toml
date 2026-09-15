@@ -3,6 +3,9 @@
   publish = "dist"
   functions = "netlify/functions"
 
+[build.environment]
+  SECRETS_SCAN_OMIT_KEYS = "VITE_AI_PROVIDER,AI_PROVIDER"
+
 # API Redirects
 [[redirects]]
   from = "/api/gemini/*"
