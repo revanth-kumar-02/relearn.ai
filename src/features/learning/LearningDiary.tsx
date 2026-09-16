@@ -152,8 +152,8 @@ const LearningDiary: React.FC = () => {
                             key={tab}
                             onClick={() => setActiveTab(tab)}
                             className={`flex-1 py-2 text-sm font-bold capitalize transition-all duration-300 rounded ${activeTab === tab
-                                    ? 'bg-white dark:bg-stone-900 shadow-md text-terracotta'
-                                    : 'text-stone-600 dark:text-stone-400'
+                                ? 'bg-white dark:bg-stone-900 shadow-md text-terracotta'
+                                : 'text-stone-600 dark:text-stone-400'
                                 }`}
                         >
                             {tab}
