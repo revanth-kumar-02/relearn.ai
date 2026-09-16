@@ -179,7 +179,7 @@ const LearningDiary: React.FC = () => {
             <button
                 id="tutorial-diary-fab"
                 onClick={() => navigate('/create-plan')}
-                className="fixed bottom-[6.5rem] left-6 md:bottom-6 md:left-72 h-14 w-14 bg-terracotta text-white rounded-full shadow-lg shadow-terracotta/30 flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-40 group"
+                className="fixed bottom-[6.5rem] left-6 md:bottom-6 md:left-[calc(var(--sidebar-width,18rem)+1.5rem)] h-14 w-14 bg-terracotta text-white rounded-full shadow-lg shadow-terracotta/30 flex items-center justify-center hover:scale-110 active:scale-95 transition-all duration-500 z-40 group"
                 aria-label="Create New Learning Plan"
             >
                 <span className="material-symbols-outlined text-3xl group-hover:rotate-90 transition-transform duration-300">add</span>

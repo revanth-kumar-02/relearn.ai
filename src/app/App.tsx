@@ -457,6 +457,9 @@ const AppContent: React.FC = () => {
         className={`flex-1 flex flex-col min-h-screen relative transition-all duration-500 ease-in-out ${
           showSidebar ? (isSidebarExpanded ? 'md:ml-72' : 'md:ml-20') : ''
         }`}
+        style={{
+          '--sidebar-width': showSidebar ? (isSidebarExpanded ? '18rem' : '5rem') : '0rem'
+        } as React.CSSProperties}
       >
         <div className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar scroll-smooth">
           <div className={`mx-auto w-full ${isAuthPage || location.pathname.startsWith('/rooms/') ? '' : (isDiary ? 'pb-32 md:pb-8' : 'max-w-[1440px] px-4 md:px-8 pb-32 md:pb-12')}`}>
