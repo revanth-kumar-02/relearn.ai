@@ -1,9 +1,6 @@
-import { Type } from "@google/genai";
-import { AI_MODELS, IS_GROQ_MODEL } from "../../config/gemini.config";
-import { getProxyConfiguredGenAI } from "./genai";
-import { sanitizeInput } from "../../utils/sanitize";
-import { getAuthHeaders } from "../../utils/authUtils";
-import { safeParseAIResponse } from "../../utils/aiUtils";
+import { generateAI } from './pipeline';
+import { sanitizeInput } from '../../utils/sanitize';
+import { safeParseAIResponse } from '../../utils/aiUtils';
 
 export interface Flashcard {
   id: string;
@@ -12,92 +9,56 @@ export interface Flashcard {
   mnemonic?: string;
 }
 
-const MODELS_TO_TRY = [AI_MODELS.FAST_LITE, ...AI_MODELS.FALLBACK_CHAIN.filter(m => m !== AI_MODELS.FAST_LITE)];
-
 export const generateFlashcards = async (
   topic: string,
   content: string,
   language: string = 'English'
 ): Promise<Flashcard[]> => {
-  const ai = getProxyConfiguredGenAI('learning');
-  let lastError: any = null;
+  const systemPrompt = `You are an expert memory coach. Generate high-quality flashcards for active recall.
+Return ONLY valid JSON with this structure:
+{
+  "flashcards": [
+    {
+      "front": "string",
+      "back": "string",
+      "mnemonic": "string"
+    }
+  ]
+}`;
 
-  for (const currentModel of MODELS_TO_TRY) {
-    try {
-      let text = "";
-      
-      if (IS_GROQ_MODEL(currentModel)) {
-        const response = await fetch('/api/groq/chat/completions', {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            ...getAuthHeaders()
-          },
-          body: JSON.stringify({
-            model: currentModel,
-            messages: [
-              { role: 'system', content: `You are an expert memory coach. Generate high-quality flashcards for active recall. 
-              Returns ONLY valid JSON: { "flashcards": [{ "front": "string", "back": "string", "mnemonic": "string" }] }.` },
-              { role: 'user', content: `Generate 8 flashcards for: ${topic} in ${language} using this content: ${content.slice(0, 4000)}.` }
-            ],
-            response_format: { type: "json_object" }
-          })
-        });
-        const data = await response.json();
-        text = data.choices?.[0]?.message?.content || "";
-      } else {
-        const response = await ai.models.generateContent({
-          model: currentModel,
-          contents: [{
-            role: 'user',
-            parts: [{
-              text: `Generate 8 high-quality flashcards for the topic: ${topic}.
+  const prompt = `Generate 8 high-quality flashcards for the topic: ${topic}.
               
-              Content: ${sanitizeInput(content.slice(0, 6000))}
-              Language: ${language}
-              
-              Requirements:
-              - Short, clear questions on the front
-              - Concise, accurate answers on the back
-              - Include a simple mnemonic device if helpful for retention
-              - Focus on key concepts, definitions, and "Why" questions.`
-            }]
-          }],
-          config: {
-            responseMimeType: "application/json",
-            responseSchema: {
-              type: Type.OBJECT,
-              properties: {
-                flashcards: {
-                  type: Type.ARRAY,
-                  items: {
-                    type: Type.OBJECT,
-                    properties: {
-                      front: { type: Type.STRING },
-                      back: { type: Type.STRING },
-                      mnemonic: { type: Type.STRING }
-                    },
-                    required: ["front", "back"]
-                  }
-                }
-              },
-              required: ["flashcards"]
-            }
-          }
-        });
-        text = response.text;
-      }
+Content: ${sanitizeInput(content.slice(0, 6000))}
+Language: ${language}
 
-      const parsed = safeParseAIResponse<any>(text);
+Requirements:
+- Short, clear questions on the front
+- Concise, accurate answers on the back
+- Include a simple mnemonic device if helpful for retention
+- Focus on key concepts, definitions, and "Why" questions.`;
+
+  try {
+    const response = await generateAI({
+      task: 'flashcards',
+      prompt,
+      systemPrompt,
+      options: {
+        temperature: 0.3,
+        responseFormat: 'json',
+      },
+    });
+
+    if (response.text) {
+      const parsed = safeParseAIResponse<any>(response.text);
       return (parsed.flashcards || []).map((f: any) => ({
         ...f,
-        id: crypto.randomUUID()
+        id: crypto.randomUUID(),
       }));
-    } catch (err) {
-      lastError = err;
-      continue;
     }
-  }
 
-  throw lastError || new Error("Failed to generate flashcards");
+    throw new Error('No content received from AI provider');
+  } catch (error: any) {
+    console.error(`[FlashcardService] AI generation failed:`, error?.message || error);
+    throw new Error(`Failed to generate flashcards: ${error?.message || 'Unknown error'}`);
+  }
 };

@@ -184,7 +184,18 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-border-light dark:divide-border-dark">
-                        {users.map((u, idx) => {
+                        {users.length === 0 ? (
+                            <tr>
+                                <td colSpan={6} className="px-8 py-16 text-center text-stone-500 dark:text-stone-400">
+                                    <div className="flex flex-col items-center justify-center gap-2">
+                                        <Icon name="person_search" className="text-4xl text-stone-300 dark:text-stone-600 mb-1" />
+                                        <p className="text-sm font-bold text-stone-700 dark:text-stone-300">No users found</p>
+                                        <p className="text-xs text-stone-400">No accounts match the current filter "{verificationFilter}".</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        ) : (
+                            users.map((u, idx) => {
                             const lastActive = u.last_active_at || u.last_seen;
                             const lastLogin = u.last_login_at || u.last_login;
                             const status = getStatusInfo(lastActive);
@@ -292,15 +303,10 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
                                     </td>
                                 </tr>
                             );
-                        })}
+                        })
+                        )}
                     </tbody>
                 </table>
-                {users.length === 0 && (
-                    <div className="py-20 text-center">
-                        <Icon name="person_off" className="text-4xl text-slate-200 mb-4 mx-auto" />
-                        <p className="text-sm font-black text-slate-400 uppercase tracking-widest">No users found matching your filter</p>
-                    </div>
-                )}
             </div>
 
             {/* Slide-out User Detail Drawer */}

@@ -258,7 +258,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
             />
             <button 
               type="submit"
-              disabled={isStreaming}
+              disabled={isStreaming || !input.trim()}
               className="absolute right-2 p-2 text-indigo-600 hover:scale-110 transition-transform disabled:opacity-50 disabled:hover:scale-100"
             >
               <span className="material-symbols-outlined">send</span>

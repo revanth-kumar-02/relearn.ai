@@ -43,29 +43,31 @@ export const getSharedPlanBySlug = async (slug: string): Promise<SharedPlan | nu
     .eq('slug', slug)
     .single();
 
-  if (error) {
-    console.error('Error fetching shared plan:', error);
+  if (error || !data) {
+    if (error) console.error('Error fetching shared plan:', error);
     return null;
   }
 
-  // Increment view count
-  await supabase
-    .from('shared_plans')
-    .update({ views: (data.views || 0) + 1 })
-    .eq('id', data.id);
+  // Atomically increment view count
+  try {
+    const { data: updatedViews, error: rpcErr } = await supabase.rpc('increment_shared_plan_views', { p_slug: slug });
+    if (!rpcErr && typeof updatedViews === 'number') {
+      data.views = updatedViews;
+    }
+  } catch (err) {
+    console.warn('[ShareService] Failed to increment view count:', err);
+  }
 
   return data;
 };
 
 export const incrementImportCount = async (planId: string) => {
-  const { data } = await supabase
-    .from('shared_plans')
-    .select('imports')
-    .eq('id', planId)
-    .single();
-    
-  await supabase
-    .from('shared_plans')
-    .update({ imports: (data?.imports || 0) + 1 })
-    .eq('id', planId);
+  try {
+    const { error: rpcErr } = await supabase.rpc('increment_shared_plan_imports', { p_plan_id: planId });
+    if (rpcErr) {
+      console.warn('[ShareService] increment_shared_plan_imports RPC error:', rpcErr);
+    }
+  } catch (err) {
+    console.warn('[ShareService] Failed to increment import count:', err);
+  }
 };

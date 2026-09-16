@@ -284,6 +284,7 @@ const FlashcardModule: React.FC<FlashcardModuleProps> = ({ topic, content }) => 
           whileHover={{ rotate: 180, scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
           onClick={resetDeck}
+          aria-label="Reset Deck"
           className="p-2 rounded-xl bg-slate-100 dark:bg-stone-800 text-slate-600 dark:text-slate-300 hover:text-primary transition-colors transform-gpu"
           title="Reset Deck"
         >
@@ -293,7 +294,17 @@ const FlashcardModule: React.FC<FlashcardModuleProps> = ({ topic, content }) => 
 
       {/* 3D Flashcard */}
       <div 
-        className="relative min-h-[22rem] w-full perspective-1000 cursor-pointer group transform-gpu"
+        tabIndex={0}
+        role="button"
+        aria-label={`Flashcard ${currentIndex + 1} of ${cards.length}: ${isFlipped ? 'Answer showing. Click or press Space or Enter to flip to prompt.' : 'Question showing. Click or press Space or Enter to flip to answer.'}`}
+        onKeyDown={(e) => {
+          if (e.key === ' ' || e.key === 'Enter') {
+            e.preventDefault();
+            setIsFlipped(f => !f);
+            triggerHaptic('light');
+          }
+        }}
+        className="relative min-h-[22rem] w-full perspective-1000 cursor-pointer group transform-gpu focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-[2.5rem]"
         onClick={() => { setIsFlipped(!isFlipped); triggerHaptic('light'); }}
       >
         <motion.div
@@ -382,6 +393,7 @@ const FlashcardModule: React.FC<FlashcardModuleProps> = ({ topic, content }) => 
                 whileTap={{ scale: 0.95 }}
                 onClick={() => { setCurrentIndex(prev => Math.max(0, prev - 1)); setIsFlipped(false); }}
                 disabled={currentIndex === 0}
+                aria-label="Previous Card"
                 className="flex-1 py-4 glass-card text-slate-700 dark:text-slate-300 rounded-2xl font-bold text-xs uppercase tracking-widest disabled:opacity-30 transition-colors duration-200 transform-gpu hover:bg-slate-100 dark:hover:bg-stone-800"
                 title="Previous Card"
               >
@@ -400,6 +412,7 @@ const FlashcardModule: React.FC<FlashcardModuleProps> = ({ topic, content }) => 
                 whileTap={{ scale: 0.95 }}
                 onClick={() => { setCurrentIndex(prev => Math.min(cards.length - 1, prev + 1)); setIsFlipped(false); }}
                 disabled={currentIndex === cards.length - 1}
+                aria-label="Next Card"
                 className="flex-1 py-4 glass-card text-slate-700 dark:text-slate-300 rounded-2xl font-bold text-xs uppercase tracking-widest disabled:opacity-30 transition-colors duration-200 transform-gpu hover:bg-slate-100 dark:hover:bg-stone-800"
                 title="Next Card"
               >

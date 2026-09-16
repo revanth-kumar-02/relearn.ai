@@ -20,7 +20,14 @@
   const search = window.location.search;
 
   // Check if incoming URL has password recovery intent
-  if (hash.includes('type=recovery') || search.includes('type=recovery') || pathname === '/reset-password') {
+  const isRecoveryIntent =
+    hash.includes('type=recovery') ||
+    search.includes('type=recovery') ||
+    pathname === '/reset-password' ||
+    pathname.includes('reset-password') ||
+    hash.includes('reset-password');
+
+  if (isRecoveryIntent) {
     logDiagnostic('Password Recovery intent detected in URL', { pathname, hash, search });
     sessionStorage.setItem('is_password_recovery', 'true');
     sessionStorage.setItem('oauth_redirect_path', '/reset-password');
@@ -41,9 +48,12 @@
       const rawPath = parts[0];
       const query = parts[1];
       if (query && (query.includes('code=') || query.includes('access_token=') || query.includes('refresh_token='))) {
-        const path = rawPath.replace(/^#/, '') || '/dashboard';
+        const path = rawPath.replace(/^#/, '') || (isRecoveryIntent ? '/reset-password' : '/dashboard');
         logDiagnostic('Auth Callback Redirect (PKCE)', { originalHash: currentHash, parsedPath: path });
         sessionStorage.setItem('oauth_redirect_path', path);
+        if (path === '/reset-password' || isRecoveryIntent) {
+          sessionStorage.setItem('is_password_recovery', 'true');
+        }
         const newUrl = window.location.origin + window.location.pathname + '?' + query;
         window.history.replaceState(null, '', newUrl);
       } else if (query && query.includes('error=')) {
@@ -56,9 +66,12 @@
       const rawPath = currentHash.substring(0, secondHashIndex);
       const tokenFragment = currentHash.substring(secondHashIndex + 1);
       if (tokenFragment && (tokenFragment.includes('access_token=') || tokenFragment.includes('refresh_token='))) {
-        const path = rawPath.replace(/^#/, '') || '/dashboard';
+        const path = rawPath.replace(/^#/, '') || (isRecoveryIntent ? '/reset-password' : '/dashboard');
         logDiagnostic('Auth Callback Redirect (Implicit)', { originalHash: currentHash, parsedPath: path });
         sessionStorage.setItem('oauth_redirect_path', path);
+        if (path === '/reset-password' || isRecoveryIntent) {
+          sessionStorage.setItem('is_password_recovery', 'true');
+        }
         const newUrl = window.location.origin + window.location.pathname + '#' + tokenFragment;
         window.history.replaceState(null, '', newUrl);
       }

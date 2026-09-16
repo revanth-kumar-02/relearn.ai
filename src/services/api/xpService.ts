@@ -1,49 +1,67 @@
 import { supabase } from '../../lib/supabase';
 
 export const xpService = {
-  async logXP(userId: string, amount: number, sourceType: 'marathon' | 'pact' | 'streak' | 'task', sourceId?: string) {
-    // 1. Log the XP entry
-    const { error: logError } = await supabase
-      .from('xp_logs')
-      .insert({
-        user_id: userId,
-        xp_amount: amount,
-        source_type: sourceType,
-        source_id: sourceId
+  async logXP(userId: string, amount: number, sourceType: 'marathon' | 'pact' | 'streak' | 'task' | 'quiz' | 'flashcard' | 'session' | 'general', sourceId?: string) {
+    if (!userId || amount <= 0) return { newTotalXP: 0, newLevel: 1 };
+
+    // 1. Primary path: atomic PostgreSQL RPC execution (logs XP & updates users.xp, invoking on_xp_change trigger)
+    try {
+      const { data, error } = await supabase.rpc('record_user_xp', {
+        p_user_id: userId,
+        p_amount: amount,
+        p_source_type: sourceType,
+        p_source_id: sourceId || null
       });
 
-    if (logError) throw logError;
+      if (!error && data) {
+        return {
+          newTotalXP: data.totalXP || amount,
+          newLevel: data.level || 1
+        };
+      }
+      if (error) {
+        console.warn('[XPService] RPC record_user_xp error:', error);
+      }
+    } catch (rpcErr) {
+      console.warn('[XPService] RPC record_user_xp exception:', rpcErr);
+    }
 
-    // 2. Fetch current user stats
+    // 2. Fallback: Log the XP entry
+    try {
+      await supabase
+        .from('xp_logs')
+        .insert({
+          user_id: userId,
+          xp_amount: amount,
+          source_type: sourceType,
+          source_id: sourceId
+        });
+    } catch (logError) {
+      console.warn('[XPService] xp_logs insert fallback failed:', logError);
+    }
+
+    // 3. Fallback: Update user XP directly (database on_xp_change trigger computes level automatically)
     const { data: user, error: userError } = await supabase
       .from('users')
-      .select('stats, xp, level')
+      .select('xp, level')
       .eq('id', userId)
       .single();
 
-    if (userError) throw userError;
+    if (userError || !user) {
+      return { newTotalXP: amount, newLevel: 1 };
+    }
 
-    // 3. Calculate new totals
-    const currentTotalXP = (user.stats?.totalXP || 0) + amount;
-    // Simple level logic: every 1000 XP is a level
-    const newLevel = Math.floor(currentTotalXP / 1000) + 1;
-
-    // 4. Update user stats
-    const { error: updateError } = await supabase
+    const newXp = (user.xp || 0) + amount;
+    const { data: updatedUser } = await supabase
       .from('users')
-      .update({
-        xp: (user.xp || 0) + amount, // Legacy xp column if still used
-        level: newLevel,
-        stats: {
-          ...user.stats,
-          totalXP: currentTotalXP,
-          level: newLevel
-        }
-      })
-      .eq('id', userId);
+      .update({ xp: newXp })
+      .eq('id', userId)
+      .select('xp, level')
+      .single();
 
-    if (updateError) throw updateError;
-    
-    return { newTotalXP: currentTotalXP, newLevel };
+    return { 
+      newTotalXP: updatedUser?.xp ?? newXp, 
+      newLevel: updatedUser?.level ?? (Math.floor(Math.sqrt(newXp / 100)) + 1)
+    };
   }
 };

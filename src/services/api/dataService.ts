@@ -172,7 +172,11 @@ export async function updatePlan(userId: string, planId: string, updates: Partia
     try {
       const { updatedAt, ...payload } = storageUpdates;
       if (typeof payload.progress === 'number') payload.progress = Math.round(payload.progress);
-      const { error } = await supabase.from('plans').update(payload).eq('id', planId);
+      const { error } = await supabase
+        .from('plans')
+        .update(payload)
+        .eq('id', planId)
+        .or(`userId.eq.${userId},teamMembers.cs.["${userId}"]`);
       if (error) throw error;
       return;
     } catch (err) {
@@ -198,7 +202,11 @@ export async function deletePlan(userId: string, planId: string): Promise<void> 
 
   if (canUseSupabase()) {
     try {
-      const { error } = await supabase.from('plans').delete().eq('id', planId);
+      const { error } = await supabase
+        .from('plans')
+        .delete()
+        .eq('id', planId)
+        .eq('userId', userId);
       if (error) throw error;
       return;
     } catch (err) {
@@ -313,7 +321,11 @@ export async function updateTask(userId: string, taskId: string, updates: Partia
   if (canUseSupabase()) {
     try {
       const { updatedAt, ...payload } = storageUpdates as any;
-      const { error } = await supabase.from('tasks').update(payload).eq('id', taskId);
+      const { error } = await supabase
+        .from('tasks')
+        .update(payload)
+        .eq('id', taskId)
+        .eq('userId', userId);
       if (error) throw error;
       return;
     } catch (err) {
@@ -363,7 +375,11 @@ export async function deleteTask(userId: string, taskId: string): Promise<void> 
 
   if (canUseSupabase()) {
     try {
-      const { error } = await supabase.from('tasks').delete().eq('id', taskId);
+      const { error } = await supabase
+        .from('tasks')
+        .delete()
+        .eq('id', taskId)
+        .eq('userId', userId);
       if (error) throw error;
       return;
     } catch (err) {

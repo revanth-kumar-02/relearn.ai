@@ -23,10 +23,27 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   icon, 
   isDanger 
 }) => {
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onCancel();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onCancel]);
+
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div 
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="confirm-modal-title"
+          aria-describedby="confirm-modal-desc"
+        >
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -41,15 +58,15 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             className="bg-surface-light dark:bg-surface-dark rounded-3xl w-full max-w-sm p-8 shadow-2xl relative z-10 border border-border-light/10 dark:border-border-dark/10"
           >
-            <div className={`h-16 w-16 rounded-2xl ${isDanger ? 'bg-red-500/10 text-red-500' : 'bg-primary/10 text-primary'} flex items-center justify-center mb-6 mx-auto`}>
+            <div className={`h-16 w-16 rounded-2xl ${isDanger ? 'bg-red-500/10 text-red-500' : 'bg-primary/10 text-primary'} flex items-center justify-center mb-6 mx-auto`} aria-hidden="true">
               <Icon name={icon} className="text-3xl" />
             </div>
             
-            <h3 className="font-bold text-xl text-center mb-2 text-text-primary-light dark:text-text-primary-dark">
+            <h3 id="confirm-modal-title" className="font-bold text-xl text-center mb-2 text-text-primary-light dark:text-text-primary-dark">
               {title}
             </h3>
             
-            <p className="text-center text-sm text-text-secondary-light dark:text-text-secondary-dark mb-8 leading-relaxed px-2">
+            <p id="confirm-modal-desc" className="text-center text-sm text-text-secondary-light dark:text-text-secondary-dark mb-8 leading-relaxed px-2">
               {message}
             </p>
             

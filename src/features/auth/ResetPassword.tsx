@@ -120,8 +120,8 @@ const ResetPassword: React.FC = () => {
     );
   }
 
-  // State 2: No active recovery session & not in recovery mode
-  if (!isPasswordRecovery && !error) {
+  // State 2: No active recovery session
+  if (!isPasswordRecovery) {
     return (
       <div className="min-h-screen flex flex-col justify-center items-center p-6 bg-white dark:bg-background-dark animate-fade-in">
         <div className="w-full max-w-sm text-center">
@@ -132,7 +132,7 @@ const ResetPassword: React.FC = () => {
             Reset Link Expired or Invalid
           </h1>
           <p className="text-text-secondary-light dark:text-text-secondary-dark font-medium mt-2 leading-relaxed text-sm">
-            For your security, password reset links are single-use and expire after a short period. Please request a new link.
+            {error || 'For your security, password reset links are single-use and expire after a short period. Please request a new link.'}
           </p>
           <div className="mt-8 space-y-3">
             <button

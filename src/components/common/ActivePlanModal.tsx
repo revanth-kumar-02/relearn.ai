@@ -17,12 +17,29 @@ const ActivePlanModal: React.FC<ActivePlanModalProps> = ({ isOpen, onClose, acti
   const { updatePlan } = useData();
   const { showToast } = useToast();
 
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-md animate-fade-in">
+    <div 
+      className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-md animate-fade-in"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="active-plan-modal-title"
+      aria-describedby="active-plan-modal-desc"
+    >
       <div className="bg-white dark:bg-stone-900 w-full max-w-sm rounded-[2rem] overflow-hidden shadow-2xl border border-white/20 animate-scale-in">
-        <div className="relative h-32 bg-primary flex items-center justify-center overflow-hidden">
+        <div className="relative h-32 bg-primary flex items-center justify-center overflow-hidden" aria-hidden="true">
           <div className="absolute inset-0 opacity-20">
             <Icon name="auto_awesome" className="text-9xl -rotate-12 absolute -right-4 -top-4 text-white" />
             <Icon name="rocket_launch" className="text-8xl rotate-12 absolute -left-8 -bottom-4 text-white" />
@@ -33,8 +50,8 @@ const ActivePlanModal: React.FC<ActivePlanModalProps> = ({ isOpen, onClose, acti
         </div>
 
         <div className="p-8 text-center">
-          <h3 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark mb-2">Active Learning Journey Found</h3>
-          <p className="text-sm text-text-secondary-light mb-8 leading-relaxed">
+          <h3 id="active-plan-modal-title" className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark mb-2">Active Learning Journey Found</h3>
+          <p id="active-plan-modal-desc" className="text-sm text-text-secondary-light dark:text-text-secondary-dark mb-8 leading-relaxed">
             You're currently focused on <span className="text-primary font-bold">"{activePlan.title}"</span>. 
             Complete or archive it before starting another journey to stay focused.
           </p>

@@ -110,7 +110,8 @@ const CreateAccount: React.FC = () => {
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             placeholder="Full Name"
-                            className="w-full bg-white dark:bg-surface-dark border border-gray-200 dark:border-border-dark rounded-2xl py-4 pl-12 pr-4 outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-base"
+                            disabled={loading}
+                            className="w-full bg-white dark:bg-surface-dark border border-gray-200 dark:border-border-dark rounded-2xl py-4 pl-12 pr-4 outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-base disabled:opacity-60"
                             required
                         />
                     </div>
@@ -122,7 +123,8 @@ const CreateAccount: React.FC = () => {
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             placeholder="Email Address"
-                            className="w-full bg-white dark:bg-surface-dark border border-gray-200 dark:border-border-dark rounded-2xl py-4 pl-12 pr-4 outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-base"
+                            disabled={loading}
+                            className="w-full bg-white dark:bg-surface-dark border border-gray-200 dark:border-border-dark rounded-2xl py-4 pl-12 pr-4 outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-base disabled:opacity-60"
                             required
                         />
                     </div>
@@ -134,7 +136,8 @@ const CreateAccount: React.FC = () => {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             placeholder="Password (min. 6 characters)"
-                            className="w-full bg-white dark:bg-surface-dark border border-gray-200 dark:border-border-dark rounded-2xl py-4 pl-12 pr-14 outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-base"
+                            disabled={loading}
+                            className="w-full bg-white dark:bg-surface-dark border border-gray-200 dark:border-border-dark rounded-2xl py-4 pl-12 pr-14 outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-base disabled:opacity-60"
                             required
                         />
                         <button

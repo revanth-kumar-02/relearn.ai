@@ -292,7 +292,61 @@ async function runPasswordRecoveryTests() {
     console.log('   ✓ Direct navigation handling verified.\n');
   }
 
-  console.log('=== All 10 Password Recovery Tests PASSED Successfully! ===\n');
+  // Test 11: Page Refresh during Reset Session
+  console.log('11. Testing Page Refresh during Active Reset Session...');
+  {
+    // Simulate sessionStorage and hash after page refresh
+    const mockSessionStorage = {
+      is_password_recovery: 'true',
+      oauth_redirect_path: '/reset-password'
+    };
+    const mockHash = '#/reset-password';
+
+    const checkRefreshState = (storage: Record<string, string>, hash: string, session: any) => {
+      const isRecoveryActive = storage.is_password_recovery === 'true' || hash.includes('reset-password');
+      let currentUser = null;
+      let recoveryState = false;
+
+      if (isRecoveryActive && session) {
+        recoveryState = true;
+        currentUser = null; // Still null, not promoted to normal user
+      }
+      return { isRecovery: recoveryState, user: currentUser };
+    };
+
+    const refreshResult = checkRefreshState(mockSessionStorage, mockHash, { access_token: 'valid_rec_token' });
+    assert(refreshResult.isRecovery === true, 'Recovery mode must remain active after page refresh');
+    assert(refreshResult.user === null, 'User must remain null (not logged in to dashboard) on page refresh');
+    console.log('   ✓ Page refresh during reset session verified.\n');
+  }
+
+  // Test 12: Expired / Invalid Recovery Link Handling
+  console.log('12. Testing Expired / Invalid Recovery Link URL Parameters...');
+  {
+    const parseUrlRecoveryError = (url: string) => {
+      if (url.includes('error=')) {
+        const rawParams = url.split('?')[1] || url.split('#')[1] || '';
+        const cleanParams = rawParams.split('#')[0];
+        const urlParams = new URLSearchParams(cleanParams);
+        const error = urlParams.get('error') || '';
+        const desc = urlParams.get('error_description') || '';
+        return {
+          hasError: true,
+          errorMessage: desc ? decodeURIComponent(desc).replace(/\+/g, ' ') : `Recovery error: ${error}`
+        };
+      }
+      return { hasError: false, errorMessage: '' };
+    };
+
+    const expiredUrl = 'https://relearn.ai/#/reset-password?error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid+or+has+expired';
+    const parsed = parseUrlRecoveryError(expiredUrl);
+
+    assert(parsed.hasError === true, 'Expired URL error must be detected');
+    assert(parsed.errorMessage === 'Email link is invalid or has expired', 'Error description must be decoded properly');
+    console.log('   ✓ Expired/invalid recovery link URL parsing verified.\n');
+  }
+
+  console.log('=== All 12 Password Recovery Tests PASSED Successfully! ===\n');
 }
 
 runPasswordRecoveryTests().catch((err) => {

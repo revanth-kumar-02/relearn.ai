@@ -11,6 +11,7 @@ import { generateLearningPlan } from '../../services/ai/planGeneratorService';
 import ActivePlanModal from '../../components/common/ActivePlanModal';
 import PlanRateLimitModal from '../../components/common/PlanRateLimitModal';
 import { checkPlanCreationLimit } from '../../utils/planRateLimiter';
+import { buildTemplatePlanAndTasks } from './utils/templatePlanBuilder';
 
 const TemplateGallery: React.FC = () => {
   const navigate = useNavigate();
@@ -50,6 +51,25 @@ const TemplateGallery: React.FC = () => {
       setShowRateLimitModal(true);
       setSelectedTemplate(null);
       return;
+    }
+
+    // Direct instantiation for complete templates (e.g. 90-day Full-Stack plan)
+    if (selectedTemplate.days && selectedTemplate.days.length >= selectedTemplate.totalDays) {
+      setIsGenerating(true);
+      try {
+        const { plan, tasks } = buildTemplatePlanAndTasks(selectedTemplate);
+        await addPlanWithTasks(plan, tasks);
+        navigate('/dashboard');
+        return;
+      } catch (err) {
+        console.error("Error creating full template plan:", err);
+        showToast("Unable to instantiate template plan.", "error");
+        return;
+      } finally {
+        setIsGenerating(false);
+        setGenerationStep('confirm');
+        setSelectedTemplate(null);
+      }
     }
     
     setIsGenerating(true);
@@ -118,73 +138,10 @@ STRICT ARCHITECTURAL RULES:
     } catch (error) {
       console.error("Error creating plan from template:", error);
       
-      // Intelligent Fallback: Use milestones AND generate filler tasks to ensure totalDays is met
+      // Intelligent Fallback: Use buildTemplatePlanAndTasks to ensure complete schedule is met
       try {
-        const fallbackPlan = {
-          id: crypto.randomUUID(),
-          title: selectedTemplate.title,
-          description: selectedTemplate.description,
-          subject: selectedTemplate.subject,
-          totalDays: selectedTemplate.totalDays,
-          completedDays: 0,
-          progress: 0,
-          dailyGoalMins: selectedTemplate.dailyGoalMins,
-          difficulty: selectedTemplate.difficulty,
-          status: 'active' as const,
-          createdAt: new Date().toISOString()
-        };
-
-        // Create a full array of days
-        const allTasks: any[] = [];
-        const milestoneMap = new Map(selectedTemplate.days.map(d => [d.day, d]));
-        
-        for (let i = 1; i <= selectedTemplate.totalDays; i++) {
-          const milestone = milestoneMap.get(i);
-          if (milestone) {
-            allTasks.push({
-              id: crypto.randomUUID(),
-              planId: fallbackPlan.id,
-              title: milestone.topic,
-              description: milestone.guidance,
-              durationMinutes: selectedTemplate.dailyGoalMins,
-              status: 'Not Started' as const,
-              dueDate: new Date(Date.now() + (i - 1) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-              tags: [selectedTemplate.subject, selectedTemplate.category],
-              type: 'reading' as const,
-              createdAt: new Date().toISOString()
-            });
-          } else {
-            // Progressive filler: Generate distinct pedagogical steps across gap days
-            const prevMilestone = [...selectedTemplate.days].reverse().find(d => d.day < i);
-            const gapOffset = prevMilestone ? i - prevMilestone.day : i;
-            const baseTopic = prevMilestone?.topic || selectedTemplate.title;
-
-            const modalities = [
-              { prefix: 'Hands-on Implementation', desc: 'Build a targeted project module and test core logic for', type: 'coding' as const },
-              { prefix: 'Deep Dive & Architecture', desc: 'Explore advanced patterns, optimization, and edge cases in', type: 'reading' as const },
-              { prefix: 'Practical Lab & Mini-Project', desc: 'Integrate and apply a complete practical workflow for', type: 'coding' as const },
-              { prefix: 'Assessment & Problem Solving', desc: 'Complete conceptual review and solve challenges on', type: 'quiz' as const },
-              { prefix: 'Best Practices & Standards', desc: 'Audit code structure, security guidelines, and production standards for', type: 'reading' as const },
-            ];
-
-            const modality = modalities[(gapOffset - 1) % modalities.length];
-
-            allTasks.push({
-              id: crypto.randomUUID(),
-              planId: fallbackPlan.id,
-              title: `${modality.prefix}: ${baseTopic}`,
-              description: `${modality.desc} ${baseTopic.toLowerCase()}.`,
-              durationMinutes: selectedTemplate.dailyGoalMins,
-              status: 'Not Started' as const,
-              dueDate: new Date(Date.now() + (i - 1) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-              tags: [selectedTemplate.subject, selectedTemplate.category],
-              type: modality.type,
-              createdAt: new Date().toISOString()
-            });
-          }
-        }
-
-        await addPlanWithTasks(fallbackPlan, allTasks);
+        const { plan, tasks } = buildTemplatePlanAndTasks(selectedTemplate);
+        await addPlanWithTasks(plan, tasks);
         showToast("AI was busy, so we generated a balanced study-and-practice schedule for you!", "info");
         navigate('/dashboard');
       } catch (fallbackError) {

@@ -15,6 +15,17 @@ const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({ isOpen,
     general: { title: 'General', icon: 'info' },
   };
 
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -32,14 +43,17 @@ const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({ isOpen,
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.2 }}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="shortcuts-modal-title"
           >
             <div className="bg-surface-light dark:bg-surface-dark rounded-2xl shadow-2xl border border-border-light dark:border-border-dark w-full max-w-md overflow-hidden">
               <div className="flex items-center justify-between p-5 border-b border-border-light dark:border-border-dark">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 bg-primary/10 rounded-xl flex items-center justify-center">
+                  <div className="w-9 h-9 bg-primary/10 rounded-xl flex items-center justify-center" aria-hidden="true">
                     <Icon name="keyboard" className="text-primary text-xl" />
                   </div>
-                  <h2 className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark">Keyboard Shortcuts</h2>
+                  <h2 id="shortcuts-modal-title" className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark">Keyboard Shortcuts</h2>
                 </div>
                 <button
                   onClick={onClose}

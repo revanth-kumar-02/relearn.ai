@@ -8,6 +8,7 @@ const ConceptCollisionWidget: React.FC = () => {
   const { tasks } = useData();
   const [collision, setCollision] = useState<ConceptCollision | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
   const [showAnswer, setShowAnswer] = useState(false);
   const [showHint, setShowHint] = useState(false);
 
@@ -15,13 +16,15 @@ const ConceptCollisionWidget: React.FC = () => {
 
   const generateNew = async () => {
     setIsLoading(true);
+    setError('');
     setShowAnswer(false);
     setShowHint(false);
     try {
       const result = await generateConceptCollision(userTopics);
       setCollision(result);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Concept Collision failed:', err);
+      setError(err?.message || 'Failed to create concept collision. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -49,10 +52,22 @@ const ConceptCollisionWidget: React.FC = () => {
         </button>
       </div>
 
-      {!collision && !isLoading ? (
+      {error ? (
+        <div className="py-4 px-3 bg-red-50 dark:bg-red-950/30 rounded-xl border border-red-200 dark:border-red-900/30 text-center space-y-2">
+          <p className="text-xs font-semibold text-red-600 dark:text-red-400">{error}</p>
+          <button
+            onClick={generateNew}
+            disabled={isLoading}
+            className="px-4 py-1.5 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-xs font-bold transition-all"
+          >
+            Retry
+          </button>
+        </div>
+      ) : !collision && !isLoading ? (
         <button
           onClick={generateNew}
-          className="w-full py-6 sm:py-8 rounded-2xl border-2 border-dashed border-violet-200 dark:border-violet-800 hover:border-violet-400 dark:hover:border-violet-600 transition-colors flex flex-col items-center gap-2 group"
+          disabled={isLoading}
+          className="w-full py-6 sm:py-8 rounded-2xl border-2 border-dashed border-violet-200 dark:border-violet-800 hover:border-violet-400 dark:hover:border-violet-600 transition-colors flex flex-col items-center gap-2 group disabled:opacity-50"
         >
           <span className="text-2xl sm:text-3xl group-hover:scale-110 transition-transform">🤯</span>
           <span className="text-xs font-bold text-violet-500">Generate a Concept Collision</span>
@@ -126,7 +141,8 @@ const ConceptCollisionWidget: React.FC = () => {
               )}
               <button
                 onClick={generateNew}
-                className="flex-1 py-2 sm:py-2.5 rounded-xl bg-violet-500/10 text-violet-600 dark:text-violet-400 text-[10px] sm:text-xs font-bold hover:bg-violet-500/20 transition-colors"
+                disabled={isLoading}
+                className="flex-1 py-2 sm:py-2.5 rounded-xl bg-violet-500/10 text-violet-600 dark:text-violet-400 text-[10px] sm:text-xs font-bold hover:bg-violet-500/20 transition-colors disabled:opacity-50"
               >
                 🔄 New
               </button>

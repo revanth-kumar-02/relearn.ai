@@ -14,22 +14,22 @@ import ProtectedRoute from './routes/ProtectedRoute';
 import AdminRoute from './routes/AdminRoute';
 import OfflineIndicator from '../components/common/OfflineIndicator';
 import ErrorBoundary from '../components/common/ErrorBoundary';
-import StorageWarningToast from '../components/common/StorageWarningToast';
 import Icon from '../components/ui/Icon';
 import Skeleton from '../components/ui/Skeleton';
-import EmailVerificationModal from '../features/auth/EmailVerificationModal';
-import MaintenanceOverlay from '../components/layout/MaintenanceOverlay';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import { usePresence } from '../hooks/usePresence';
 import { SystemBanner } from '../components/layout/SystemBanner';
-import { CommandPalette } from '../features/dashboard/admin/CommandPalette';
-import { GlobalCommandPalette } from '../components/common/GlobalCommandPalette';
 import SyncStatus from '../components/common/SyncStatus';
 import XPDropAnimation from '../components/ui/XPDropAnimation';
 import { ThemeProvider } from '../contexts/ThemeContext';
 import NotFound from '../components/common/NotFound';
 
 const KeyboardShortcutsModal = lazy(() => import('../components/common/KeyboardShortcutsModal'));
+const StorageWarningToast = lazy(() => import('../components/common/StorageWarningToast'));
+const EmailVerificationModal = lazy(() => import('../features/auth/EmailVerificationModal'));
+const MaintenanceOverlay = lazy(() => import('../components/layout/MaintenanceOverlay'));
+const CommandPalette = lazy(() => import('../features/dashboard/admin/CommandPalette').then(m => ({ default: m.CommandPalette })));
+const GlobalCommandPalette = lazy(() => import('../components/common/GlobalCommandPalette').then(m => ({ default: m.GlobalCommandPalette })));
 
 // Lazy Loaded Components
 const LandingPage = lazy(() => import('../components/layout/LandingPage'));
@@ -313,23 +313,22 @@ const AppContent: React.FC = () => {
       <OfflineIndicator showMobileNav={showMobileNav} />
       <Suspense fallback={null}>
         <KeyboardShortcutsModal isOpen={showShortcuts} onClose={() => setShowShortcuts(false)} />
-      </Suspense>
-      <EmailVerificationModal />
-      <MaintenanceOverlay />
-      <SyncStatus />
-      {isAdmin && (
-        <CommandPalette 
-          isOpen={isCommandPaletteOpen} 
-          onClose={() => setIsCommandPaletteOpen(false)}
-          onNavigate={(tab) => navigate(`/admin?tab=${tab}`)}
+        <EmailVerificationModal />
+        <MaintenanceOverlay />
+        {isAdmin && (
+          <CommandPalette 
+            isOpen={isCommandPaletteOpen} 
+            onClose={() => setIsCommandPaletteOpen(false)}
+            onNavigate={(tab) => navigate(`/admin?tab=${tab}`)}
+          />
+        )}
+        <GlobalCommandPalette 
+          isOpen={isGlobalSearchOpen}
+          onClose={() => setIsGlobalSearchOpen(false)}
+          onNavigate={(path) => navigate(path.startsWith('/') ? path : `/${path}`)}
         />
-      )}
-
-      <GlobalCommandPalette 
-        isOpen={isGlobalSearchOpen}
-        onClose={() => setIsGlobalSearchOpen(false)}
-        onNavigate={(path) => navigate(path.startsWith('/') ? path : `/${path}`)}
-      />
+      </Suspense>
+      <SyncStatus />
 
       {/* Desktop Sidebar */}
       {showSidebar && (
@@ -732,7 +731,9 @@ const App: React.FC = () => {
             <TutorialProvider>
               <ToastProvider>
                 <ErrorBoundary>
-                  <StorageWarningToast />
+                  <Suspense fallback={null}>
+                    <StorageWarningToast />
+                  </Suspense>
                   <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
                     <AppContent />
                   </HashRouter>

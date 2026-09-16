@@ -79,29 +79,32 @@ async function hashPassword(password: string): Promise<string> {
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
+// Helper to check if current runtime or URL state indicates password recovery
+function isRecoveryModeActive(): boolean {
+  try {
+    return (
+      sessionStorage.getItem('is_password_recovery') === 'true' ||
+      sessionStorage.getItem('oauth_redirect_path') === '/reset-password' ||
+      window.location.hash.includes('type=recovery') ||
+      window.location.search.includes('type=recovery') ||
+      window.location.href.includes('type=recovery') ||
+      window.location.hash.includes('reset-password') ||
+      window.location.pathname.includes('reset-password')
+    );
+  } catch {
+    return false;
+  }
+}
+
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isPasswordRecovery, setIsPasswordRecovery] = useState<boolean>(() => {
-    try {
-      return sessionStorage.getItem('is_password_recovery') === 'true';
-    } catch {
-      return false;
-    }
-  });
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState<boolean>(() => isRecoveryModeActive());
   const syncLock = useRef<string | null>(null);
 
   useEffect(() => {
     // 1. Initial check: load session from local storage immediately for fast UI
-    const isRecoveryInitial = (() => {
-      try {
-        return sessionStorage.getItem('is_password_recovery') === 'true' ||
-               window.location.hash.includes('type=recovery') ||
-               window.location.href.includes('type=recovery');
-      } catch {
-        return false;
-      }
-    })();
+    const isRecoveryInitial = isRecoveryModeActive();
 
     if (!isRecoveryInitial) {
       const sessionUserId = getSession();
@@ -121,14 +124,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // 2. Hydrate from Supabase if completely available
     if (supabaseAvailable) {
       logAuthDiagnostic('Supabase available, fetching session');
-      const isRecoverySession = sessionStorage.getItem('is_password_recovery') === 'true' || 
-                                window.location.hash.includes('type=recovery') ||
-                                window.location.href.includes('type=recovery');
+      const isRecoverySession = isRecoveryModeActive();
 
       supabase.auth.getSession().then(({ data: { session } }) => {
         logAuthDiagnostic('Supabase getSession resolved', { hasSession: !!session, isRecoverySession });
         if (session && session.user) {
-          if (isRecoverySession) {
+          if (isRecoverySession || isRecoveryModeActive()) {
             setServiceAuthToken(session.access_token);
             setIsPasswordRecovery(true);
             sessionStorage.setItem('is_password_recovery', 'true');
@@ -145,6 +146,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         } else {
           if (isRecoverySession) {
             sessionStorage.removeItem('is_password_recovery');
+            sessionStorage.removeItem('oauth_redirect_path');
             setIsPasswordRecovery(false);
           }
           setLoading(false);
@@ -156,27 +158,35 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (event === 'PASSWORD_RECOVERY') {
           logAuthDiagnostic('PASSWORD_RECOVERY event received');
           sessionStorage.setItem('is_password_recovery', 'true');
+          sessionStorage.setItem('oauth_redirect_path', '/reset-password');
           setIsPasswordRecovery(true);
           setServiceAuthToken(session?.access_token || null);
           setUser(null);
           clearSession();
           setLoading(false);
-          window.location.hash = '#/reset-password';
+          if (!window.location.hash.startsWith('#/reset-password')) {
+            window.location.hash = '#/reset-password';
+          }
         } else if (session && session.user) {
           // If we are in password recovery mode, do not treat other events as regular sign-in
-          if (sessionStorage.getItem('is_password_recovery') === 'true') {
+          if (isRecoveryModeActive()) {
             logAuthDiagnostic('Ignored regular sync during active recovery session');
             setServiceAuthToken(session.access_token);
             setIsPasswordRecovery(true);
+            sessionStorage.setItem('is_password_recovery', 'true');
             setUser(null);
             clearSession();
             setLoading(false);
+            if (!window.location.hash.startsWith('#/reset-password')) {
+              window.location.hash = '#/reset-password';
+            }
             return;
           }
           setServiceAuthToken(session.access_token);
           syncSupabaseUser(session.user.id, session.user);
         } else if (event === 'SIGNED_OUT') {
           sessionStorage.removeItem('is_password_recovery');
+          sessionStorage.removeItem('oauth_redirect_path');
           setIsPasswordRecovery(false);
           setServiceAuthToken(null);
           setUser(null);
@@ -205,6 +215,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   const syncSupabaseUser = async (authId: string, authUser?: any) => {
+    // If recovery mode is active, abort normal sync immediately
+    if (isRecoveryModeActive()) {
+      logAuthDiagnostic('syncSupabaseUser aborted: active password recovery session');
+      setIsPasswordRecovery(true);
+      setUser(null);
+      clearSession();
+      setLoading(false);
+      return;
+    }
+
     // Prevent concurrent syncs for the same user
     if (syncLock.current === authId) {
       logAuthDiagnostic('syncSupabaseUser locked (concurrent call)', { authId });
@@ -355,7 +375,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           // 2. Set the hash which triggers the hashchange event and routes the user
           window.location.hash = '#' + redirectPath;
           logAuthDiagnostic('OAuth Redirect applied', { target: redirectPath });
-        } else if (!currentHash || currentHash === '#' || currentHash === '#/' || currentHash === '#/login' || currentHash === '#/signup' || currentHash === '#/reset-password') {
+        } else if (!currentHash || currentHash === '#' || currentHash === '#/' || currentHash === '#/login' || currentHash === '#/signup') {
           // 1. Clear search query parameters (?code=...) without triggering a reload
           window.history.replaceState(null, '', window.location.pathname);
           // 2. Redirect to dashboard
@@ -600,6 +620,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (supabaseAvailable && navigator.onLine) {
       await supabase.auth.signOut();
     }
+    setServiceAuthToken(null);
+    sessionStorage.removeItem('is_password_recovery');
+    sessionStorage.removeItem('oauth_redirect_path');
+    setIsPasswordRecovery(false);
     setUser(null);
     clearSession();
   };
@@ -607,7 +631,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const updateProfile = async (updates: Partial<User>) => {
     if (!user) return { success: false, message: "No user logged in" };
 
-    const updatedUser = { ...user, ...updates };
+    // Security Hardening: Prevent client-side privilege escalation or identity spoofing
+    const { role, id, email, isVerified, createdAt, ...allowedUpdates } = updates as any;
+    const updatedUser: User = { 
+      ...user, 
+      ...allowedUpdates,
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      isVerified: user.isVerified,
+      createdAt: user.createdAt
+    };
     setUser(updatedUser);
 
     // Save using dataService
@@ -666,6 +700,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
 
     sessionStorage.removeItem('is_password_recovery');
+    sessionStorage.removeItem('oauth_redirect_path');
     setIsPasswordRecovery(false);
     setUser(null);
     clearSession();
@@ -676,6 +711,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const clearRecoveryState = async () => {
     sessionStorage.removeItem('is_password_recovery');
+    sessionStorage.removeItem('oauth_redirect_path');
     setIsPasswordRecovery(false);
     if (supabaseAvailable && navigator.onLine) {
       try {

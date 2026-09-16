@@ -1,13 +1,15 @@
-import { Type } from "@google/genai";
-import { AI_MODELS, IS_GROQ_MODEL, isRetryableError } from "../../config/gemini.config";
-import { getProxyConfiguredGenAI } from "./genai";
 import { sanitizeInput } from "../../utils/sanitize";
-import { getAuthHeaders } from "../../utils/authUtils";
-
-
+import {
+  generateAI,
+  AIRuntimeError,
+  AITimeoutError,
+  AIAbortError,
+  AIConnectionError,
+} from "./pipeline";
 
 /**
- * Generates a guided learning session.
+ * Generates a guided learning session using the provider-independent AI pipeline.
+ * Routed to Qwen3-Next-80B-A3B-Instruct via the 'learning_space' task.
  * When pdfContent is provided, the AI uses it as primary source material
  * instead of relying solely on the topic name.
  */
@@ -24,8 +26,6 @@ export const generateLessonContent = async (
   }
 ): Promise<string> => {
   try {
-    const ai = getProxyConfiguredGenAI('learning');
-
     // Build the prompt dynamically based on whether PDF content is available
     // Truncate PDF content to stay within safe token limits for proxies
     const pdfSection = pdfContent
@@ -64,7 +64,7 @@ Commit fully to this persona throughout the entire lesson.`
       modeInstruction = `\n\nSTORY MODE: Wrap the entire lesson inside an engaging narrative. The student is the protagonist. Create a scenario where understanding the topic is necessary to solve a problem in the story. Examples: "You're a detective solving a case using SQL queries" or "You're an astronaut fixing a space station using physics." Make it immersive and fun.`;
     }
 
-    const systemInstruction = `You are a Senior UI/UX Content Formatter and Expert AI Tutor.
+    const systemPrompt = `You are a Senior UI/UX Content Formatter and Expert AI Tutor.
 Your task is to generate a premium, structured learning session in JSON format.
 
 PROTECTION RULE:
@@ -99,105 +99,48 @@ Include:
 
 Do not include markdown code fences (like \`\`\`json) outside the JSON structure. Returns ONLY valid JSON.`;
 
-    const responseSchema = {
-      type: Type.OBJECT,
-      properties: {
-        learningObjective: { type: Type.STRING },
-        aiExplanation: { type: Type.STRING },
-        practiceActivities: { type: Type.ARRAY, items: { type: Type.STRING } },
-        resources: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              title: { type: Type.STRING },
-              url: { type: Type.STRING },
-              type: { type: Type.STRING, enum: ['video', 'article', 'link'] }
-            },
-            required: ["title", "url", "type"]
-          }
-        },
-        practiceQuestion: { type: Type.STRING }
+    const prompt = `Generate a guided learning session for the topic: <topic_input>${sanitizeInput(topic)}</topic_input> as part of the plan <plan_input>${sanitizeInput(planTitle)}</plan_input>.${pdfSection}`;
+
+    const response = await generateAI({
+      task: 'learning_space',
+      prompt,
+      systemPrompt,
+      options: {
+        temperature: 0.4,
+        responseFormat: 'json',
+        timeoutMs: 60000,
       },
-      required: ["learningObjective", "aiExplanation", "practiceActivities", "resources", "practiceQuestion"]
-    };
+    });
 
-    const modelsToTry = [AI_MODELS.PRIMARY, ...AI_MODELS.FALLBACK_CHAIN.filter(m => m !== AI_MODELS.PRIMARY)];
-    let lastError: any = null;
+    const text = response.text;
+    if (!text) {
+      throw new Error("AI returned empty response");
+    }
 
-    for (const currentModel of modelsToTry) {
-      try {
-        console.log(`[LearningWorkspace] Attempting session generation with model: ${currentModel}`);
-        
-        if (IS_GROQ_MODEL(currentModel)) {
-          const response = await fetch('/api/groq/chat/completions', {
-            method: 'POST',
-            headers: { 
-              'Content-Type': 'application/json',
-              ...getAuthHeaders()
-            },
-            body: JSON.stringify({
-              model: currentModel,
-              messages: [
-                { role: 'system', content: systemInstruction },
-                { role: 'user', content: `Generate a guided learning session for the topic: <topic_input>${sanitizeInput(topic)}</topic_input> as part of the plan <plan_input>${sanitizeInput(planTitle)}</plan_input>.${pdfSection}` }
-              ],
-              response_format: { type: 'json_object' },
-              temperature: 0.7,
-            })
-          });
+    return text;
+  } catch (error: any) {
+    if (error instanceof AIAbortError || error?.name === 'AbortError' || error?.message === 'AbortError') {
+      throw new Error("AbortError");
+    }
 
-          if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.error?.message || `Groq API error: ${response.status}`);
-          }
+    if (error instanceof AITimeoutError) {
+      throw new Error("Learning session generation timed out. Please try again.");
+    }
 
-          const data = await response.json();
-          const content = data.choices[0]?.message?.content;
-          if (content) {
-            console.log(`[LearningWorkspace] Session generated successfully with Groq model: ${currentModel}`);
-            return content;
-          }
-        } else {
-          const response = await ai.models.generateContent({
-            model: currentModel,
-            contents: [{
-              role: 'user',
-              parts: [{ text: `Generate a guided learning session for the topic: <topic_input>${sanitizeInput(topic)}</topic_input> as part of the plan <plan_input>${sanitizeInput(planTitle)}</plan_input>.${pdfSection}` }]
-            }],
-            config: {
-              systemInstruction,
-              responseMimeType: "application/json",
-              responseSchema
-            }
-          });
+    if (error instanceof AIConnectionError) {
+      throw new Error("No internet connection or AI runtime is unreachable. Please check your network and try again.");
+    }
 
-          const text = response.text;
-          if (text) {
-            console.log(`[LearningWorkspace] Session generated successfully with model: ${currentModel}`);
-            return text;
-          }
-        }
-      } catch (error: any) {
-        lastError = error;
-        const errorMsg = error?.message || error?.toString() || 'Unknown error';
-        console.warn(`[LearningWorkspace] Model ${currentModel} failed:`, errorMsg);
-
-        // For fallback chain, we want to try the next model for almost any error
-        // except when we've run out of models.
-        const isLastModel = modelsToTry.indexOf(currentModel) === modelsToTry.length - 1;
-        
-        if (!isLastModel) {
-          console.log(`[LearningWorkspace] Attempting fallback to next model...`);
-          continue;
-        }
-        break;
+    if (error instanceof AIRuntimeError) {
+      if (error.statusCode === 401) {
+        throw new Error("Your AI API key is missing or invalid.");
+      }
+      if (error.statusCode === 429) {
+        throw new Error("AI service is currently experiencing high demand. Please try again shortly.");
       }
     }
 
-    throw lastError || new Error("All models failed");
-  } catch (error) {
-    console.error("Session Generation Error:", error);
-    throw error;
+    const errorMsg = error?.message || 'Unknown error';
+    throw new Error(`Session generation failed: ${errorMsg}`);
   }
 };

@@ -41,6 +41,7 @@ const QuizModule: React.FC<QuizModuleProps> = ({
   const [error, setError] = useState('');
 
   const handleStartQuiz = async () => {
+    if (quizState === 'loading') return;
     setQuizState('loading');
     setError('');
     try {

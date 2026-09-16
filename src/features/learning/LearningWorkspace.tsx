@@ -432,26 +432,32 @@ const LearningWorkspace: React.FC = () => {
           <button
             onClick={() => navigate(-1)}
             className="p-2 rounded-full hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
+            aria-label="Back to previous page"
           >
             <ArrowLeft size={20} />
           </button>
           <div>
-            <h1 className="font-serif text-lg font-bold line-clamp-1">{task.title}</h1>
-            <p className="text-[10px] uppercase tracking-widest font-bold text-stone-500">{plan?.title}</p>
+            <h1 className="font-serif text-lg font-bold line-clamp-1 text-stone-900 dark:text-stone-100">{task.title}</h1>
+            <p className="text-[10px] uppercase tracking-widest font-bold text-stone-500 dark:text-stone-400">{plan?.title}</p>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowTimer(!showTimer)}
-            className={`p-2 rounded-full transition-colors ${showTimer ? 'bg-primary text-white' : 'hover:bg-stone-100 dark:hover:bg-stone-800'}`}
+            className={`p-2 rounded-full transition-colors ${showTimer ? 'bg-primary text-white' : 'hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-700 dark:text-stone-200'}`}
+            aria-label="Toggle study timer"
+            aria-pressed={showTimer}
           >
             <Timer size={20} />
           </button>
           <div className="relative">
             <button 
               onClick={() => setShowExportMenu(!showExportMenu)}
-              className={`p-2 rounded-full transition-colors ${showExportMenu ? 'bg-stone-100 dark:bg-stone-800' : 'hover:bg-stone-100 dark:hover:bg-stone-800'}`}
+              className={`p-2 rounded-full transition-colors ${showExportMenu ? 'bg-stone-100 dark:bg-stone-800' : 'hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-700 dark:text-stone-200'}`}
+              aria-label="Export study materials"
+              aria-expanded={showExportMenu}
+              aria-haspopup="true"
             >
               <Download size={20} />
             </button>
@@ -464,14 +470,16 @@ const LearningWorkspace: React.FC = () => {
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: -10 }}
                     className="absolute right-0 top-full mt-2 w-44 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl shadow-xl z-50 overflow-hidden"
+                    role="menu"
+                    aria-label="Export options"
                   >
-                    <button onClick={() => { exportToPDF(); setShowExportMenu(false); }} className="w-full px-4 py-3 text-left text-sm hover:bg-stone-50 dark:hover:bg-stone-800 flex items-center gap-2 transition-colors">
+                    <button onClick={() => { exportToPDF(); setShowExportMenu(false); }} className="w-full px-4 py-3 text-left text-sm hover:bg-stone-50 dark:hover:bg-stone-800 flex items-center gap-2 transition-colors text-stone-800 dark:text-stone-200" role="menuitem">
                       <FileText size={14} className="text-red-500" /> PDF Document
                     </button>
-                    <button onClick={() => { exportToDOC(); setShowExportMenu(false); }} className="w-full px-4 py-3 text-left text-sm hover:bg-stone-50 dark:hover:bg-stone-800 flex items-center gap-2 transition-colors">
+                    <button onClick={() => { exportToDOC(); setShowExportMenu(false); }} className="w-full px-4 py-3 text-left text-sm hover:bg-stone-50 dark:hover:bg-stone-800 flex items-center gap-2 transition-colors text-stone-800 dark:text-stone-200" role="menuitem">
                       <FileText size={14} className="text-blue-500" /> Word (DOC)
                     </button>
-                    <button onClick={() => { exportToCSV(); setShowExportMenu(false); }} className="w-full px-4 py-3 text-left text-sm hover:bg-stone-50 dark:hover:bg-stone-800 flex items-center gap-2 transition-colors">
+                    <button onClick={() => { exportToCSV(); setShowExportMenu(false); }} className="w-full px-4 py-3 text-left text-sm hover:bg-stone-50 dark:hover:bg-stone-800 flex items-center gap-2 transition-colors text-stone-800 dark:text-stone-200" role="menuitem">
                       <FileText size={14} className="text-green-500" /> CSV Spreadsheet
                     </button>
                   </motion.div>
@@ -630,11 +638,11 @@ const LearningWorkspace: React.FC = () => {
         )}
 
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-20 space-y-4">
+          <div role="status" aria-live="polite" className="flex flex-col items-center justify-center py-20 space-y-4">
             <Loader2 className="animate-spin text-primary" size={40} />
             <div className="text-center">
               <h2 className="font-serif text-xl font-bold">Preparing your workspace...</h2>
-              <p className="text-sm text-stone-500">
+              <p className="text-sm text-stone-500 dark:text-stone-400">
                 {pdfContent ? 'AI is analyzing your PDF and generating a personalized session.' : 'AI is generating your guided learning session.'}
               </p>
             </div>
@@ -681,16 +689,18 @@ const LearningWorkspace: React.FC = () => {
                   {/* Explanation */}
                   <section className="bg-white dark:bg-stone-900 p-6 rounded-2xl border border-stone-200 dark:border-stone-800 shadow-sm space-y-4">
                     <div className="flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-2 text-stone-500">
+                      <div className="flex items-center gap-2 text-stone-500 dark:text-stone-400">
                         <BookOpen size={18} />
                         <h2 className="text-xs font-black uppercase tracking-widest">Concept Explanation</h2>
                       </div>
                       
                       {/* Lesson Mode Switcher */}
-                      <div className="flex bg-stone-100 dark:bg-stone-800 p-1 rounded-lg">
+                      <div role="group" aria-label="Lesson delivery mode" className="flex bg-stone-100 dark:bg-stone-800 p-1 rounded-lg">
                         {(['standard', 'socratic', 'story'] as const).map((m) => (
                           <button
                             key={m}
+                            type="button"
+                            aria-pressed={lessonMode === m}
                             onClick={() => {
                               setLessonMode(m);
                               if (task.aiExplanation) fetchSession(); // Auto-regenerate on mode change if content exists
@@ -713,7 +723,7 @@ const LearningWorkspace: React.FC = () => {
 
                   {/* Practice Tasks */}
                   <section className="space-y-4">
-                    <div className="flex items-center gap-2 text-stone-500">
+                    <div className="flex items-center gap-2 text-stone-500 dark:text-stone-400">
                       <Play size={18} />
                       <h2 className="text-xs font-black uppercase tracking-widest">What To Practice Today</h2>
                     </div>
@@ -729,7 +739,7 @@ const LearningWorkspace: React.FC = () => {
                             ) : typeof activity === 'object' && activity !== null ? (
                               <>
                                 <p className="font-bold">{(activity as any).step || (activity as any).title}</p>
-                                <p className="text-stone-500 text-xs">{(activity as any).description}</p>
+                                <p className="text-stone-500 dark:text-stone-400 text-xs">{(activity as any).description}</p>
                               </>
                             ) : (
                               'Practice Task'
@@ -742,11 +752,11 @@ const LearningWorkspace: React.FC = () => {
 
                   {/* Curated Video Resources — Rebranded from "Video Generation" */}
                   <section className="space-y-4">
-                    <div className="flex items-center gap-2 text-stone-500">
+                    <div className="flex items-center gap-2 text-stone-500 dark:text-stone-400">
                       <Video size={18} />
                       <h2 className="text-xs font-black uppercase tracking-widest">Curated Video Mentorship</h2>
                     </div>
-                    <p className="text-xs text-stone-400 dark:text-stone-500">
+                    <p className="text-xs text-stone-500 dark:text-stone-400">
                       AI-selected educational videos from trusted channels, matched to your current topic.
                     </p>
                     <VideoResources topic={task.title} subject={plan?.subject || plan?.title} />
@@ -765,7 +775,7 @@ const LearningWorkspace: React.FC = () => {
 
                   {/* Interactive Quiz Module — Phase 4 */}
                   <section className="space-y-4">
-                    <div className="flex items-center gap-2 text-stone-500">
+                    <div className="flex items-center gap-2 text-stone-500 dark:text-stone-400">
                       <Brain size={18} />
                       <h2 className="text-xs font-black uppercase tracking-widest">Test Your Knowledge</h2>
                     </div>
@@ -778,7 +788,7 @@ const LearningWorkspace: React.FC = () => {
 
                   {/* Active Recall Flashcards */}
                   <section className="space-y-4">
-                    <div className="flex items-center gap-2 text-stone-500">
+                    <div className="flex items-center gap-2 text-stone-500 dark:text-stone-400">
                       <Lightbulb size={18} />
                       <h2 className="text-xs font-black uppercase tracking-widest">Active Recall Drills</h2>
                     </div>
@@ -790,7 +800,7 @@ const LearningWorkspace: React.FC = () => {
 
                   {/* AI Cheat Sheet */}
                   <section className="space-y-4">
-                    <div className="flex items-center gap-2 text-stone-500">
+                    <div className="flex items-center gap-2 text-stone-500 dark:text-stone-400">
                       <FileText size={18} />
                       <h2 className="text-xs font-black uppercase tracking-widest">Mastery Reference</h2>
                     </div>
@@ -846,6 +856,7 @@ const LearningWorkspace: React.FC = () => {
                     <textarea
                       value={notes}
                       onChange={handleNoteChange}
+                      aria-label="Personal study insights and notes"
                       placeholder="Start capturing your insights, mental models, or key takeaways..."
                       className="flex-1 w-full bg-transparent resize-none outline-none text-base sm:text-lg leading-relaxed placeholder-stone-400 dark:placeholder-stone-500 font-serif selection:bg-primary/20 text-stone-800 dark:text-stone-100"
                     />

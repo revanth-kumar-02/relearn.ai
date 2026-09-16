@@ -16,43 +16,26 @@ export const roomService = {
       // Update presence
       adminService.updatePresence(hostId);
       
-      // 1. Create the room
-      const { data: room, error: roomError } = await supabase
-        .from('study_rooms')
-        .insert({
-          name: name || 'Study Room',
-          host_id: hostId,
-          room_code: roomCode,
-          max_members: 8,
-          is_active: true,
-          settings: { break: 5, timer: 25, longBreak: 15 }
-        })
-        .select()
-        .single();
+      // 1. Execute transactional procedure (atomically creates room + joins host in a single transaction)
+      const { data: rpcRoom, error: rpcError } = await supabase.rpc('create_study_room_with_host', {
+        p_name: name || 'Study Room',
+        p_host_id: hostId,
+        p_host_name: userName || 'Host',
+        p_room_code: roomCode,
+        p_max_members: 8,
+        p_settings: { break: 5, timer: 25, longBreak: 15 }
+      });
 
-      if (roomError) {
-        console.error('Room Insert Error:', roomError);
-        throw new Error(`Failed to create room record: ${roomError.message}`);
+      if (rpcError) {
+        console.error('[RoomService] create_study_room_with_host RPC error:', rpcError);
+        throw new Error(`Failed to create study room: ${rpcError.message}`);
       }
 
-      if (!room) throw new Error('No room data returned after creation');
-
-      // 2. Join the room as the host
-      const { error: memberError } = await supabase
-        .from('room_members')
-        .insert({
-          room_id: room.id,
-          user_id: hostId,
-          user_name: userName || 'Host',
-          status: 'idle',
-          last_active_at: new Date().toISOString()
-        });
-
-      if (memberError) {
-        console.error('Member Insert Error:', memberError);
-        // We still return the room even if joining fails, 
-        // as the user can try to join manually or we can handle it in the UI
+      if (!rpcRoom) {
+        throw new Error('No room data returned after creation');
       }
+
+      const room = rpcRoom as StudyRoom;
 
       // Log Joined Study Room activity
       try {

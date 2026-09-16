@@ -434,38 +434,13 @@ export const adminService = {
     }
   },
 
-  // Increment Gemini API Usage tokens
+  // Increment API Usage tokens (Atomic PostgreSQL RPC)
   incrementApiUsage: async (tokens: number) => {
     if (!tokens || tokens <= 0) return;
     try {
-      const { data, error: fetchErr } = await supabase
-        .from('api_usage')
-        .select('used_tokens')
-        .eq('id', 'gemini_tokens')
-        .single();
-        
-      if (!fetchErr && data) {
-        let retries = 3;
-        while (retries > 0) {
-          const { error: updateErr } = await supabase
-            .from('api_usage')
-            .update({ 
-              used_tokens: Number(data.used_tokens) + tokens,
-              last_updated: new Date().toISOString()
-            })
-            .eq('id', 'gemini_tokens');
-          
-          if (!updateErr) break;
-          
-          retries--;
-          if (retries === 0) {
-            console.error(`[AdminService] recordTokenUsage update failed after retries:`, updateErr);
-          } else {
-            await new Promise(r => setTimeout(r, 500)); // Brief delay before retry
-          }
-        }
-      } else if (fetchErr) {
-        console.error('[AdminService] recordTokenUsage fetch failed:', fetchErr);
+      const { error } = await supabase.rpc('increment_api_usage', { p_tokens: tokens });
+      if (error) {
+        console.error('[AdminService] increment_api_usage RPC error:', error);
       }
     } catch (err) {
       console.error('[AdminService] Failed to increment API usage:', err);
