@@ -4,7 +4,7 @@
   functions = "netlify/functions"
 
 [build.environment]
-  SECRETS_SCAN_OMIT_KEYS = "VITE_AI_PROVIDER,AI_PROVIDER"
+  SECRETS_SCAN_OMIT_KEYS = "VITE_SUPABASE_URL,SUPABASE_URL,VITE_SUPABASE_ANON_KEY,VITE_AI_PROVIDER,AI_PROVIDER"
 
 # API Redirects
 [[redirects]]
