@@ -161,6 +161,7 @@ export interface User {
   last_seen?: string;
   last_active_at?: string;
   last_login_at?: string;
+  last_sign_in_at?: string;
 }
 
 export interface PlanTemplate {

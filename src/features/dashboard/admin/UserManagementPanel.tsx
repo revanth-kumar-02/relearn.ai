@@ -36,6 +36,25 @@ const formatActiveTimestamp = (dateString?: string): string => {
     return `${day}/${month}/${year} • ${hoursStr}:${minutes} ${ampm}`;
 };
 
+const formatLoginTimestamp = (dateString?: string): string => {
+    if (!dateString) return 'Never logged in';
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return 'Never logged in';
+
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+
+    let hours = date.getHours();
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12; // the hour '0' should be '12'
+    const hoursStr = String(hours).padStart(2, '0');
+
+    return `${day}/${month}/${year} • ${hoursStr}:${minutes} ${ampm}`;
+};
+
 const formatShortDate = (dateString?: string): string => {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
@@ -197,7 +216,7 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
                         ) : (
                             users.map((u, idx) => {
                             const lastActive = u.last_active_at || u.last_seen;
-                            const lastLogin = u.last_login_at || u.last_login;
+                            const lastLogin = u.last_sign_in_at || u.last_login_at || u.last_login;
                             const status = getStatusInfo(lastActive);
                             return (
                                 <tr key={u.id} className="hover:bg-gray-50/30 dark:hover:bg-stone-900/30 transition-colors">
@@ -222,7 +241,7 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
                                         {formatActiveTimestamp(lastActive)}
                                     </td>
                                     <td className="px-8 py-5 text-xs font-bold text-slate-700 dark:text-stone-300">
-                                        {formatActiveTimestamp(lastLogin)}
+                                        {formatLoginTimestamp(lastLogin)}
                                     </td>
                                     <td className="px-8 py-5 text-xs font-bold text-slate-500">
                                         {formatShortDate(u.createdAt)}
@@ -372,7 +391,7 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
                                     </div>
                                     <div className="space-y-1">
                                         <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Last Login</span>
-                                        <p className="text-xs font-bold text-slate-700 dark:text-stone-200">{formatActiveTimestamp(analytics?.lastLogin || selectedUser.last_login_at || selectedUser.last_login)}</p>
+                                        <p className="text-xs font-bold text-slate-700 dark:text-stone-200">{formatLoginTimestamp(analytics?.lastLogin || selectedUser.last_sign_in_at || selectedUser.last_login_at || selectedUser.last_login)}</p>
                                     </div>
                                     <div className="space-y-1 col-span-2 border-t border-border-light dark:border-border-dark pt-3">
                                         <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Account Created</span>

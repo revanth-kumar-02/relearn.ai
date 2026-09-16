@@ -487,11 +487,90 @@ export async function createNotification(userId: string, notification: Omit<AppN
 
 // ────────────────────────── USER PROFILE ──────────────────────────
 
+/**
+ * Upload an avatar image file to Supabase Storage (avatars bucket)
+ * Path: <userId>/avatar-<timestamp>.<ext>
+ */
+export async function uploadProfileAvatar(
+  userId: string,
+  file: File
+): Promise<{ success: boolean; url?: string; error?: string }> {
+  // Validate file presence
+  if (!file) {
+    return { success: false, error: 'No image file provided.' };
+  }
+
+  // Validate allowed MIME types
+  const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+  if (!allowedMimeTypes.includes(file.type)) {
+    return { success: false, error: 'Invalid file type. Allowed formats: JPEG, PNG, WebP, GIF.' };
+  }
+
+  // Enforce 2MB file size limit
+  const maxSizeBytes = 2 * 1024 * 1024;
+  if (file.size > maxSizeBytes) {
+    return { success: false, error: 'Image size exceeds the 2MB limit.' };
+  }
+
+  // Sanitize file extension (prevent executable or malformed files)
+  const extMap: Record<string, string> = {
+    'image/jpeg': 'jpg',
+    'image/png': 'png',
+    'image/webp': 'webp',
+    'image/gif': 'gif',
+  };
+  const ext = extMap[file.type] || 'jpg';
+  const filePath = `${userId}/avatar-${Date.now()}.${ext}`;
+
+  if (canUseSupabase()) {
+    try {
+      const { data, error } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true,
+          contentType: file.type,
+        });
+
+      if (error) {
+        console.error('[DataService] Supabase avatar upload failed:', error);
+        return { success: false, error: error.message };
+      }
+
+      const { data: publicUrlData } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      if (!publicUrlData || !publicUrlData.publicUrl) {
+        return { success: false, error: 'Could not generate public URL for avatar.' };
+      }
+
+      return { success: true, url: publicUrlData.publicUrl };
+    } catch (err: any) {
+      console.error('[DataService] Supabase avatar upload exception:', err);
+      return { success: false, error: err?.message || 'Storage upload failed' };
+    }
+  }
+
+  // Offline fallback: data URL
+  try {
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+    return { success: true, url: dataUrl };
+  } catch {
+    return { success: false, error: 'Failed to read image offline.' };
+  }
+}
+
 export async function getUserProfile(userId: string): Promise<User | null> {
   if (canUseSupabase()) {
     const { data, error } = await supabase
       .from('users')
-      .select('id, name, username, email, role, preferences, stats, profileSettings, academicLevel, learningGoals, preferredStudyTime, weakSubjects, strongSubjects, createdAt, last_seen, last_active_at, last_login_at')
+      .select('id, name, username, email, profilePicture, role, preferences, stats, profileSettings, academicLevel, learningGoals, preferredStudyTime, weakSubjects, strongSubjects, createdAt, last_seen, last_active_at, last_login_at')
       .eq('id', userId)
       .maybeSingle();
     if (error) {
@@ -512,12 +591,28 @@ export async function saveUserProfile(userId: string, userData: Record<string, u
 
   if (canUseSupabase()) {
     try {
-      const { updatedAt, isVerified, ...payload } = { id: userId, ...dataWithMeta } as any;
+      const ALLOWED_USER_COLUMNS = [
+        'id', 'name', 'username', 'email', 'profilePicture', 'role',
+        'preferences', 'profileSettings', 'academicLevel', 'learningGoals',
+        'preferredStudyTime', 'weakSubjects', 'strongSubjects', 'stats',
+        'createdAt', 'last_seen', 'xp', 'level', 'last_active_at', 'last_login_at'
+      ];
+      const payload: Record<string, any> = { id: userId };
+      for (const col of ALLOWED_USER_COLUMNS) {
+        if (col in dataWithMeta && dataWithMeta[col] !== undefined) {
+          payload[col] = dataWithMeta[col];
+        }
+      }
+
       const { error } = await supabase.from('users').upsert(payload);
-      if (error) throw error;
+      if (error) {
+        console.error('[DataService] Supabase saveUserProfile failed:', error);
+        throw error;
+      }
       return;
     } catch (err) {
-      console.warn('[DataService] Supabase saveUserProfile failed:', err);
+      console.error('[DataService] Supabase saveUserProfile error:', err);
+      throw err;
     }
   }
 

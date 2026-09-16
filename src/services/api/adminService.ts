@@ -25,11 +25,28 @@ export interface GlobalStats {
 
 export interface UserAdminData extends User {
   last_login?: string;
-  last_seen?: string;
-  room_count?: number;
-  plan_count?: number;
+  last_sign_in_at?: string;
   is_verified?: boolean;
 }
+
+const safeStorage = {
+  getItem: (key: string): string | null => {
+    try {
+      if (typeof localStorage !== 'undefined') return localStorage.getItem(key);
+    } catch {}
+    return null;
+  },
+  setItem: (key: string, val: string): void => {
+    try {
+      if (typeof localStorage !== 'undefined') localStorage.setItem(key, val);
+    } catch {}
+  },
+  removeItem: (key: string): void => {
+    try {
+      if (typeof localStorage !== 'undefined') localStorage.removeItem(key);
+    } catch {}
+  }
+};
 
 export const adminService = {
   // Get Global KPIs
@@ -84,12 +101,12 @@ export const adminService = {
 
     // Fallback/Seed check
     try {
-      const rawUsers = localStorage.getItem('relearn_users');
+      const rawUsers = safeStorage.getItem('relearn_users');
       let localUsersMap = rawUsers ? JSON.parse(rawUsers) : {};
       
       // If we don't have enough users in local storage (e.g. initial setup), seed mock users
       if (Object.keys(localUsersMap).length <= 1) {
-        const currentUserId = localStorage.getItem('relearn_session') || '';
+        const currentUserId = safeStorage.getItem('relearn_session') || '';
         const currentUser = currentUserId ? localUsersMap[currentUserId] : null;
         
         const now = new Date();
@@ -223,7 +240,7 @@ export const adminService = {
         }
 
         // Save seed users to local storage
-        localStorage.setItem('relearn_users', JSON.stringify(seedUsers));
+        safeStorage.setItem('relearn_users', JSON.stringify(seedUsers));
         localUsersMap = seedUsers;
         
         // Also seed activities for the mock users
@@ -256,7 +273,7 @@ export const adminService = {
         };
         
         Object.entries(seedActivities).forEach(([uid, acts]) => {
-          localStorage.setItem(`relearn_activity_${uid}`, JSON.stringify(acts));
+          safeStorage.setItem(`relearn_activity_${uid}`, JSON.stringify(acts));
         });
       }
 
@@ -322,12 +339,12 @@ export const adminService = {
     } catch (err) {
       console.warn('[AdminService] deleteUser RPC failed, running local/fallback delete:', err);
       try {
-        const rawUsers = localStorage.getItem('relearn_users');
+        const rawUsers = safeStorage.getItem('relearn_users');
         if (rawUsers) {
           const users = JSON.parse(rawUsers);
           if (users[userId]) {
             delete users[userId];
-            localStorage.setItem('relearn_users', JSON.stringify(users));
+            safeStorage.setItem('relearn_users', JSON.stringify(users));
             console.log(`[AdminService] Successfully deleted user ${userId} from localStorage fallback.`);
             return;
           }
@@ -531,33 +548,33 @@ export const adminService = {
 
     // Also update local storage so it works offline/locally
     try {
-      const raw = localStorage.getItem('relearn_users');
+      const raw = safeStorage.getItem('relearn_users');
       if (raw) {
         try {
           const users = JSON.parse(raw);
           if (users && typeof users === 'object' && users[userId]) {
             users[userId].last_seen = timestamp;
             users[userId].last_active_at = timestamp;
-            localStorage.setItem('relearn_users', JSON.stringify(users));
+            safeStorage.setItem('relearn_users', JSON.stringify(users));
           }
         } catch {
-          localStorage.removeItem('relearn_users');
+          safeStorage.removeItem('relearn_users');
         }
       }
       // Also update current active session user cache if it exists
-      const rawUser = localStorage.getItem(`relearn_user_${userId}`);
+      const rawUser = safeStorage.getItem(`relearn_user_${userId}`);
       if (rawUser) {
         try {
           const user = JSON.parse(rawUser);
           if (user && typeof user === 'object') {
             user.last_seen = timestamp;
             user.last_active_at = timestamp;
-            localStorage.setItem(`relearn_user_${userId}`, JSON.stringify(user));
+            safeStorage.setItem(`relearn_user_${userId}`, JSON.stringify(user));
           } else {
-            localStorage.removeItem(`relearn_user_${userId}`);
+            safeStorage.removeItem(`relearn_user_${userId}`);
           }
         } catch {
-          localStorage.removeItem(`relearn_user_${userId}`);
+          safeStorage.removeItem(`relearn_user_${userId}`);
         }
       }
     } catch {
@@ -586,32 +603,32 @@ export const adminService = {
 
     // Also update local storage
     try {
-      const raw = localStorage.getItem('relearn_users');
+      const raw = safeStorage.getItem('relearn_users');
       if (raw) {
         try {
           const users = JSON.parse(raw);
           if (users && typeof users === 'object' && users[userId]) {
             users[userId].last_login = timestamp;
             users[userId].last_login_at = timestamp;
-            localStorage.setItem('relearn_users', JSON.stringify(users));
+            safeStorage.setItem('relearn_users', JSON.stringify(users));
           }
         } catch {
-          localStorage.removeItem('relearn_users');
+          safeStorage.removeItem('relearn_users');
         }
       }
-      const rawUser = localStorage.getItem(`relearn_user_${userId}`);
+      const rawUser = safeStorage.getItem(`relearn_user_${userId}`);
       if (rawUser) {
         try {
           const user = JSON.parse(rawUser);
           if (user && typeof user === 'object') {
             user.last_login = timestamp;
             user.last_login_at = timestamp;
-            localStorage.setItem(`relearn_user_${userId}`, JSON.stringify(user));
+            safeStorage.setItem(`relearn_user_${userId}`, JSON.stringify(user));
           } else {
-            localStorage.removeItem(`relearn_user_${userId}`);
+            safeStorage.removeItem(`relearn_user_${userId}`);
           }
         } catch {
-          localStorage.removeItem(`relearn_user_${userId}`);
+          safeStorage.removeItem(`relearn_user_${userId}`);
         }
       }
     } catch {
@@ -633,7 +650,7 @@ export const adminService = {
     } catch {
       // Fallback to local storage
       try {
-        const raw = localStorage.getItem(`relearn_activity_${userId}`);
+        const raw = safeStorage.getItem(`relearn_activity_${userId}`);
         return raw ? JSON.parse(raw) : [];
       } catch {
         return [];
@@ -654,7 +671,7 @@ export const adminService = {
       if (error) throw error;
       return { data: data || [], count: count || 0 };
     } catch {
-      const localLogs = JSON.parse(localStorage.getItem('relearn_admin_audit_logs') || '[]');
+      const localLogs = JSON.parse(safeStorage.getItem('relearn_admin_audit_logs') || '[]');
       const from = (page - 1) * limit;
       const to = from + limit - 1;
       return { 
@@ -689,7 +706,7 @@ export const adminService = {
     } catch (err) {
       console.warn('[AdminService] getAnalyticsDashboard RPC failed, running local calculations:', err);
       
-      const rawUsers = localStorage.getItem('relearn_users');
+      const rawUsers = safeStorage.getItem('relearn_users');
       const localUsersMap = rawUsers ? JSON.parse(rawUsers) : {};
       const users = Object.values(localUsersMap) as UserAdminData[];
       
@@ -706,7 +723,7 @@ export const adminService = {
       
       users.forEach(u => {
         try {
-          const rawAct = localStorage.getItem(`relearn_activity_${u.id}`);
+          const rawAct = safeStorage.getItem(`relearn_activity_${u.id}`);
           if (rawAct) {
             const acts = JSON.parse(rawAct);
             userActivitiesMap[u.id] = acts;
@@ -843,7 +860,7 @@ export const adminService = {
           d1Denom++;
           const returned = acts.some(a => {
             const diff = new Date(a.time).getTime() - joinedTime;
-            return diff >= 5 * 60 * 1000 && diff <= oneDayMs;
+            return diff >= oneDayMs && diff <= 2 * oneDayMs;
           });
           if (returned) d1Num++;
         }
@@ -852,7 +869,7 @@ export const adminService = {
           d7Denom++;
           const returned = acts.some(a => {
             const diff = new Date(a.time).getTime() - joinedTime;
-            return diff >= oneDayMs && diff <= 7 * oneDayMs;
+            return diff >= 7 * oneDayMs && diff <= 8 * oneDayMs;
           });
           if (returned) d7Num++;
         }
@@ -861,20 +878,20 @@ export const adminService = {
           d30Denom++;
           const returned = acts.some(a => {
             const diff = new Date(a.time).getTime() - joinedTime;
-            return diff >= oneDayMs && diff <= 30 * oneDayMs;
+            return diff >= 30 * oneDayMs && diff <= 31 * oneDayMs;
           });
           if (returned) d30Num++;
         }
       });
 
-      rDay1 = d1Denom > 0 ? Math.round((d1Num / d1Denom) * 100) : 55;
-      rDay7 = d7Denom > 0 ? Math.round((d7Num / d7Denom) * 100) : 32;
-      rDay30 = d30Denom > 0 ? Math.round((d30Num / d30Denom) * 100) : 14;
+      rDay1 = d1Denom > 0 ? Math.round((d1Num / d1Denom) * 100) : 0;
+      rDay7 = d7Denom > 0 ? Math.round((d7Num / d7Denom) * 100) : 0;
+      rDay30 = d30Denom > 0 ? Math.round((d30Num / d30Denom) * 100) : 0;
 
       const retentionTrends = [
-        { date: 'Wk 1', day1: rDay1 - 6, day7: rDay7 - 4, day30: rDay30 - 2 },
-        { date: 'Wk 2', day1: rDay1 - 3, day7: rDay7 - 2, day30: rDay30 - 1 },
-        { date: 'Wk 3', day1: rDay1 - 1, day7: rDay7 - 1, day30: rDay30 },
+        { date: 'Wk 1', day1: rDay1, day7: rDay7, day30: rDay30 },
+        { date: 'Wk 2', day1: rDay1, day7: rDay7, day30: rDay30 },
+        { date: 'Wk 3', day1: rDay1, day7: rDay7, day30: rDay30 },
         { date: 'Wk 4', day1: rDay1, day7: rDay7, day30: rDay30 }
       ];
 
@@ -908,13 +925,13 @@ export const adminService = {
     } catch (err) {
       console.warn(`[AdminService] getUserProfileAnalytics failed for ${userId}, running local calculations:`, err);
       
-      const rawUsers = localStorage.getItem('relearn_users');
+      const rawUsers = safeStorage.getItem('relearn_users');
       const localUsersMap = rawUsers ? JSON.parse(rawUsers) : {};
       const u = localUsersMap[userId] || {};
       
       let plansCreated = u.stats?.plansCreated || 0;
       try {
-        const rawPlans = localStorage.getItem(`relearn_plans_${userId}`);
+        const rawPlans = safeStorage.getItem(`relearn_plans_${userId}`);
         if (rawPlans) {
           plansCreated = JSON.parse(rawPlans).length;
         }
@@ -925,7 +942,7 @@ export const adminService = {
       let totalSessions = 1;
       let recentActivities: any[] = [];
       try {
-        const rawAct = localStorage.getItem(`relearn_activity_${userId}`);
+        const rawAct = safeStorage.getItem(`relearn_activity_${userId}`);
         if (rawAct) {
           recentActivities = JSON.parse(rawAct);
           const sessions = recentActivities.filter((a: any) => a.activity_type === 'login' || a.title === 'Logged in').length;
@@ -937,8 +954,8 @@ export const adminService = {
 
       return {
         joinedDate: u.createdAt || new Date().toISOString(),
-        lastLogin: u.last_login_at || u.last_login || new Date().toISOString(),
-        lastActive: u.last_active_at || u.last_seen || new Date().toISOString(),
+        lastLogin: u.last_sign_in_at || u.last_login_at || u.last_login || null,
+        lastActive: u.last_active_at || u.last_seen || null,
         totalSessions,
         plansCreated,
         roomsJoined,

@@ -122,11 +122,29 @@ self.addEventListener('fetch', (event) => {
 // Web Push Notifications Event Handlers
 // ==========================================
 
+function sanitizeSwUrl(rawUrl) {
+    if (!rawUrl || typeof rawUrl !== 'string') return '/';
+    const trimmed = rawUrl.trim();
+    if (trimmed.startsWith('/') && !trimmed.startsWith('//') && !trimmed.includes('\\')) {
+        return trimmed;
+    }
+    try {
+        const parsed = new URL(trimmed, self.location.origin);
+        if (parsed.origin === self.location.origin) {
+            return parsed.pathname + parsed.search + parsed.hash;
+        }
+    } catch (e) {
+        // Fallback to home
+    }
+    return '/';
+}
+
 self.addEventListener('push', (event) => {
     let payload = {
         title: 'Relearn.ai Notification',
         body: 'You have a new update in Relearn.ai!',
         icon: '/logo.png',
+        badge: '/logo.png',
         url: '/'
     };
 
@@ -139,36 +157,41 @@ self.addEventListener('push', (event) => {
         }
     }
 
+    const targetUrl = sanitizeSwUrl(payload.url);
+
     const options = {
-        body: payload.body,
+        body: payload.body || 'You have a new update in Relearn.ai!',
         icon: payload.icon || '/logo.png',
-        badge: '/logo.png',
-        data: { url: payload.url || '/' },
+        badge: payload.badge || '/logo.png',
+        data: { url: targetUrl },
         vibrate: [100, 50, 100],
         tag: payload.tag || 'relearn-push-notification',
         renotify: true
     };
 
     event.waitUntil(
-        self.registration.showNotification(payload.title, options)
+        self.registration.showNotification(payload.title || 'Relearn.ai Alert', options)
     );
 });
 
 self.addEventListener('notificationclick', (event) => {
     event.notification.close();
-    const targetUrl = event.notification.data?.url || '/';
+    const rawUrl = event.notification.data?.url || '/';
+    const targetUrl = sanitizeSwUrl(rawUrl);
 
     event.waitUntil(
         self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+            // Check if there is an existing tab on the current origin
             for (const client of clientList) {
                 if (client.url.includes(self.location.origin) && 'focus' in client) {
                     client.focus();
-                    if (client.navigate && targetUrl !== '/') {
+                    if (client.navigate) {
                         client.navigate(targetUrl);
                     }
                     return;
                 }
             }
+            // If no window is currently open, open a new window
             if (self.clients.openWindow) {
                 return self.clients.openWindow(targetUrl);
             }

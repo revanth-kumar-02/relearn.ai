@@ -131,16 +131,46 @@ const OverviewPanel: React.FC<OverviewPanelProps> = ({ stats, growthData, analyt
             <div>
                 <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-stone-500 mb-4">User Engagement & Retention</h3>
                 <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6">
-                    <KPICard label="Active Today (DAU)" value={analytics?.dau || 0} icon="today" color="indigo" />
-                    <KPICard label="Active Weekly (WAU)" value={analytics?.wau || 0} icon="date_range" color="purple" />
-                    <KPICard label="Active Monthly (MAU)" value={analytics?.mau || 0} icon="calendar_month" color="emerald" />
-                    <KPICard label="Returning Users" value={analytics?.returningUsers || 0} icon="restart_alt" color="amber" />
+                    <KPICard 
+                        label="Active Today (DAU)" 
+                        value={analytics?.dau || 0} 
+                        icon="today" 
+                        color="indigo" 
+                        onClick={() => { setActiveTab('users'); setVerificationFilter('online'); }} 
+                    />
+                    <KPICard 
+                        label="Active Weekly (WAU)" 
+                        value={analytics?.wau || 0} 
+                        icon="date_range" 
+                        color="purple" 
+                        onClick={() => { setActiveTab('users'); setVerificationFilter('all'); }} 
+                    />
+                    <KPICard 
+                        label="Active Monthly (MAU)" 
+                        value={analytics?.mau || 0} 
+                        icon="calendar_month" 
+                        color="emerald" 
+                        onClick={() => { setActiveTab('users'); setVerificationFilter('all'); }} 
+                    />
+                    <KPICard 
+                        label="Returning Users" 
+                        value={analytics?.returningUsers || 0} 
+                        icon="restart_alt" 
+                        color="amber" 
+                        onClick={() => { setActiveTab('users'); setVerificationFilter('recent'); }} 
+                    />
                     <KPICard 
                         label="Retention Rate (D1)" 
                         value={analytics?.retentionDay1 !== undefined ? `${Math.round(analytics.retentionDay1)}%` : '0%'} 
                         icon="hourglass_empty" 
                         color="indigo" 
                         className="col-span-2 lg:col-span-1"
+                        onClick={() => {
+                            const chartElem = document.getElementById('admin-analytics-charts');
+                            if (chartElem) {
+                                chartElem.scrollIntoView({ behavior: 'smooth' });
+                            }
+                        }}
                     />
                 </div>
             </div>

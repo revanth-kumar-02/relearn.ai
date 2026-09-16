@@ -642,10 +642,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       isVerified: user.isVerified,
       createdAt: user.createdAt
     };
-    setUser(updatedUser);
 
-    // Save using dataService
-    await saveUserProfile(user.id, updatedUser as unknown as Record<string, unknown>);
+    try {
+      // Save using dataService
+      await saveUserProfile(user.id, updatedUser as unknown as Record<string, unknown>);
+
+      // Update state and local storage caches
+      setUser(updatedUser);
+      const storedUsers = getStoredUsers();
+      storedUsers[user.id] = { ...storedUsers[user.id], ...updatedUser };
+      saveStoredUsers(storedUsers);
+    } catch (err: any) {
+      console.error('[AuthContext] updateProfile failed:', err);
+      return { success: false, message: err?.message || "Failed to update profile." };
+    }
 
     // Log Profile Update activity
     try {

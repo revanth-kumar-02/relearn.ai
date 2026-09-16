@@ -66,7 +66,7 @@ export function optimizeDataSize(value: any): any {
 
   for (const key in optimized) {
     const val = optimized[key];
-    if (typeof val === 'string' && val.length > 5000 && val.startsWith('data:image')) {
+    if (key !== 'profilePicture' && typeof val === 'string' && val.length > 5000 && val.startsWith('data:image')) {
       optimized[key] = "[Stored in IndexedDB]";
       modified = true;
     } else if (typeof val === 'object' && val !== null) {

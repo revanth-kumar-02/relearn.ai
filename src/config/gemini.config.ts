@@ -10,21 +10,21 @@
 
 export const AI_MODELS = {
   /** Primary Groq model for complex reasoning and roadmap/content generation */
-  PRIMARY: import.meta.env.VITE_LLM_MODEL_PRIMARY || 'openai/gpt-oss-120b',
+  PRIMARY: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_LLM_MODEL_PRIMARY) || (typeof process !== 'undefined' && process.env?.VITE_LLM_MODEL_PRIMARY) || 'openai/gpt-oss-120b',
 
   /** Fast Groq model for quick tasks, quizzes, flashcards, and safety validation */
-  FAST_LITE: import.meta.env.VITE_LLM_MODEL_FAST || 'openai/gpt-oss-20b',
+  FAST_LITE: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_LLM_MODEL_FAST) || (typeof process !== 'undefined' && process.env?.VITE_LLM_MODEL_FAST) || 'openai/gpt-oss-20b',
 
   /** Primary Groq model for chat and interactive tutoring */
-  CHAT: import.meta.env.VITE_LLM_MODEL_CHAT || 'openai/gpt-oss-120b',
+  CHAT: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_LLM_MODEL_CHAT) || (typeof process !== 'undefined' && process.env?.VITE_LLM_MODEL_CHAT) || 'openai/gpt-oss-120b',
 
   /** Premium image generation model */
   IMAGE: 'imagen-3.0-generate-001',
 
   /** Ordered fallback chain for peak demand */
   FALLBACK_CHAIN: [
-    import.meta.env.VITE_LLM_MODEL_PRIMARY || 'openai/gpt-oss-120b',
-    import.meta.env.VITE_LLM_MODEL_FAST || 'openai/gpt-oss-20b',
+    (typeof import.meta !== 'undefined' && import.meta.env?.VITE_LLM_MODEL_PRIMARY) || (typeof process !== 'undefined' && process.env?.VITE_LLM_MODEL_PRIMARY) || 'openai/gpt-oss-120b',
+    (typeof import.meta !== 'undefined' && import.meta.env?.VITE_LLM_MODEL_FAST) || (typeof process !== 'undefined' && process.env?.VITE_LLM_MODEL_FAST) || 'openai/gpt-oss-20b',
     'gemini-2.0-flash',
     'gemini-1.5-flash',
   ],

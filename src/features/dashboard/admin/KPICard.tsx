@@ -9,9 +9,10 @@ interface KPICardProps {
     color: 'indigo' | 'purple' | 'amber' | 'emerald';
     onClick?: () => void;
     className?: string;
+    trend?: string;
 }
 
-const KPICard: React.FC<KPICardProps> = ({ label, value, icon, color, onClick, className }) => {
+const KPICard: React.FC<KPICardProps> = ({ label, value, icon, color, onClick, className, trend }) => {
     const colorMap = {
         indigo: { bg: 'bg-indigo-500/10', text: 'text-indigo-600', glow: 'glow-primary' },
         purple: { bg: 'bg-purple-500/10', text: 'text-purple-600', glow: 'glow-primary' },
@@ -33,13 +34,14 @@ const KPICard: React.FC<KPICardProps> = ({ label, value, icon, color, onClick, c
                     <Icon name={icon} className="text-2xl" />
                 </div>
                 
-                {/* Subtle Trend Indicator (Static Mockup for Visual Depth) */}
-                <div className="flex flex-col items-end gap-1">
-                    <div className={`flex items-center gap-1 text-[10px] font-black uppercase ${color === 'emerald' ? 'text-emerald-500' : 'text-indigo-500'}`}>
-                        <Icon name="trending_up" className="text-xs" />
-                        <span>+12%</span>
+                {trend && (
+                    <div className="flex flex-col items-end gap-1">
+                        <div className={`flex items-center gap-1 text-[10px] font-black uppercase ${color === 'emerald' ? 'text-emerald-500' : 'text-indigo-500'}`}>
+                            <Icon name="trending_up" className="text-xs" />
+                            <span>{trend}</span>
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
 
             <div className="relative z-10">

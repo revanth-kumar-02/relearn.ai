@@ -54,7 +54,7 @@ const AdminCharts: React.FC<AdminChartsProps> = ({ growthData, analytics }) => {
     }));
 
     return (
-        <div className="glass-card noise-overlay p-8 rounded-[2.5rem] shadow-xl border border-white/40 dark:border-stone-850">
+        <div id="admin-analytics-charts" className="glass-card noise-overlay p-8 rounded-[2.5rem] shadow-xl border border-white/40 dark:border-stone-850">
             {/* Header with Sub-tabs */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
                 <div>

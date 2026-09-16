@@ -8,6 +8,7 @@ import { User } from '../../types/index';
 import { friendService, FriendRequest } from '../../services/api/friendService';
 import { BADGES } from '../../services/api/gamificationService';
 import { supabase } from '../../lib/supabase';
+import { uploadProfileAvatar } from '../../services/api/dataService';
 
 const GRADIENT_THEMES = [
   { id: 'theme-1', name: 'Blue Purple', className: 'bg-gradient-to-r from-blue-500 to-purple-600' },
@@ -36,6 +37,9 @@ const Profile: React.FC = () => {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string>('');
+  const [imageError, setImageError] = useState(false);
 
   const [isFlipped, setIsFlipped] = useState(false);
   const [friends, setFriends] = useState<any[]>([]);
@@ -53,6 +57,10 @@ const Profile: React.FC = () => {
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
+    setImageError(false);
+  }, [previewUrl, formData.profilePicture, user?.profilePicture]);
+
+  useEffect(() => {
     if (location.state && (location.state as any).activeFriendTab) {
       setActiveTab((location.state as any).activeFriendTab);
       navigate(location.pathname, { replace: true, state: {} });
@@ -68,6 +76,7 @@ const Profile: React.FC = () => {
       setFormData({
         name: user.name,
         email: user.email,
+        profilePicture: user.profilePicture || '',
         academicLevel: user.academicLevel || 'Undergraduate',
         learningGoals: user.learningGoals || [],
         preferredStudyTime: user.preferredStudyTime || 'Morning',
@@ -192,16 +201,61 @@ const Profile: React.FC = () => {
     ? Math.min(100, Math.max(0, ((stats.plansCompleted - levelInfo.min) / (levelInfo.max - levelInfo.min)) * 100))
     : 100;
 
+  const avatarSrc = previewUrl || formData.profilePicture || user.profilePicture;
+
   const handleSave = async () => {
     setIsSaving(true);
-    const result = await updateProfile(formData);
+    let finalAvatarUrl = formData.profilePicture;
+
+    if (selectedFile) {
+      const uploadRes = await uploadProfileAvatar(user.id, selectedFile);
+      if (!uploadRes.success || !uploadRes.url) {
+        showToast(uploadRes.error || "Failed to upload profile image. Please try again.", "error");
+        setIsSaving(false);
+        return;
+      }
+      finalAvatarUrl = uploadRes.url;
+    }
+
+    const updatedData: Partial<User> = {
+      ...formData,
+      profilePicture: finalAvatarUrl || ''
+    };
+
+    const result = await updateProfile(updatedData);
     if (result.success) {
       setIsEditing(false);
+      setSelectedFile(null);
+      setPreviewUrl('');
+      setFormData(prev => ({ ...prev, profilePicture: finalAvatarUrl || '' }));
       showToast("Profile updated successfully.", "success");
     } else {
       showToast(result.message || "We couldn't save your changes right now. Let's try that again.", "error");
     }
     setIsSaving(false);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setSelectedFile(null);
+    setPreviewUrl('');
+    setImageError(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    if (user) {
+      setFormData({
+        name: user.name,
+        email: user.email,
+        profilePicture: user.profilePicture || '',
+        academicLevel: user.academicLevel || 'Undergraduate',
+        learningGoals: user.learningGoals || [],
+        preferredStudyTime: user.preferredStudyTime || 'Morning',
+        weakSubjects: user.weakSubjects || [],
+        strongSubjects: user.strongSubjects || [],
+        profileSettings: user.profileSettings || {
+          gradientTheme: 'theme-1'
+        }
+      });
+    }
   };
 
   const handleArrayInput = (field: keyof User, value: string) => {
@@ -235,25 +289,27 @@ const Profile: React.FC = () => {
     }
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 2 * 1024 * 1024) {
-      showToast("Image size must be less than 2MB", "error");
+    const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!allowedMimeTypes.includes(file.type)) {
+      showToast("Please select a valid image (JPEG, PNG, WebP, GIF).", "error");
+      if (fileInputRef.current) fileInputRef.current.value = '';
       return;
     }
 
-    const reader = new FileReader();
-    reader.onloadend = async () => {
-      const base64String = reader.result as string;
-      setFormData(prev => ({ ...prev, profilePicture: base64String }));
-      
-      // Auto-save the profile picture even if not in edit mode (or just update the state)
-      // Actually, since we are in a "formData" pattern, we should probably wait for handleSave
-      // but let's make it feel responsive.
-    };
-    reader.readAsDataURL(file);
+    if (file.size > 2 * 1024 * 1024) {
+      showToast("Image size must be less than 2MB", "error");
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    setSelectedFile(file);
+    const localUrl = URL.createObjectURL(file);
+    setPreviewUrl(localUrl);
+    setImageError(false);
   };
 
   return (
@@ -264,13 +320,24 @@ const Profile: React.FC = () => {
           <span className="material-symbols-outlined font-bold">arrow_back</span>
         </button>
         <h1 className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark tracking-tight">Profile</h1>
-        <button
-          onClick={() => isEditing ? handleSave() : setIsEditing(true)}
-          className="px-3 py-1.5 text-sm font-bold text-primary hover:bg-primary/10 rounded-lg transition-all"
-          disabled={isSaving}
-        >
-          {isSaving ? 'Saving...' : (isEditing ? 'Save' : 'Edit')}
-        </button>
+        <div className="flex items-center gap-2">
+          {isEditing && (
+            <button
+              onClick={handleCancelEdit}
+              className="px-3 py-1.5 text-sm font-medium text-text-secondary-light dark:text-text-secondary-dark hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg transition-all"
+              disabled={isSaving}
+            >
+              Cancel
+            </button>
+          )}
+          <button
+            onClick={() => isEditing ? handleSave() : setIsEditing(true)}
+            className="px-3 py-1.5 text-sm font-bold text-primary hover:bg-primary/10 rounded-lg transition-all"
+            disabled={isSaving}
+          >
+            {isSaving ? 'Saving...' : (isEditing ? 'Save' : 'Edit')}
+          </button>
+        </div>
       </header>
 
       <div className="max-w-4xl mx-auto p-4 md:p-8 space-y-8">
@@ -279,10 +346,7 @@ const Profile: React.FC = () => {
           <div className={`relative w-full h-full transition-all duration-700 ease-[cubic-bezier(0.4,0,0.2,1)] [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateY(180deg)]' : ''}`}>
 
             {/* FRONT SIDE */}
-            <div className="absolute inset-0 w-full h-full rounded-2xl bg-[#0f0f12] bg-gradient-to-br from-[#1a1a1e] to-[#050507] p-4 sm:p-6 shadow-2xl border border-[#ffffff05] flex flex-col items-center justify-center text-center overflow-hidden [backface-visibility:hidden]">
-              {/* Subtle Texture */}
-              <div className="absolute inset-0 opacity-5 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white via-transparent to-transparent"></div>
-
+            <div className="absolute inset-0 w-full h-full rounded-2xl bg-[#0a0a0c] p-4 sm:p-6 shadow-xl shadow-black/50 border border-zinc-800/80 flex flex-col items-center justify-center text-center overflow-hidden [backface-visibility:hidden]">
               {/* Gold Accent Line Top */}
               <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#D4AF37] to-transparent opacity-40"></div>
 
@@ -297,15 +361,16 @@ const Profile: React.FC = () => {
                   type="file" 
                   ref={fileInputRef} 
                   onChange={handleFileChange} 
-                  accept="image/*" 
+                  accept="image/jpeg,image/png,image/webp,image/gif" 
                   className="hidden" 
                 />
                 <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full p-[2px] bg-gradient-to-b from-[#D4AF37] to-[#8A6E2F] shadow-lg shadow-black/50 ${isEditing ? 'cursor-pointer hover:scale-105 transition-transform' : ''}`}>
-                  <div className="w-full h-full rounded-full bg-[#0f0f12] border-2 border-[#0f0f12] flex items-center justify-center overflow-hidden">
-                    {formData.profilePicture ? (
+                  <div className="w-full h-full rounded-full bg-[#0a0a0c] border-2 border-[#0a0a0c] flex items-center justify-center overflow-hidden">
+                    {avatarSrc && !imageError ? (
                       <img 
-                        src={formData.profilePicture} 
+                        src={avatarSrc} 
                         alt={user.name} 
+                        onError={() => setImageError(true)}
                         className="w-full h-full object-cover"
                       />
                     ) : (
@@ -316,9 +381,31 @@ const Profile: React.FC = () => {
                   </div>
                 </div>
                 {isEditing && (
-                  <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-[#D4AF37] text-[#0f0f12] rounded-full flex items-center justify-center shadow-md hover:bg-[#E5C570] transition-colors">
+                  <button
+                    type="button"
+                    onClick={handleProfilePictureClick}
+                    className="absolute -bottom-1 -right-1 w-7 h-7 bg-[#D4AF37] text-[#0a0a0c] rounded-full flex items-center justify-center shadow-md hover:bg-[#E5C570] transition-colors"
+                    title="Change profile picture"
+                  >
                     <span className="material-symbols-outlined text-sm">photo_camera</span>
-                  </div>
+                  </button>
+                )}
+                {isEditing && avatarSrc && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setFormData(prev => ({ ...prev, profilePicture: '' }));
+                      setSelectedFile(null);
+                      setPreviewUrl('');
+                      setImageError(false);
+                      if (fileInputRef.current) fileInputRef.current.value = '';
+                    }}
+                    className="absolute -top-1 -right-1 w-6 h-6 bg-red-500/90 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-md transition-colors"
+                    title="Remove profile picture"
+                  >
+                    <span className="material-symbols-outlined text-xs">close</span>
+                  </button>
                 )}
               </div>
 
@@ -352,9 +439,9 @@ const Profile: React.FC = () => {
             </div>
 
             {/* BACK SIDE */}
-            <div className="absolute inset-0 w-full h-full rounded-2xl bg-[#0f0f12] bg-gradient-to-bl from-[#1a1a1e] to-[#050507] shadow-2xl border border-[#ffffff05] overflow-hidden [backface-visibility:hidden] [transform:rotateY(180deg)]">
+            <div className="absolute inset-0 w-full h-full rounded-2xl bg-[#0a0a0c] shadow-xl shadow-black/50 border border-zinc-800/80 overflow-hidden [backface-visibility:hidden] [transform:rotateY(180deg)]">
               {/* Magnetic Strip */}
-              <div className="absolute top-4 sm:top-6 left-0 w-full h-8 sm:h-10 bg-[#050505] border-y border-[#ffffff05]"></div>
+              <div className="absolute top-4 sm:top-6 left-0 w-full h-8 sm:h-10 bg-[#050507] border-y border-zinc-800/60"></div>
 
               <div className="relative h-full flex flex-col p-4 sm:p-6 pt-16 sm:pt-24 justify-between">
 
