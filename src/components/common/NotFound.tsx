@@ -2,35 +2,18 @@ import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion } from 'motion/react';
 import Icon from './Icon';
+import { useSEO } from '../../hooks/useSEO';
 
 export const NotFound: React.FC = () => {
   const navigate = useNavigate();
   const shouldReduceMotion = useReducedMotion();
 
-  useEffect(() => {
-    // SEO & Meta title management
-    const originalTitle = document.title;
-    document.title = '404 - Page Not Found | Relearn.ai';
-
-    let metaRobots = document.querySelector('meta[name="robots"]');
-    let createdMeta = false;
-    if (!metaRobots) {
-      metaRobots = document.createElement('meta');
-      metaRobots.setAttribute('name', 'robots');
-      metaRobots.setAttribute('content', 'noindex, follow');
-      document.head.appendChild(metaRobots);
-      createdMeta = true;
-    } else {
-      metaRobots.setAttribute('content', 'noindex, follow');
-    }
-
-    return () => {
-      document.title = originalTitle;
-      if (createdMeta && metaRobots && metaRobots.parentNode) {
-        metaRobots.parentNode.removeChild(metaRobots);
-      }
-    };
-  }, []);
+  useSEO({
+    title: '404 - Page Not Found',
+    description: "The page you're looking for doesn't exist or may have been moved.",
+    noindex: true,
+    nofollow: false
+  });
 
   // Motion variants with reduced motion support
   const floatAnimation = shouldReduceMotion

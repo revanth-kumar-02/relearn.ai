@@ -8,6 +8,7 @@ import { useData } from '../../contexts/DataContext';
 import { useToast } from '../../contexts/ToastContext';
 import Skeleton from '../../components/ui/Skeleton';
 import ActivePlanModal from '../../components/common/ActivePlanModal';
+import { useSEO } from '../../hooks/useSEO';
 
 const SharedPlanView: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -19,6 +20,13 @@ const SharedPlanView: React.FC = () => {
   const [isImporting, setIsImporting] = useState(false);
   const [showActivePlanModal, setShowActivePlanModal] = useState(false);
   const activePlan = plans.find(p => p.status === 'active');
+
+  useSEO({
+    title: sharedPlan ? `${sharedPlan.title} (Shared Plan)` : 'Shared Learning Plan',
+    description: sharedPlan?.description || 'View and import this AI-crafted study roadmap on Relearn.ai.',
+    noindex: true,
+    nofollow: false
+  });
 
   useEffect(() => {
     const fetchPlan = async () => {

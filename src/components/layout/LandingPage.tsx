@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import Icon from '../ui/Icon';
 import { supabase } from '../../lib/supabase';
 import { ThemeToggle } from '../common/ThemeToggle';
+import SEO from '../common/SEO';
+import { STRUCTURED_DATA_WEBSITE, STRUCTURED_DATA_ORGANIZATION } from '../../config/seo';
 
 // Rotating words in hero section
 const HERO_PHRASES = [
@@ -423,6 +425,16 @@ export const LandingPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background-light dark:bg-background-dark text-text-primary-light dark:text-text-primary-dark font-sans overflow-x-hidden selection:bg-primary/30 select-none antialiased relative">
+      <SEO
+        title="Relearn.ai — AI-Powered Personalized Learning Platform"
+        exactTitle
+        description="Relearn.ai is an AI-powered personalized learning platform that helps students create personalized learning plans, study interactively, practice with quizzes and flashcards, and track their learning progress."
+        canonical="https://relearn-ai.netlify.app/"
+        ogType="website"
+        ogImage="https://relearn-ai.netlify.app/logo.png"
+        jsonLd={[STRUCTURED_DATA_WEBSITE, STRUCTURED_DATA_ORGANIZATION]}
+      />
+
       {/* Mesh Ambient Glow Background */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[1600px] h-[900px] overflow-hidden pointer-events-none z-0">
         <div className="absolute top-[-25%] left-[-15%] w-[70%] h-[70%] rounded-full bg-[radial-gradient(circle_at_center,rgba(0,102,255,0.12)_0%,rgba(99,102,241,0.03)_50%,transparent_70%)] dark:bg-[radial-gradient(circle_at_center,rgba(0,102,255,0.2)_0%,rgba(99,102,241,0.06)_50%,transparent_70%)] animate-glow-drift-1" />
@@ -446,7 +458,7 @@ export const LandingPage: React.FC = () => {
               <Icon name="school" className="text-2xl" />
             </div>
             <span className="text-xl font-bold tracking-tight font-display bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-              ReLearn.ai
+              Relearn.ai
             </span>
           </div>
 
@@ -630,7 +642,7 @@ export const LandingPage: React.FC = () => {
           </div>
 
           <p className="text-base sm:text-lg text-text-secondary-light dark:text-text-secondary-dark max-w-[620px] mx-auto font-medium leading-relaxed">
-            ReLearn.ai transforms random article browsing and fragmented online lectures into structured, AI-guided learning pathways. Set your career targets and watch the ecosystem adapt in real-time.
+            Relearn.ai transforms random article browsing and fragmented online lectures into structured, AI-guided learning pathways. Set your career targets and watch the ecosystem adapt in real-time.
           </p>
 
           {/* CTAs */}
@@ -639,7 +651,7 @@ export const LandingPage: React.FC = () => {
               onClick={() => navigate(user ? '/dashboard' : '/signup')}
               className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-primary to-secondary text-white font-bold text-base shadow-xl shadow-primary/25 hover:shadow-primary/45 transition-all hover:scale-[1.02] active:scale-[0.98] glow-primary flex items-center justify-center gap-2"
             >
-              <span>{user ? 'Enter ReLearn.ai' : 'Get Started for Free'}</span>
+              <span>{user ? 'Enter Relearn.ai' : 'Get Started for Free'}</span>
               <Icon name="arrow_forward" className="text-lg" />
             </button>
             <a 
@@ -826,7 +838,7 @@ export const LandingPage: React.FC = () => {
             Your Structured Career Evolution
           </h2>
           <p className="text-base text-text-secondary-light dark:text-text-secondary-dark font-medium max-w-[500px] mx-auto">
-            Traditional learning is broken and chaotic. Here is how ReLearn.ai guides you from aspiration to true domain mastery.
+            Traditional learning is broken and chaotic. Here is how Relearn.ai guides you from aspiration to true domain mastery.
           </p>
         </motion.div>
 
@@ -886,7 +898,7 @@ export const LandingPage: React.FC = () => {
               The Operating System for Learning
             </h2>
             <p className="text-base text-text-secondary-light dark:text-text-secondary-dark font-medium leading-relaxed">
-              Consolidate your learning stack. ReLearn's workspace houses your structured study files, embeds adaptive recommendation panels, and features an integrated AI copilot that grows alongside your projects.
+              Consolidate your learning stack. Relearn.ai's workspace houses your structured study files, embeds adaptive recommendation panels, and features an integrated AI copilot that grows alongside your projects.
             </p>
             
             {/* Features checkmarks */}
@@ -1131,7 +1143,7 @@ export const LandingPage: React.FC = () => {
               Evolve Your Personal Skill Graph
             </h2>
             <p className="text-base text-text-secondary-light dark:text-text-secondary-dark font-medium leading-relaxed">
-              No more flat tables of scores. ReLearn maps your knowledge as a multidimensional spatial network, tracking your resonance level and cognitive depth. Evolve nodes from greenhorns to world-class masteries.
+              No more flat tables of scores. Relearn.ai maps your knowledge as a multidimensional spatial network, tracking your resonance level and cognitive depth. Evolve nodes from greenhorns to world-class masteries.
             </p>
 
             {/* Live stats highlight */}
@@ -1735,7 +1747,7 @@ export const LandingPage: React.FC = () => {
             className="text-center max-w-[700px] mx-auto space-y-4"
           >
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20">
-              <span className="text-[10px] font-extrabold uppercase tracking-widest text-primary font-display">About ReLearn.ai</span>
+              <span className="text-[10px] font-extrabold uppercase tracking-widest text-primary font-display">About Relearn.ai</span>
             </div>
             <h2 className="text-3xl sm:text-5xl font-black font-display tracking-tight leading-none">
               Behind the Platform
@@ -1754,13 +1766,13 @@ export const LandingPage: React.FC = () => {
                 </h3>
                 <div className="space-y-6 text-sm sm:text-base text-text-secondary-light dark:text-text-secondary-dark font-medium leading-relaxed">
                   <p>
-                    At <span className="font-bold text-text-primary-light dark:text-text-primary-dark">ReLearn.ai</span>, we believe learning should feel meaningful, immersive, and guided — not confusing, scattered, or overwhelming.
+                    At <span className="font-bold text-text-primary-light dark:text-text-primary-dark">Relearn.ai</span>, we believe learning should feel meaningful, immersive, and guided — not confusing, scattered, or overwhelming.
                   </p>
                   <p>
-                    We are building a space where people can grow with clarity, stay consistent with purpose, and transform knowledge into real progress. Through adaptive learning systems, interactive workspaces, and personalized pathways, ReLearn.ai is designed to make growth feel structured, engaging, and future-focused.
+                    We are building a space where people can grow with clarity, stay consistent with purpose, and transform knowledge into real progress. Through adaptive learning systems, interactive workspaces, and personalized pathways, Relearn.ai is designed to make growth feel structured, engaging, and future-focused.
                   </p>
                   <p>
-                    Behind ReLearn is a passionate team driven by curiosity, creativity, and the vision of redefining how modern learning should feel. Every experience, interaction, and feature is carefully crafted to help learners build confidence, discover direction, and evolve continuously in a fast-changing world.
+                    Behind Relearn.ai is a passionate team driven by curiosity, creativity, and the vision of redefining how modern learning should feel. Every experience, interaction, and feature is carefully crafted to help learners build confidence, discover direction, and evolve continuously in a fast-changing world.
                   </p>
                 </div>
               </div>
@@ -1811,7 +1823,7 @@ export const LandingPage: React.FC = () => {
                 </div>
                 
                 <div className="flex justify-between items-center pt-2">
-                  <span className="text-xs font-bold text-text-secondary-light/60 dark:text-text-secondary-dark/60 italic">— Team ReLearn</span>
+                  <span className="text-xs font-bold text-text-secondary-light/60 dark:text-text-secondary-dark/60 italic">— Team Relearn.ai</span>
                   <span className="relative flex h-3 w-3 flex-shrink-0">
                     <span className="status-dot-outer" />
                     <span className="status-dot-inner w-3 h-3" />
@@ -1845,7 +1857,7 @@ export const LandingPage: React.FC = () => {
             onClick={() => navigate(user ? '/dashboard' : '/signup')}
             className="px-8 py-4 rounded-2xl bg-gradient-to-r from-primary to-secondary text-white font-bold text-base shadow-xl shadow-primary/25 hover:shadow-primary/45 transition-all hover:scale-105 active:scale-[0.98] glow-primary inline-flex items-center gap-2"
           >
-            <span>{user ? 'Enter ReLearn.ai' : 'Get Started for Free'}</span>
+            <span>{user ? 'Enter Relearn.ai' : 'Get Started for Free'}</span>
             <Icon name="arrow_forward" className="text-base" />
           </button>
         </div>
@@ -1865,10 +1877,10 @@ export const LandingPage: React.FC = () => {
                 <div className="w-8 h-8 rounded-xl bg-gradient-to-r from-primary to-secondary flex items-center justify-center text-white shadow-md shadow-primary/10">
                   <Icon name="school" className="text-base" />
                 </div>
-                <span className="font-extrabold text-base tracking-tight text-text-primary-light dark:text-text-primary-dark font-display">ReLearn.ai</span>
+                <span className="font-extrabold text-base tracking-tight text-text-primary-light dark:text-text-primary-dark font-display">Relearn.ai</span>
               </div>
               <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark font-medium leading-relaxed max-w-sm">
-                ReLearn.ai is a personalized cognitive operating system, engineered to synthesize facts into direct capability, cross-pollinate separate domains, and structure your lifelong skill graph.
+                Relearn.ai is a personalized cognitive operating system, engineered to synthesize facts into direct capability, cross-pollinate separate domains, and structure your lifelong skill graph.
               </p>
               {/* Social Media Links */}
               <div className="flex items-center gap-2.5 pt-2">
@@ -2005,7 +2017,7 @@ export const LandingPage: React.FC = () => {
           {/* Bottom Bar: Copyright and status */}
           <div className="pt-8 border-t border-stone-200/50 dark:border-white/5 flex flex-col sm:flex-row items-center justify-between gap-4 text-text-secondary-light/60 dark:text-text-secondary-dark/60">
             <div>
-              © {new Date().getFullYear()} ReLearn.ai. All rights reserved.
+              © {new Date().getFullYear()} Relearn.ai. All rights reserved.
             </div>
 
             {/* Status Beacon Capsule */}

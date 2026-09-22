@@ -1,7 +1,7 @@
 {
-  "short_name": "ReLearn.ai",
-  "name": "ReLearn.ai - AI-Powered Learning Platform",
-  "description": "An AI-powered personalized learning platform that generates study plans, provides interactive workspaces, and tracks your progress.",
+  "short_name": "Relearn.ai",
+  "name": "Relearn.ai — AI-Powered Personalized Learning Platform",
+  "description": "Relearn.ai is an AI-powered personalized learning platform that helps students create personalized learning plans, study interactively, practice with quizzes and flashcards, and track their learning progress.",
   "icons": [
     {
       "src": "/logo.png",

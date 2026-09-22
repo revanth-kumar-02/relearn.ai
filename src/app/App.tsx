@@ -263,6 +263,57 @@ const AppContent: React.FC = () => {
 
   const isNotFound = !isKnownRoute(location.pathname);
 
+  // Dynamic route-aware SEO & Robots protection for private application routes
+  useEffect(() => {
+    const path = location.pathname;
+    const publicRoutes = ['/', '/login', '/signup', '/reset-password'];
+    const isSharedPlan = path.startsWith('/shared/');
+    const isPublicRoute = publicRoutes.includes(path) || isSharedPlan;
+
+    // On protected/private application routes, enforce noindex, nofollow and clean title
+    if (!isPublicRoute && isKnownRoute(path)) {
+      const titlesByPath: Record<string, string> = {
+        '/dashboard': 'Dashboard',
+        '/progress': 'Progress & Analytics',
+        '/plan-details': 'Plan Details',
+        '/learning-workspace': 'Learning Workspace',
+        '/add-task': 'Add Task',
+        '/edit-task': 'Edit Task',
+        '/notifications': 'Notifications',
+        '/notification-settings': 'Notification Settings',
+        '/settings': 'Settings',
+        '/profile': 'User Profile',
+        '/diary': 'Learning Diary',
+        '/create-plan': 'Create AI Learning Plan',
+        '/templates': 'Plan Template Gallery',
+        '/help-center': 'Help Center',
+        '/feedback': 'Feedback',
+        '/archived': 'Archived Plans',
+        '/rooms': 'Study Rooms',
+        '/collaboration': 'Collaboration Hub',
+        '/gratitude': 'Gratitude Log',
+        '/admin': 'Admin Dashboard'
+      };
+
+      let matchedTitle = titlesByPath[path];
+      if (!matchedTitle && path.startsWith('/rooms/')) {
+        matchedTitle = 'Study Room';
+      }
+
+      if (matchedTitle) {
+        document.title = `${matchedTitle} | Relearn.ai`;
+      }
+
+      let metaRobots = document.querySelector('meta[name="robots"]') as HTMLMetaElement;
+      if (!metaRobots) {
+        metaRobots = document.createElement('meta');
+        metaRobots.setAttribute('name', 'robots');
+        document.head.appendChild(metaRobots);
+      }
+      metaRobots.setAttribute('content', 'noindex, nofollow');
+    }
+  }, [location.pathname]);
+
   const authPaths = ['/', '/login', '/signup', '/reset-password'];
   const isAuthPage = authPaths.includes(location.pathname) || isNotFound;
 
@@ -354,7 +405,7 @@ const AppContent: React.FC = () => {
                   exit={{ opacity: 0, x: -10 }}
                   className="text-xl font-black text-text-primary-light dark:text-text-primary-dark tracking-tighter truncate gradient-text font-display"
                 >
-                  ReLearn.ai
+                  Relearn.ai
                 </motion.h1>
               )}
             </AnimatePresence>
@@ -709,7 +760,7 @@ const HelpPromptOverlay: React.FC = () => {
           <div>
             <h4 className="font-bold text-text-primary-light dark:text-text-primary-dark text-sm">Need a hand?</h4>
             <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark mt-1 leading-relaxed">
-              If you have any questions about how to use ReLearn.ai, check out our help center.
+              If you have any questions about how to use Relearn.ai, check out our help center.
             </p>
             <button 
               onClick={() => navigate('/help-center')}

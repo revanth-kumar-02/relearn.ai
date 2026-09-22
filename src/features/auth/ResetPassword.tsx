@@ -3,8 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { logAuthDiagnostic } from '../../utils/authDiagnostics';
 import Icon from '../../components/ui/Icon';
+import { useSEO } from '../../hooks/useSEO';
 
 const ResetPassword: React.FC = () => {
+  useSEO({
+    title: 'Reset Password',
+    description: 'Reset your Relearn.ai password securely.',
+    noindex: true,
+    nofollow: true
+  });
+
   const navigate = useNavigate();
   const { resetPasswordWithToken, clearRecoveryState, isPasswordRecovery, user } = useAuth();
 

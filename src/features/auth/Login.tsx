@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { logAuthDiagnostic } from '../../utils/authDiagnostics';
+import SEO from '../../components/common/SEO';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
@@ -105,6 +106,12 @@ const Login: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col justify-center items-center p-6 bg-white dark:bg-background-dark animate-fade-in">
+      <SEO
+        title="Log In"
+        description="Log in to your Relearn.ai account to continue your personalized AI learning pathways."
+        noindex
+        nofollow={false}
+      />
       <div className="w-full max-w-sm">
         <div className="text-center mb-10 flex flex-col items-center">
           <div className="w-20 h-20 rounded-[1.5rem] bg-primary/10 text-primary flex items-center justify-center mb-6 shadow-lg shadow-primary/5">
