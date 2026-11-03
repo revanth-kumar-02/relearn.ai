@@ -26,7 +26,7 @@ class MockPostgresEngine {
     study_pacts: [],
     friendships: [],
     shared_plans: [],
-    api_usage: [{ id: 'gemini_tokens', used_tokens: 0, limit_tokens: 10000000 }],
+    api_usage: [{ id: 'api_tokens', used_tokens: 0, limit_tokens: 10000000 }],
     admin_audit_logs: [],
     xp_logs: [],
     user_push_subscriptions: []
@@ -65,7 +65,7 @@ class MockPostgresEngine {
       shared_plans: [
         { id: 'shared_1', title: 'Calculus IV', slug: 'calculus-iv-share123', authorId: 'user_1', views: 5, imports: 2, isPublic: true }
       ],
-      api_usage: [{ id: 'gemini_tokens', used_tokens: 1500, limit_tokens: 10000000 }],
+      api_usage: [{ id: 'api_tokens', used_tokens: 1500, limit_tokens: 10000000 }],
       admin_audit_logs: [],
       xp_logs: [],
       user_push_subscriptions: []
@@ -86,7 +86,7 @@ class MockPostgresEngine {
 
   // Atomic Increment Simulation
   atomicIncrementTokens(tokens: number): number {
-    const row = this.tables.api_usage.find(r => r.id === 'gemini_tokens');
+    const row = this.tables.api_usage.find(r => r.id === 'api_tokens' || r.id === 'gemini_tokens');
     if (row) {
       row.used_tokens += tokens;
       return row.used_tokens;

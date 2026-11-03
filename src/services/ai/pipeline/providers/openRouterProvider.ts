@@ -1,18 +1,16 @@
 /**
  * ─────────────────────────────────────────────────────────────────
- *  Hugging Face Inference Provider
+ *  OpenRouter Free Fallback Inference Provider
  * ─────────────────────────────────────────────────────────────────
  *
- *  Production & hosted inference adapter for Hugging Face Inference API /
- *  OpenAI-compatible router protocol (e.g. `/v1/chat/completions`).
+ *  Secondary fallback adapter for OpenRouter's OpenAI-compatible API
+ *  (endpoint: `https://openrouter.ai/api/v1/chat/completions`).
  *
- *  Supports:
- *  - Non-streaming generation with latency & token usage tracking
- *  - Real SSE streaming generation with TTFT (Time to First Token) measurement
- *  - System prompts, temperature, max_tokens, stop sequences
- *  - AbortSignal cancellation and configurable timeouts
- *  - Normalized error handling (401 Auth, 403 Forbidden/Gated, 429 Rate Limits, 503 Loading)
- *  - Server-safe API key management (never leaks credentials to client)
+ *  Strict Free-Tier Enforcements:
+ *  - Enforces `:free` model tag (defaults to `openai/gpt-oss-120b:free`).
+ *  - NEVER routes to a paid model or strips the `:free` suffix.
+ *  - Provides clean normalized errors without secondary fallback loops.
+ *  - Server-safe API key management (never leaks keys to browser or logs).
  */
 
 import {
@@ -35,31 +33,32 @@ import {
 } from '../config/runtimeConfig';
 import { getAuthHeaders } from '../../../../utils/authUtils';
 
-export interface HuggingFaceProviderOptions {
+export interface OpenRouterProviderOptions {
   readonly baseUrl?: string;
   readonly apiKey?: string;
   readonly defaultTimeoutMs?: number;
   readonly headers?: Record<string, string>;
 }
 
-export class HuggingFaceProvider implements AIInferenceProvider {
-  readonly name = 'huggingface';
+export class OpenRouterProvider implements AIInferenceProvider {
+  readonly name = 'openrouter';
   private readonly baseUrl: string;
   private readonly defaultTimeoutMs: number;
   private readonly staticHeaders: Record<string, string>;
 
-  constructor(options?: HuggingFaceProviderOptions) {
+  constructor(options?: OpenRouterProviderOptions) {
     const config = getAIRuntimeConfig();
-    this.baseUrl = (options?.baseUrl || config.hfBaseUrl).replace(/\/+$/, '');
+    this.baseUrl = (options?.baseUrl || config.openRouterBaseUrl).replace(/\/+$/, '');
     this.defaultTimeoutMs = options?.defaultTimeoutMs || config.defaultTimeoutMs;
+
     const apiKey =
       options?.apiKey ||
-      (typeof process !== 'undefined' && process.env
-        ? process.env.HF_API_KEY || process.env.HUGGINGFACE_API_KEY
-        : undefined);
+      (typeof process !== 'undefined' && process.env ? process.env.OPENROUTER_API_KEY : undefined);
 
     this.staticHeaders = {
       'Content-Type': 'application/json',
+      'HTTP-Referer': 'https://relearn.ai',
+      'X-Title': 'Relearn.ai',
       ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
       ...(options?.headers || {}),
     };
@@ -73,7 +72,19 @@ export class HuggingFaceProvider implements AIInferenceProvider {
   }
 
   /**
-   * Generates a complete normalized response from Hugging Face Inference API.
+   * Enforces that the target model on OpenRouter is strictly a free model.
+   */
+  private enforceFreeModel(model: string): string {
+    const trimmed = model.trim();
+    if (trimmed.endsWith(':free')) {
+      return trimmed;
+    }
+    // Hard restriction: never allow non-free models on OpenRouter fallback
+    return `${trimmed}:free`;
+  }
+
+  /**
+   * Generates a complete normalized response from OpenRouter free tier.
    */
   async generate(
     request: AIRequest,
@@ -94,16 +105,17 @@ export class HuggingFaceProvider implements AIInferenceProvider {
       request.options.signal.addEventListener('abort', onAbort);
     }
 
-    const runtimeModel = resolveRuntimeModelName(modelDef.id, undefined, 'huggingface');
+    const rawModel = resolveRuntimeModelName(modelDef.id, undefined, 'openrouter');
+    const runtimeModel = this.enforceFreeModel(rawModel);
     const messages = this.buildMessages(request);
     const payload: Record<string, unknown> = {
       model: runtimeModel,
       messages,
-      stream: false,
       temperature: effectiveConfig.temperature,
       top_p: effectiveConfig.topP,
       max_tokens: effectiveConfig.maxTokens,
       stop: effectiveConfig.stopSequences,
+      stream: false,
     };
 
     if (request.options?.responseFormat === 'json') {
@@ -132,30 +144,26 @@ export class HuggingFaceProvider implements AIInferenceProvider {
       const endTime = performance.now();
 
       const choice = data.choices?.[0];
-      const text = choice?.message?.content || '';
-      const promptTokens = data.usage?.prompt_tokens || 0;
-      const completionTokens = data.usage?.completion_tokens || 0;
-      const totalTokens =
-        data.usage?.total_tokens || promptTokens + completionTokens;
+      const text = choice?.message?.content ?? '';
+      const finishReason = this.mapFinishReason(choice?.finish_reason);
 
       const usage: AIUsage = {
-        promptTokens,
-        completionTokens,
-        totalTokens,
+        promptTokens: data.usage?.prompt_tokens ?? 0,
+        completionTokens: data.usage?.completion_tokens ?? 0,
+        totalTokens: data.usage?.total_tokens ?? 0,
       };
-
-      const finishReason: AIFinishReason = this.mapFinishReason(choice?.finish_reason);
 
       return {
         text,
-        model: modelDef.id,
+        model: runtimeModel,
         usage,
         finishReason,
         latencyMs: Math.round(endTime - startTime),
         metadata: {
-          runtime: 'huggingface',
+          runtime: 'openrouter',
           runtimeModel,
           id: data.id,
+          provider: 'openrouter',
         },
       };
     } catch (err: unknown) {
@@ -169,7 +177,7 @@ export class HuggingFaceProvider implements AIInferenceProvider {
   }
 
   /**
-   * Generates a streaming normalized response from Hugging Face Inference API (SSE).
+   * Generates a streaming normalized response from OpenRouter free tier via SSE.
    */
   async *generateStream(
     request: AIRequest,
@@ -190,7 +198,8 @@ export class HuggingFaceProvider implements AIInferenceProvider {
       request.options.signal.addEventListener('abort', onAbort);
     }
 
-    const runtimeModel = resolveRuntimeModelName(modelDef.id, undefined, 'huggingface');
+    const rawModel = resolveRuntimeModelName(modelDef.id, undefined, 'openrouter');
+    const runtimeModel = this.enforceFreeModel(rawModel);
     const messages = this.buildMessages(request);
     const payload: Record<string, unknown> = {
       model: runtimeModel,
@@ -229,7 +238,7 @@ export class HuggingFaceProvider implements AIInferenceProvider {
       }
 
       if (!response.body) {
-        throw new AIRuntimeError('Hugging Face streaming response body is empty');
+        throw new AIRuntimeError('OpenRouter streaming response body is empty', 500);
       }
 
       const reader = response.body.getReader();
@@ -242,29 +251,78 @@ export class HuggingFaceProvider implements AIInferenceProvider {
 
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
+        buffer = lines.pop() ?? '';
 
         for (const line of lines) {
-          const parsed = this.parseSSELine(line, startTime, accumulatedText, timeToFirstTokenMs, hasCompleted);
-          if (parsed) {
-            accumulatedText = parsed.accumulatedText;
-            if (parsed.timeToFirstTokenMs !== undefined && timeToFirstTokenMs === undefined) {
-              timeToFirstTokenMs = parsed.timeToFirstTokenMs;
+          const trimmed = line.trim();
+          if (!trimmed || trimmed.startsWith(':')) continue;
+
+          if (trimmed === 'data: [DONE]') {
+            hasCompleted = true;
+            yield {
+              textDelta: '',
+              accumulatedText,
+              isComplete: true,
+              timeToFirstTokenMs,
+              finishReason: 'stop',
+            };
+            return;
+          }
+
+          if (trimmed.startsWith('data: ')) {
+            const dataStr = trimmed.slice(6).trim();
+            try {
+              const chunk = JSON.parse(dataStr);
+              const delta = chunk.choices?.[0]?.delta?.content ?? '';
+              const finishReason = this.mapFinishReason(chunk.choices?.[0]?.finish_reason);
+
+              if (delta) {
+                if (timeToFirstTokenMs === undefined) {
+                  timeToFirstTokenMs = Math.round(performance.now() - startTime);
+                }
+                accumulatedText += delta;
+
+                yield {
+                  textDelta: delta,
+                  accumulatedText,
+                  isComplete: false,
+                  timeToFirstTokenMs,
+                };
+              }
+
+              if (finishReason !== 'unknown' && finishReason !== 'stop') {
+                yield {
+                  textDelta: '',
+                  accumulatedText,
+                  isComplete: true,
+                  timeToFirstTokenMs,
+                  finishReason,
+                  usage: chunk.usage
+                    ? {
+                        promptTokens: chunk.usage.prompt_tokens ?? 0,
+                        completionTokens: chunk.usage.completion_tokens ?? 0,
+                        totalTokens: chunk.usage.total_tokens ?? 0,
+                      }
+                    : undefined,
+                };
+                hasCompleted = true;
+                return;
+              }
+            } catch {
+              // Ignore partial or unparseable SSE line fragments
             }
-            if (parsed.chunk.isComplete) {
-              hasCompleted = true;
-            }
-            yield parsed.chunk;
           }
         }
       }
 
-      // Process any trailing line in buffer
-      if (buffer.trim()) {
-        const parsed = this.parseSSELine(buffer.trim(), startTime, accumulatedText, timeToFirstTokenMs, hasCompleted);
-        if (parsed) {
-          yield parsed.chunk;
-        }
+      if (!hasCompleted) {
+        yield {
+          textDelta: '',
+          accumulatedText,
+          isComplete: true,
+          timeToFirstTokenMs,
+          finishReason: 'stop',
+        };
       }
     } catch (err: unknown) {
       this.handleFetchError(err, isTimedOut, timeoutMs);
@@ -273,95 +331,6 @@ export class HuggingFaceProvider implements AIInferenceProvider {
       if (request.options?.signal) {
         request.options.signal.removeEventListener('abort', onAbort);
       }
-    }
-  }
-
-  /**
-   * Health check to determine if Hugging Face runtime/proxy endpoint is reachable.
-   */
-  async isHealthy(): Promise<boolean> {
-    try {
-      const endpoint = this.baseUrl.replace(/\/chat\/completions$/, '').replace(/\/v1$/, '');
-      const res = await fetch(`${endpoint}/models`, {
-        method: 'GET',
-        headers: this.getMergedHeaders(),
-      });
-      return res.ok;
-    } catch {
-      return false;
-    }
-  }
-
-  private parseSSELine(
-    line: string,
-    startTime: number,
-    currentAccumulated: string,
-    existingTTFT?: number,
-    alreadyCompleted = false
-  ): { chunk: AIStreamChunk; accumulatedText: string; timeToFirstTokenMs?: number } | null {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith(':')) return null;
-
-    if (!trimmed.startsWith('data:')) return null;
-
-    const dataStr = trimmed.slice(5).trim();
-    if (dataStr === '[DONE]') {
-      if (alreadyCompleted) return null;
-      return {
-        chunk: {
-          textDelta: '',
-          accumulatedText: currentAccumulated,
-          isComplete: true,
-          timeToFirstTokenMs: existingTTFT,
-          finishReason: 'stop',
-        },
-        accumulatedText: currentAccumulated,
-        timeToFirstTokenMs: existingTTFT,
-      };
-    }
-
-    try {
-      const chunk = JSON.parse(dataStr);
-      const choice = chunk.choices?.[0];
-      const delta = choice?.delta?.content || '';
-      let ttft = existingTTFT;
-
-      if (delta.length > 0 && ttft === undefined) {
-        ttft = Math.round(performance.now() - startTime);
-      }
-
-      const newAccumulated = currentAccumulated + delta;
-      const isComplete = Boolean(choice?.finish_reason);
-
-      const chunkUsage: AIUsage | undefined = chunk.usage
-        ? {
-            promptTokens: chunk.usage.prompt_tokens || 0,
-            completionTokens: chunk.usage.completion_tokens || 0,
-            totalTokens:
-              chunk.usage.total_tokens ||
-              (chunk.usage.prompt_tokens || 0) +
-                (chunk.usage.completion_tokens || 0),
-          }
-        : undefined;
-
-      const finishReason = choice?.finish_reason
-        ? this.mapFinishReason(choice.finish_reason)
-        : undefined;
-
-      return {
-        chunk: {
-          textDelta: delta,
-          accumulatedText: newAccumulated,
-          isComplete,
-          timeToFirstTokenMs: ttft,
-          usage: chunkUsage,
-          finishReason,
-        },
-        accumulatedText: newAccumulated,
-        timeToFirstTokenMs: ttft,
-      };
-    } catch {
-      return null;
     }
   }
 
@@ -395,7 +364,7 @@ export class HuggingFaceProvider implements AIInferenceProvider {
 
   private sanitizeErrorMessage(msg: string): string {
     return msg
-      .replace(/\b(hf_[A-Za-z0-9_]{20,})\b/g, '[sanitized_key]')
+      .replace(/\b(sk-or-[A-Za-z0-9_]{20,})\b/g, '[sanitized_key]')
       .replace(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g, '[sanitized_ip]')
       .slice(0, 300);
   }
@@ -406,34 +375,55 @@ export class HuggingFaceProvider implements AIInferenceProvider {
 
     if (response.status === 401) {
       throw new AIRuntimeError(
-        'Hugging Face authentication failed (HTTP 401). Please check server-side HF_API_KEY configuration.',
+        'OpenRouter authentication failed (HTTP 401). Please check server-side OPENROUTER_API_KEY configuration.',
         401
+      );
+    }
+
+    if (response.status === 402) {
+      throw new AIRuntimeError(
+        `OpenRouter free model endpoint requires payment/credit unexpectedly (HTTP 402): ${sanitizedError}`,
+        402
       );
     }
 
     if (response.status === 403) {
       throw new AIRuntimeError(
-        `Hugging Face access forbidden (HTTP 403). Gated model terms agreement or repository permissions may be required: ${sanitizedError}`,
+        `OpenRouter access forbidden (HTTP 403): ${sanitizedError}`,
         403
+      );
+    }
+
+    if (response.status === 404) {
+      throw new AIRuntimeError(
+        `OpenRouter free model endpoint not found or retired (HTTP 404): ${sanitizedError}`,
+        404
+      );
+    }
+
+    if (response.status === 408) {
+      throw new AIRuntimeError(
+        `OpenRouter request timed out (HTTP 408): ${sanitizedError}`,
+        408
       );
     }
 
     if (response.status === 429) {
       throw new AIRuntimeError(
-        'Hugging Face rate limit exceeded (HTTP 429). Please reduce request frequency or upgrade compute capacity.',
+        'OpenRouter free model rate limit or capacity exceeded (HTTP 429). Please try again later.',
         429
       );
     }
 
-    if (response.status === 503) {
+    if (response.status >= 500) {
       throw new AIRuntimeError(
-        `Hugging Face model is currently loading or unavailable (HTTP 503): ${sanitizedError}`,
-        503
+        `OpenRouter server error (HTTP ${response.status}): ${sanitizedError}`,
+        response.status
       );
     }
 
     throw new AIRuntimeError(
-      `Hugging Face runtime error (HTTP ${response.status}): ${sanitizedError}`,
+      `OpenRouter runtime error (HTTP ${response.status}): ${sanitizedError}`,
       response.status
     );
   }
@@ -456,7 +446,7 @@ export class HuggingFaceProvider implements AIInferenceProvider {
         err.message.toLowerCase().includes('econnrefused')
       ) {
         throw new AIConnectionError(
-          'Failed to connect to Hugging Face AI runtime service. Ensure network connectivity or proxy is reachable.'
+          'Failed to connect to OpenRouter AI runtime service. Ensure network connectivity or proxy is reachable.'
         );
       }
       throw new AIRuntimeError(this.sanitizeErrorMessage(err.message));

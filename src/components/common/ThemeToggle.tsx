@@ -25,7 +25,7 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
 
     return (
       <div
-        className={`inline-flex items-center p-1 rounded-xl bg-stone-100 dark:bg-stone-800/80 border border-border-light dark:border-border-dark ${className}`}
+        className={`grid grid-cols-3 sm:inline-flex items-center p-1 rounded-xl bg-stone-100 dark:bg-stone-800/80 border border-border-light dark:border-border-dark ${className}`}
         role="radiogroup"
         aria-label="Select Theme Mode"
       >
@@ -39,14 +39,14 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
               aria-checked={isActive}
               aria-label={`${opt.label} Theme`}
               onClick={() => setTheme(opt.value)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2 sm:py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
                 isActive
                   ? 'bg-white dark:bg-surface-dark text-primary dark:text-primary-dark shadow-sm border border-border-light/50 dark:border-border-dark/50'
                   : 'text-text-secondary-light dark:text-text-secondary-dark hover:text-text-primary-light dark:hover:text-text-primary-dark'
               }`}
             >
-              <Icon name={opt.icon} className="text-sm" />
-              {(showLabels || variant === 'full') && <span>{opt.label}</span>}
+              <Icon name={opt.icon} className="text-sm shrink-0" />
+              {(showLabels || variant === 'full') && <span className="truncate">{opt.label}</span>}
             </button>
           );
         })}

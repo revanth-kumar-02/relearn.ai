@@ -636,7 +636,7 @@ const PlanDetails: React.FC = () => {
                                     <div className="flex flex-col sm:flex-row gap-3">
                                         {task.status !== 'Completed' && (
                                             <button 
-                                                onClick={() => navigate('/learning-workspace', { state: { taskId: task.id } })} 
+                                                onClick={() => navigate(`/learning-workspace?taskId=${task.id}`, { state: { taskId: task.id } })} 
                                                 className="flex-1 py-3 rounded-xl bg-primary text-white font-bold text-sm flex items-center justify-center gap-2 transition-all hover:bg-primary/90 shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95"
                                             >
                                                 <Icon name="school" className="text-xl" /> Start Learning Session

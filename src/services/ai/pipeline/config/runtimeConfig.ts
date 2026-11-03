@@ -4,29 +4,43 @@
  * ─────────────────────────────────────────────────────────────────
  *
  *  Single source of truth for AI inference runtime settings.
- *  Supports Ollama (local development) and vLLM (server/production).
+ *  Supports Groq (primary production), OpenRouter (free fallback),
+ *  Hugging Face, Ollama, and vLLM.
  *
  *  CLIENT-SAFE vs SERVER-ONLY Configuration:
- *  - Client-safe (prefixed with VITE_ or public defaults):
- *      - VITE_AI_PROVIDER: 'ollama' | 'vllm' | 'mock'
- *      - VITE_AI_OLLAMA_BASE_URL: e.g. '/api/ai/ollama' (proxied) or 'http://localhost:11434' (local)
- *      - VITE_AI_VLLM_BASE_URL: e.g. '/api/ai/vllm/v1' (proxied) or 'http://localhost:8000/v1' (local)
- *      - VITE_AI_TIMEOUT_MS: default 60000
- *      - VITE_AI_MODEL_QWEN: exact model tag in runtime (default: 'Qwen3-Next-80B-A3B-Instruct')
- *      - VITE_AI_MODEL_GEMMA: exact model tag in runtime (default: 'Gemma-3-27B')
+ *  - Client-safe / Proxy defaults:
+ *      - AI_PRIMARY_PROVIDER: 'groq' (default) | 'openrouter' | 'ollama' | 'vllm' | 'mock'
+ *      - AI_FALLBACK_PROVIDER: 'openrouter' (default)
+ *      - AI_FALLBACK_ENABLED: 'true' (default)
+ *      - AI_GROQ_MODEL_DEFAULT: 'openai/gpt-oss-120b'
+ *      - AI_OPENROUTER_FALLBACK_MODEL: 'openai/gpt-oss-120b:free'
+ *      - AI_TIMEOUT_MS: default 60000
  *
- *  - Server-only (used exclusively in Netlify serverless functions, NEVER exposed to client):
+ *  - Server-only (used exclusively in Netlify serverless functions and server processes, NEVER exposed to client):
+ *      - GROQ_API_KEY: Authorization key for Groq API.
+ *      - OPENROUTER_API_KEY: Authorization key for OpenRouter API.
  *      - VLLM_API_KEY: Authorization token for private vLLM clusters.
- *      - AI_OLLAMA_SERVER_URL: Upstream private cluster endpoint for Ollama.
- *      - AI_VLLM_SERVER_URL: Upstream private cluster endpoint for vLLM.
+ *      - HF_API_KEY: Authorization token for Hugging Face.
  *      - SUPABASE_URL / SUPABASE_ANON_KEY: JWT verification credentials.
  */
 
-export type AIProviderType = 'ollama' | 'vllm' | 'huggingface' | 'mock';
+export type AIProviderType = 'groq' | 'openrouter' | 'ollama' | 'vllm' | 'mock';
 
 export interface AIRuntimeConfig {
-  /** Active provider type ('ollama' | 'vllm' | 'huggingface' | 'mock') */
+  /** Active primary provider type */
   readonly provider: AIProviderType;
+
+  /** Active fallback provider type (defaults to 'openrouter') */
+  readonly fallbackProvider: AIProviderType;
+
+  /** Whether cross-provider fallback is enabled */
+  readonly fallbackEnabled: boolean;
+
+  /** Base URL for Groq endpoint */
+  readonly groqBaseUrl: string;
+
+  /** Base URL for OpenRouter endpoint */
+  readonly openRouterBaseUrl: string;
 
   /** Base URL for Ollama runtime endpoint */
   readonly ollamaBaseUrl: string;
@@ -34,26 +48,40 @@ export interface AIRuntimeConfig {
   /** Base URL for vLLM runtime endpoint */
   readonly vllmBaseUrl: string;
 
-  /** Base URL for Hugging Face runtime endpoint */
-  readonly hfBaseUrl: string;
-
   /** Default network timeout in milliseconds */
   readonly defaultTimeoutMs: number;
+
+  /** Configured default Groq model identifier */
+  readonly groqDefaultModel: string;
+
+  /** Configured fallback OpenRouter model identifier */
+  readonly openRouterFallbackModel: string;
 
   /** Runtime model identifier mappings */
   readonly modelMappings: {
     readonly qwenModelName: string;
     readonly gemmaModelName: string;
-    readonly hfQwenModelName: string;
-    readonly hfGemmaModelName: string;
+    readonly groqDefaultModel: string;
+    readonly openRouterFallbackModel: string;
   };
 }
 
 /**
  * Safely retrieve environment variable across Vite (client) and Node.js (test/server).
- * Client bundles only ever receive public VITE_* variables.
+ * Strictly guards sensitive API keys from client exposure (never checks VITE_ for Groq or OpenRouter).
  */
-function getEnvVar(key: string, defaultValue = ''): string {
+export function getEnvVar(key: string, defaultValue = ''): string {
+  // Security guard: never load Groq or OpenRouter API keys from Vite browser env
+  if (key === 'GROQ_API_KEY' || key === 'OPENROUTER_API_KEY') {
+    if (typeof process !== 'undefined' && process.env) {
+      const val = process.env[key];
+      if (val !== undefined && val !== null && val !== '') {
+        return String(val);
+      }
+    }
+    return defaultValue;
+  }
+
   // Vite browser environment
   if (typeof import.meta !== 'undefined' && import.meta.env) {
     const viteKey = key.startsWith('VITE_') ? key : `VITE_${key}`;
@@ -78,57 +106,77 @@ function getEnvVar(key: string, defaultValue = ''): string {
  * Default runtime configuration object.
  */
 export function getAIRuntimeConfig(): AIRuntimeConfig {
-  const providerRaw = getEnvVar('AI_PROVIDER', 'ollama').toLowerCase();
+  const primaryRaw = getEnvVar('AI_PRIMARY_PROVIDER', getEnvVar('AI_PROVIDER', 'groq')).toLowerCase();
   const provider: AIProviderType =
-    providerRaw === 'vllm'
+    primaryRaw === 'groq'
+      ? 'groq'
+      : primaryRaw === 'openrouter'
+      ? 'openrouter'
+      : primaryRaw === 'vllm'
       ? 'vllm'
-      : providerRaw === 'huggingface' || providerRaw === 'hf'
-      ? 'huggingface'
-      : providerRaw === 'mock'
+      : primaryRaw === 'mock'
       ? 'mock'
-      : 'ollama';
+      : primaryRaw === 'ollama'
+      ? 'ollama'
+      : 'groq';
+
+  const fallbackRaw = getEnvVar('AI_FALLBACK_PROVIDER', 'openrouter').toLowerCase();
+  const fallbackProvider: AIProviderType =
+    fallbackRaw === 'openrouter'
+      ? 'openrouter'
+      : fallbackRaw === 'groq'
+      ? 'groq'
+      : fallbackRaw === 'mock'
+      ? 'mock'
+      : 'openrouter';
+
+  const fallbackEnabled = getEnvVar('AI_FALLBACK_ENABLED', 'true').toLowerCase() !== 'false';
 
   const isBrowser = typeof window !== 'undefined';
 
-  // In browser development, default to relative proxy paths (/api/ai/...) to avoid CORS issues.
+  // In browser development, default to relative proxy paths (/api/...) to avoid CORS issues.
   // In Node/server/test environments, direct URLs can be used.
+  const defaultGroqUrl = isBrowser ? '/api/groq' : 'https://api.groq.com/openai/v1';
+  const defaultOpenRouterUrl = isBrowser ? '/api/openrouter' : 'https://openrouter.ai/api/v1';
   const defaultOllamaUrl = isBrowser ? '/api/ai/ollama' : 'http://localhost:11434';
   const defaultVllmUrl = isBrowser ? '/api/ai/vllm/v1' : 'http://localhost:8000/v1';
-  const defaultHfUrl = isBrowser ? '/api/ai/hf' : 'https://router.huggingface.co/v1';
 
+  const groqBaseUrl = getEnvVar('AI_GROQ_BASE_URL', defaultGroqUrl).replace(/\/+$/, '');
+  const openRouterBaseUrl = getEnvVar('AI_OPENROUTER_BASE_URL', defaultOpenRouterUrl).replace(/\/+$/, '');
   const ollamaBaseUrl = getEnvVar('AI_OLLAMA_BASE_URL', defaultOllamaUrl).replace(/\/+$/, '');
   const vllmBaseUrl = getEnvVar('AI_VLLM_BASE_URL', defaultVllmUrl).replace(/\/+$/, '');
-  const hfBaseUrl = getEnvVar('AI_HF_BASE_URL', getEnvVar('HF_BASE_URL', defaultHfUrl)).replace(/\/+$/, '');
 
   const timeoutMs = parseInt(getEnvVar('AI_TIMEOUT_MS', '60000'), 10) || 60000;
 
-  // Exact model names for local inference runtimes
+  // Exact model names
+  const groqDefaultModel = getEnvVar('AI_GROQ_MODEL_DEFAULT', 'openai/gpt-oss-120b');
+  const openRouterFallbackModel = getEnvVar('AI_OPENROUTER_FALLBACK_MODEL', 'openai/gpt-oss-120b:free');
+
   const qwenModelName = getEnvVar('AI_MODEL_QWEN', 'Qwen3-Next-80B-A3B-Instruct');
   const gemmaModelName = getEnvVar('AI_MODEL_GEMMA', 'Gemma-3-27B');
 
-  // Exact model names for Hugging Face hosted inference
-  const hfQwenModelName = getEnvVar('HF_MODEL_QWEN', 'Qwen/Qwen3-Next-80B-A3B-Instruct');
-  const hfGemmaModelName = getEnvVar('HF_MODEL_GEMMA', 'google/gemma-3-27b-it');
-
   return {
     provider,
+    fallbackProvider,
+    fallbackEnabled,
+    groqBaseUrl,
+    openRouterBaseUrl,
     ollamaBaseUrl,
     vllmBaseUrl,
-    hfBaseUrl,
     defaultTimeoutMs: timeoutMs,
+    groqDefaultModel,
+    openRouterFallbackModel,
     modelMappings: {
       qwenModelName,
       gemmaModelName,
-      hfQwenModelName,
-      hfGemmaModelName,
+      groqDefaultModel,
+      openRouterFallbackModel,
     },
   };
 }
 
 /**
  * Resolves the underlying runtime model name for a given ModelDefinition or ID.
- * When runtime is Hugging Face, uses HF repository identifiers.
- * Otherwise uses local/vLLM runtime identifiers.
  */
 export function resolveRuntimeModelName(
   modelId: string,
@@ -138,14 +186,20 @@ export function resolveRuntimeModelName(
   const activeProvider = providerOverride || config.provider;
   const lower = modelId.toLowerCase();
 
-  if (activeProvider === 'huggingface') {
-    if (lower.includes('qwen')) {
-      return config.modelMappings.hfQwenModelName;
-    }
-    if (lower.includes('gemma')) {
-      return config.modelMappings.hfGemmaModelName;
+  if (activeProvider === 'groq') {
+    if (lower.includes('gpt-oss') || lower === 'openai/gpt-oss-120b') {
+      return config.groqDefaultModel;
     }
     return modelId;
+  }
+
+  if (activeProvider === 'openrouter') {
+    if (lower.includes('gpt-oss') || lower.includes('120b')) {
+      const fallback = config.openRouterFallbackModel;
+      return fallback.endsWith(':free') ? fallback : `${fallback}:free`;
+    }
+    // Always enforce :free suffix for OpenRouter fallback
+    return modelId.endsWith(':free') ? modelId : `${modelId}:free`;
   }
 
   if (lower.includes('qwen')) {

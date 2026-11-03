@@ -26,7 +26,9 @@ import {
   AlertTriangle,
   Sparkles,
   Loader2,
-  Lightbulb
+  Lightbulb,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { getContentLanguageLabel } from '../../services/api/youtubeService';
 import ReactMarkdown from 'react-markdown';
@@ -35,6 +37,9 @@ import VideoResources from './VideoResources';
 import QuizModule from './QuizModule';
 import FlashcardModule from './FlashcardModule';
 import CheatSheetModule from './CheatSheetModule';
+import ProjectLabModule from './ProjectLabModule';
+import CodePlaygroundModule, { PlaygroundLanguage } from './CodePlaygroundModule';
+import { Code2, Laptop } from 'lucide-react';
 
 
 const LearningWorkspace: React.FC = () => {
@@ -48,9 +53,26 @@ const LearningWorkspace: React.FC = () => {
   } = useData();
   const { showToast } = useToast();
 
-  const taskId = location.state?.taskId;
+  const queryParams = new URLSearchParams(location.search);
+  const taskId = location.state?.taskId || queryParams.get('taskId') || sessionStorage.getItem('relearn_active_task_id');
   const task = tasks.find(t => t.id === taskId);
   const plan = plans.find(p => p.id === task?.planId);
+
+  // Compute all tasks for this plan sorted sequentially
+  const planTasks = React.useMemo(() => {
+    if (!plan) return [];
+    return tasks.filter(t => t.planId === plan.id).sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+  }, [tasks, plan]);
+
+  const currentTaskIndex = planTasks.findIndex(t => t.id === taskId);
+  const prevTask = currentTaskIndex > 0 ? planTasks[currentTaskIndex - 1] : null;
+  const nextTask = currentTaskIndex >= 0 && currentTaskIndex < planTasks.length - 1 ? planTasks[currentTaskIndex + 1] : null;
+
+  useEffect(() => {
+    if (taskId) {
+      sessionStorage.setItem('relearn_active_task_id', taskId);
+    }
+  }, [taskId]);
 
   const [isLoading, setIsLoading] = useState(false);
   const [showTimer, setShowTimer] = useState(false);
@@ -70,6 +92,18 @@ const LearningWorkspace: React.FC = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [lessonMode, setLessonMode] = useState<'standard' | 'socratic' | 'story'>('standard');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [playgroundCode, setPlaygroundCode] = useState<string>('');
+  const [playgroundLang, setPlaygroundLang] = useState<PlaygroundLanguage>('javascript');
+  const playgroundRef = useRef<HTMLDivElement>(null);
+
+  const handleOpenPlaygroundWithCode = (code: string, language: string) => {
+    setPlaygroundCode(code);
+    setPlaygroundLang((language as PlaygroundLanguage) || 'javascript');
+    setTimeout(() => {
+      playgroundRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  };
 
   const notesTimeout = useRef<any>(null);
   const sessionStartRef = useRef<number>(0);
@@ -443,6 +477,32 @@ const LearningWorkspace: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
+          {prevTask && (
+            <button
+              onClick={() => {
+                navigate(`/learning-workspace?taskId=${prevTask.id}`, { state: { taskId: prevTask.id } });
+              }}
+              className="px-2.5 py-1.5 rounded-xl border border-stone-200 dark:border-stone-800 hover:bg-stone-100 dark:hover:bg-stone-800 text-xs font-bold flex items-center gap-1 transition-colors"
+              aria-label="Previous Day"
+              title={`Previous: ${prevTask.title}`}
+            >
+              <ChevronLeft size={16} />
+              <span className="hidden sm:inline">Prev Day</span>
+            </button>
+          )}
+          {nextTask && (
+            <button
+              onClick={() => {
+                navigate(`/learning-workspace?taskId=${nextTask.id}`, { state: { taskId: nextTask.id } });
+              }}
+              className="px-2.5 py-1.5 rounded-xl border border-stone-200 dark:border-stone-800 hover:bg-stone-100 dark:hover:bg-stone-800 text-xs font-bold flex items-center gap-1 transition-colors"
+              aria-label="Next Day"
+              title={`Next: ${nextTask.title}`}
+            >
+              <span className="hidden sm:inline">Next Day</span>
+              <ChevronRight size={16} />
+            </button>
+          )}
           <button
             onClick={() => setShowTimer(!showTimer)}
             className={`p-2 rounded-full transition-colors ${showTimer ? 'bg-primary text-white' : 'hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-700 dark:text-stone-200'}`}
@@ -687,15 +747,15 @@ const LearningWorkspace: React.FC = () => {
                   </section>
 
                   {/* Explanation */}
-                  <section className="bg-white dark:bg-stone-900 p-6 rounded-2xl border border-stone-200 dark:border-stone-800 shadow-sm space-y-4">
-                    <div className="flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-2 text-stone-500 dark:text-stone-400">
+                  <section className="bg-white dark:bg-stone-900 p-4 sm:p-6 rounded-2xl border border-stone-200 dark:border-stone-800 shadow-sm space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+                      <div className="flex items-center gap-2 text-stone-500 dark:text-stone-400 shrink-0">
                         <BookOpen size={18} />
                         <h2 className="text-xs font-black uppercase tracking-widest">Concept Explanation</h2>
                       </div>
                       
                       {/* Lesson Mode Switcher */}
-                      <div role="group" aria-label="Lesson delivery mode" className="flex bg-stone-100 dark:bg-stone-800 p-1 rounded-lg">
+                      <div role="group" aria-label="Lesson delivery mode" className="grid grid-cols-3 sm:flex w-full sm:w-auto bg-stone-100 dark:bg-stone-800 p-1 rounded-lg">
                         {(['standard', 'socratic', 'story'] as const).map((m) => (
                           <button
                             key={m}
@@ -705,7 +765,7 @@ const LearningWorkspace: React.FC = () => {
                               setLessonMode(m);
                               if (task.aiExplanation) fetchSession(); // Auto-regenerate on mode change if content exists
                             }}
-                            className={`px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-md transition-all ${
+                            className={`flex-1 sm:flex-initial text-center justify-center px-2.5 sm:px-3 py-1.5 sm:py-1 text-[10px] font-black uppercase tracking-wider sm:tracking-widest rounded-md transition-all whitespace-nowrap shrink-0 ${
                               lessonMode === m 
                                 ? 'bg-white dark:bg-stone-700 text-primary shadow-sm' 
                                 : 'text-stone-400 hover:text-stone-600 dark:hover:text-stone-300'
@@ -807,6 +867,34 @@ const LearningWorkspace: React.FC = () => {
                     <CheatSheetModule
                       topic={task.title}
                       content={task.aiExplanation || ''}
+                    />
+                  </section>
+
+                  {/* Hands-On Project Lab Module */}
+                  <section className="space-y-4">
+                    <div className="flex items-center gap-2 text-stone-500 dark:text-stone-400">
+                      <Laptop size={18} />
+                      <h2 className="text-xs font-black uppercase tracking-widest">Hands-On Project Lab</h2>
+                    </div>
+                    <ProjectLabModule
+                      topic={task.title}
+                      lessonContent={task.aiExplanation || ''}
+                      difficulty={plan?.difficulty || 'Intermediate'}
+                      onOpenPlaygroundWithCode={handleOpenPlaygroundWithCode}
+                    />
+                  </section>
+
+                  {/* Interactive Code Playground & Sandboxes */}
+                  <section ref={playgroundRef} className="space-y-4">
+                    <div className="flex items-center gap-2 text-stone-500 dark:text-stone-400">
+                      <Code2 size={18} />
+                      <h2 className="text-xs font-black uppercase tracking-widest">Interactive Code Sandbox</h2>
+                    </div>
+                    <CodePlaygroundModule
+                      topic={task.title}
+                      initialCode={playgroundCode || undefined}
+                      initialLanguage={playgroundLang}
+                      title={`Interactive Sandbox: ${task.title}`}
                     />
                   </section>
                 </div>

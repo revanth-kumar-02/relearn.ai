@@ -47,6 +47,7 @@ export async function runPromptBenchmark(
       prompt: promptConfig.prompt,
       systemPrompt: promptConfig.systemPrompt,
       options: {
+        disableFallback: promptConfig.options?.disableFallback ?? true,
         ...promptConfig.options,
         overrideModel: targetModelId,
         responseFormat: promptConfig.expectedFormat,
@@ -61,7 +62,7 @@ export async function runPromptBenchmark(
     );
 
     const actualRuntimeModel = String(
-      response.metadata?.runtimeModel || response.model || targetModelId
+      response.metadata?.actualModel || response.metadata?.runtimeModel || response.model || targetModelId
     );
     const providerName = String(response.metadata?.provider || 'unknown');
 

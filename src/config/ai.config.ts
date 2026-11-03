@@ -1,0 +1,89 @@
+/**
+ * ─────────────────────────────────────────────────────────────────
+ *  Centralized AI Configuration
+ * ─────────────────────────────────────────────────────────────────
+ *
+ *  Single source of truth for all AI model IDs and settings.
+ *  The platform primarily uses Groq with OpenRouter as fallback.
+ */
+
+export const AI_MODELS = {
+  /** Primary Groq model for complex reasoning and roadmap/content generation */
+  PRIMARY: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_LLM_MODEL_PRIMARY) || (typeof process !== 'undefined' && process.env?.VITE_LLM_MODEL_PRIMARY) || 'openai/gpt-oss-120b',
+
+  /** Fast Groq model for quick tasks, quizzes, flashcards, and safety validation */
+  FAST_LITE: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_LLM_MODEL_FAST) || (typeof process !== 'undefined' && process.env?.VITE_LLM_MODEL_FAST) || 'openai/gpt-oss-20b',
+
+  /** Primary Groq model for chat and interactive tutoring */
+  CHAT: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_LLM_MODEL_CHAT) || (typeof process !== 'undefined' && process.env?.VITE_LLM_MODEL_CHAT) || 'openai/gpt-oss-120b',
+
+  /** Premium image generation model */
+  IMAGE: 'pollinations-flux',
+
+  /** Ordered fallback chain for peak demand */
+  FALLBACK_CHAIN: [
+    (typeof import.meta !== 'undefined' && import.meta.env?.VITE_LLM_MODEL_PRIMARY) || (typeof process !== 'undefined' && process.env?.VITE_LLM_MODEL_PRIMARY) || 'openai/gpt-oss-120b',
+    (typeof import.meta !== 'undefined' && import.meta.env?.VITE_LLM_MODEL_FAST) || (typeof process !== 'undefined' && process.env?.VITE_LLM_MODEL_FAST) || 'openai/gpt-oss-20b',
+    'openai/gpt-oss-120b:free',
+  ],
+} as const;
+
+export const IS_GROQ_MODEL = (model?: any): boolean => 
+  typeof model === 'string' && (model.includes('gpt-oss') || model.startsWith('openai/') || model.includes('groq'));
+
+export const isNetworkError = (error: any): boolean => {
+  const message = (error?.message || error?.toString() || '').toLowerCase();
+  return message.includes('failed to fetch') ||
+    message.includes('network') ||
+    message.includes('err_name_not_resolved') ||
+    message.includes('err_connection_reset') ||
+    message.includes('err_internet_disconnected') ||
+    message.includes('timeout') ||
+    message.includes('abort');
+};
+
+export const isRetryableError = (error: any): boolean => {
+  if (isNetworkError(error)) return true;
+  const message = (error?.message || error?.toString() || '').toUpperCase();
+  const status = error?.status || error?.code;
+
+  // 404 means the specific model is missing, so we should retry the next model in the fallback chain.
+  const isRateLimited = status === 429 || 
+    message.includes('429') ||
+    message.includes('RESOURCE_EXHAUSTED') ||
+    message.includes('OVERLOADED') ||
+    message.includes('HIGH DEMAND');
+
+  if (isRateLimited) {
+    window.dispatchEvent(new CustomEvent('ai-api-limit', { detail: { message: 'AI API limit reached' } }));
+    window.dispatchEvent(new CustomEvent('gemini-api-limit', { detail: { message: 'AI API limit reached' } }));
+  }
+
+  return status === 503 || status === 404 || isRateLimited ||
+    message.includes('UNAVAILABLE') ||
+    message.includes('NOT_FOUND');
+};
+
+/**
+ * Extracts and records token usage from an AI API response.
+ */
+export const recordTokenUsage = (response: any) => {
+  try {
+    const tokens = response?.usageMetadata?.totalTokenCount ||
+      response?.usage?.total_tokens ||
+      response?.usage?.totalTokens;
+    if (tokens && tokens > 0) {
+      import('../services/api/adminService').then(({ adminService }) => {
+        adminService.incrementApiUsage(tokens);
+      });
+    }
+  } catch (err) {
+    // Silently ignore tracking errors to not disrupt user flow
+  }
+};
+
+/** Maximum retries before a sync item is marked as permanently failed */
+export const SYNC_MAX_RETRIES = 5;
+
+/** Exponential backoff base in ms for network retries */
+export const RETRY_BACKOFF_BASE_MS = 2000;

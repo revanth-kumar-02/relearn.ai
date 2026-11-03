@@ -77,8 +77,12 @@ const AdminDashboard: React.FC = () => {
                 type: 'error'
             });
         };
+        window.addEventListener('ai-api-limit', handleApiLimit);
         window.addEventListener('gemini-api-limit', handleApiLimit);
-        return () => window.removeEventListener('gemini-api-limit', handleApiLimit);
+        return () => {
+            window.removeEventListener('ai-api-limit', handleApiLimit);
+            window.removeEventListener('gemini-api-limit', handleApiLimit);
+        };
     }, []);
 
     const loadAllData = async () => {

@@ -242,11 +242,8 @@ export async function runSmokeTestSuite(): Promise<void> {
   console.log(`  - Configured Provider: ${config.provider}`);
   console.log(`  - Ollama Base URL: ${config.ollamaBaseUrl}`);
   console.log(`  - vLLM Base URL: ${config.vllmBaseUrl}`);
-  console.log(`  - Hugging Face Base URL: ${config.hfBaseUrl}`);
-  console.log(`  - Qwen Runtime Tag: ${config.modelMappings.qwenModelName}`);
-  console.log(`  - Gemma Runtime Tag: ${config.modelMappings.gemmaModelName}`);
-  console.log(`  - HF Qwen Repo Tag: ${config.modelMappings.hfQwenModelName}`);
-  console.log(`  - HF Gemma Repo Tag: ${config.modelMappings.hfGemmaModelName}\n`);
+  console.log(`  - Groq Default Model: ${config.modelMappings.groqDefaultModel}`);
+  console.log(`  - OpenRouter Fallback Model: ${config.modelMappings.openRouterFallbackModel}\n`);
 
   // 1. Test with configured runtime provider (Ollama / vLLM / Hugging Face)
   const provider = createInferenceProvider(config.provider);

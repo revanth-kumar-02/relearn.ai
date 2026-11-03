@@ -425,7 +425,7 @@ const FlashcardModule: React.FC<FlashcardModuleProps> = ({ topic, content }) => 
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -15 }}
-              className="grid grid-cols-3 gap-4 transform-gpu"
+              className="grid grid-cols-3 gap-2 sm:gap-4 transform-gpu"
             >
               {[GRADE_CONFIG.hard, GRADE_CONFIG.good, GRADE_CONFIG.easy].map((grade) => {
                 const Icon = grade.icon;
@@ -435,12 +435,12 @@ const FlashcardModule: React.FC<FlashcardModuleProps> = ({ topic, content }) => 
                     whileHover={{ y: -4 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => handleGrade(grade.type)}
-                    className={`group flex flex-col items-center gap-2 p-5 border rounded-2xl transition-colors duration-200 ${grade.buttonClass} transform-gpu`}
+                    className={`group flex flex-col items-center gap-1.5 sm:gap-2 px-1.5 sm:px-4 py-3 sm:py-5 border rounded-2xl transition-colors duration-200 ${grade.buttonClass} transform-gpu min-w-0`}
                   >
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center shadow-lg ${grade.iconClass}`}>
-                      <Icon size={18} />
+                    <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shadow-lg ${grade.iconClass} shrink-0`}>
+                      <Icon size={16} className="sm:w-[18px] sm:h-[18px]" />
                     </div>
-                    <span className={`text-xs font-bold uppercase tracking-wider ${grade.textClass}`}>
+                    <span className={`text-[10px] sm:text-xs font-bold uppercase tracking-tight sm:tracking-wider text-center leading-tight sm:leading-normal ${grade.textClass}`}>
                       {grade.label}
                     </span>
                   </motion.button>

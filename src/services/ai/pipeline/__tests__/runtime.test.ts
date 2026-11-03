@@ -60,35 +60,27 @@ export async function runRuntimeTests(): Promise<void> {
     // 1. Task -> Model Resolution & Identity
     // ---------------------------------------------------------------
     console.log('1. Testing Task -> Model Resolution & Identity...');
-    const qwenTasks: AITask[] = ['learning_plan', 'learning_space', 'cheat_sheet'];
-    const gemmaTasks: AITask[] = ['chatbot', 'flashcards', 'quizzes', 'concept_collision'];
-
-    for (const task of qwenTasks) {
+    for (const task of AI_TASKS) {
       const modelId = getModelIdForTask(task);
+      const isExpected = modelId === AI_MODEL_IDS.GPT_OSS_120B || modelId === AI_MODEL_IDS.GPT_OSS_20B;
       assert(
-        modelId === 'Qwen3-Next-80B-A3B-Instruct',
-        `Task '${task}' should resolve to Qwen3-Next-80B-A3B-Instruct but got '${modelId}'`
+        isExpected,
+        `Task '${task}' should resolve to Groq GPT-OSS model but got '${modelId}'`
       );
       const modelDef = getModelForTask(task);
-      assert(modelDef.id === 'Qwen3-Next-80B-A3B-Instruct', 'Qwen model definition ID mismatch');
-      assert(modelDef.supportedTasks.includes(task), `Qwen should support task '${task}'`);
-    }
-
-    for (const task of gemmaTasks) {
-      const modelId = getModelIdForTask(task);
       assert(
-        modelId === 'Gemma-3-27B',
-        `Task '${task}' should resolve to Gemma-3-27B but got '${modelId}'`
+        modelDef.id === AI_MODEL_IDS.GPT_OSS_120B || modelDef.id === AI_MODEL_IDS.GPT_OSS_20B,
+        'GPT-OSS model definition ID mismatch'
       );
-      const modelDef = getModelForTask(task);
-      assert(modelDef.id === 'Gemma-3-27B', 'Gemma model definition ID mismatch');
-      assert(modelDef.supportedTasks.includes(task), `Gemma should support task '${task}'`);
+      assert(modelDef.supportedTasks.includes(task), `Model should support task '${task}'`);
     }
 
     // Test model aliases in registry
     assert(getModel('qwen3-next-80b-a3b')?.id === 'Qwen3-Next-80B-A3B-Instruct', 'Qwen short alias mismatch');
     assert(getModel('gemma-3-27b')?.id === 'Gemma-3-27B', 'Gemma alias mismatch');
-    console.log('   ✓ Task -> Model resolution verified for all 7 tasks.');
+    assert(getModel('gpt-oss-120b')?.id === 'openai/gpt-oss-120b', 'GPT-OSS 120B alias mismatch');
+    assert(getModel('gpt-oss-20b')?.id === 'openai/gpt-oss-20b', 'GPT-OSS 20B alias mismatch');
+    console.log('   ✓ Task -> Model resolution verified for all tasks.');
 
     // ---------------------------------------------------------------
     // 2. Ollama Provider (Non-streaming & Streaming)
@@ -447,7 +439,7 @@ export async function runRuntimeTests(): Promise<void> {
       prompt: 'Git cheat sheet',
     });
 
-    assert(routerRes.model === 'Qwen3-Next-80B-A3B-Instruct', 'Router model mismatch for cheat_sheet');
+    assert(routerRes.model === AI_MODEL_IDS.GPT_OSS_120B, 'Router model mismatch for cheat_sheet');
     assert(routerRes.finishReason === 'stop', 'Router finish reason mismatch');
 
     const benchMetric = await runPromptBenchmark(

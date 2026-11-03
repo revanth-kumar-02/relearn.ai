@@ -34,13 +34,17 @@ import { getModelOrThrow } from './modelRegistry';
 // -----------------------------------------------------------------
 
 export const TASK_MODEL_MAPPING: Record<AITask, AIModelId> = {
-  learning_plan: AI_MODEL_IDS.QWEN_80B,
-  learning_space: AI_MODEL_IDS.QWEN_80B,
-  cheat_sheet: AI_MODEL_IDS.QWEN_80B,
-  chatbot: AI_MODEL_IDS.GEMMA_27B,
-  flashcards: AI_MODEL_IDS.GEMMA_27B,
-  quizzes: AI_MODEL_IDS.GEMMA_27B,
-  concept_collision: AI_MODEL_IDS.GEMMA_27B,
+  learning_plan: AI_MODEL_IDS.GPT_OSS_120B,
+  learning_space: AI_MODEL_IDS.GPT_OSS_120B,
+  cheat_sheet: AI_MODEL_IDS.GPT_OSS_120B,
+  chatbot: AI_MODEL_IDS.GPT_OSS_120B,
+  flashcards: AI_MODEL_IDS.GPT_OSS_120B,
+  quizzes: AI_MODEL_IDS.GPT_OSS_120B,
+  concept_collision: AI_MODEL_IDS.GPT_OSS_120B,
+  quality_scoring: AI_MODEL_IDS.GPT_OSS_120B,
+  content_safety: AI_MODEL_IDS.GPT_OSS_20B,
+  youtube_query: AI_MODEL_IDS.GPT_OSS_20B,
+  translation: AI_MODEL_IDS.GPT_OSS_120B,
 } as const;
 
 // -----------------------------------------------------------------
@@ -50,52 +54,80 @@ export const TASK_MODEL_MAPPING: Record<AITask, AIModelId> = {
 export const TASK_CONFIGURATIONS: Record<AITask, TaskConfig> = {
   learning_plan: {
     task: 'learning_plan',
-    defaultModelId: AI_MODEL_IDS.QWEN_80B,
+    defaultModelId: AI_MODEL_IDS.GPT_OSS_120B,
     recommendedTemperature: 0.2,
     responseFormat: 'json',
     description: 'Generates structured multi-day curriculum with daily milestones and topics.',
   },
   learning_space: {
     task: 'learning_space',
-    defaultModelId: AI_MODEL_IDS.QWEN_80B,
+    defaultModelId: AI_MODEL_IDS.GPT_OSS_120B,
     recommendedTemperature: 0.4,
     responseFormat: 'text',
     description: 'Generates comprehensive study guides, deep-dive explanations, and notes.',
   },
   cheat_sheet: {
     task: 'cheat_sheet',
-    defaultModelId: AI_MODEL_IDS.QWEN_80B,
+    defaultModelId: AI_MODEL_IDS.GPT_OSS_120B,
     recommendedTemperature: 0.2,
     responseFormat: 'text',
     description: 'Distills core formulas, definitions, and code syntax into concise reference sheets.',
   },
   chatbot: {
     task: 'chatbot',
-    defaultModelId: AI_MODEL_IDS.GEMMA_27B,
+    defaultModelId: AI_MODEL_IDS.GPT_OSS_120B,
     recommendedTemperature: 0.7,
     responseFormat: 'text',
     description: 'Interactive AI tutor providing conversational guidance and Socratic questioning.',
   },
   flashcards: {
     task: 'flashcards',
-    defaultModelId: AI_MODEL_IDS.GEMMA_27B,
+    defaultModelId: AI_MODEL_IDS.GPT_OSS_120B,
     recommendedTemperature: 0.3,
     responseFormat: 'json',
     description: 'Generates active-recall front/back flashcard pairs.',
   },
   quizzes: {
     task: 'quizzes',
-    defaultModelId: AI_MODEL_IDS.GEMMA_27B,
+    defaultModelId: AI_MODEL_IDS.GPT_OSS_120B,
     recommendedTemperature: 0.3,
     responseFormat: 'json',
     description: 'Generates multiple-choice and conceptual assessment questions with explanations.',
   },
   concept_collision: {
     task: 'concept_collision',
-    defaultModelId: AI_MODEL_IDS.GEMMA_27B,
+    defaultModelId: AI_MODEL_IDS.GPT_OSS_120B,
     recommendedTemperature: 0.8,
     responseFormat: 'text',
     description: 'Combines two unrelated concepts to uncover non-obvious analogies and insights.',
+  },
+  quality_scoring: {
+    task: 'quality_scoring',
+    defaultModelId: AI_MODEL_IDS.GPT_OSS_120B,
+    recommendedTemperature: 0.3,
+    responseFormat: 'json',
+    description: 'Analyzes and audits learning plans across multiple educational quality dimensions.',
+  },
+  content_safety: {
+    task: 'content_safety',
+    defaultModelId: AI_MODEL_IDS.GPT_OSS_20B,
+    recommendedTemperature: 0.1,
+    responseFormat: 'json',
+    description: 'Validates academic and educational topics for safety.',
+  },
+  youtube_query: {
+    task: 'youtube_query',
+    defaultModelId: AI_MODEL_IDS.GPT_OSS_20B,
+    recommendedTemperature: 0.1,
+    responseFormat: 'text',
+    description: 'Optimizes targeted YouTube educational video search queries.',
+  },
+  translation: {
+    task: 'translation',
+    defaultModelId: AI_MODEL_IDS.GPT_OSS_120B,
+    recommendedTemperature: 0.3,
+    responseFormat: 'json',
+    description: 'Accurately translates curriculum milestones and tasks while preserving IDs and schemas.',
   },
 };
 

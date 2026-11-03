@@ -362,7 +362,7 @@ const buildSearchQuery = (language: string, dayTitle: string): string =>
 
 /**
  * Returns a list of progressively broader search queries.
- * Step 1: AI-optimized query  (from Gemini)
+ * Step 1: AI-optimized query  (Groq / OpenRouter)
  * Step 2: "${language} ${dayTitle}"
  * Step 3: "${language} basics tutorial"
  */
@@ -502,7 +502,7 @@ const filterAndRank = (
  *
  * Flow:
  * 1. Check localStorage cache
- * 2. Build AI-optimized query via Gemini
+ * 2. Build AI-optimized query via Groq / OpenRouter
  * 3. Fetch → Filter → Rank
  * 4. If <2 results, try Fallback queries
  * 5. Cache final results
@@ -521,7 +521,7 @@ export const fetchEducationalVideos = async (
   }
 
   try {
-    // ── 2. Build primary search query (Gemini AI) ───────────
+    // ── 2. Build primary search query (AI Pipeline) ───────────
     const vidLangLabel = getVideoLanguageLabel(getVideoLanguagePreference());
     // Inject randomness into the prompt if requested to get different results on refresh
     const extraContext = randomize ? "Find DIFFERENT, alternative high-quality videos than a standard search. Try to find unique but highly rated content." : "";

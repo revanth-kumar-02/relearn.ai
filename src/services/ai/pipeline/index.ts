@@ -27,7 +27,6 @@ export * from './provider';
 // Runtime Inference Providers
 export * from './providers/ollamaProvider';
 export * from './providers/vllmProvider';
-export * from './providers/huggingFaceProvider';
 export * from './providers/providerFactory';
 
 // Validation

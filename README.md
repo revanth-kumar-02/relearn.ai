@@ -38,7 +38,7 @@ ReLearn.ai is a premium, AI-native learning platform designed to help users orga
 ## Tech Stack
 
 - **Frontend**: React 19, TypeScript, Tailwind CSS
-- **AI Services**: Groq (GPT-OSS 120B & 20B), Google Gemini (Pro & Flash), Pollinations (FLUX)
+- **AI Services**: Groq (Primary: GPT-OSS 120B & 20B), OpenRouter (Fallback), Pollinations (FLUX)
 - **Backend & Auth**: Supabase (Auth, PostgreSQL DB, Realtime, RLS Policies)
 - **State Management**: React Context + "Self-healing" DataService
 - **Video API**: YouTube Data API v3
@@ -81,7 +81,7 @@ Relearn.ai/
    ```bash
    npm install
    ```
-3. Copy `.env.example` to `.env` and fill in your API keys (Supabase, Gemini, YouTube, Groq).
+3. Copy `.env.example` to `.env` and fill in your API keys (Supabase, Groq, OpenRouter, YouTube).
 4. Run the development server:
    ```bash
    npm run dev

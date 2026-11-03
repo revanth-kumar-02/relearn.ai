@@ -1,6 +1,9 @@
 import { Context } from "@netlify/functions";
 import { createClient } from "@supabase/supabase-js";
 import webpush from "web-push";
+import { initServerSentry, captureServerException } from "./utils/sentry";
+
+initServerSentry();
 
 let supabaseClient: any = null;
 
@@ -282,6 +285,7 @@ export default async (req: Request, context: Context) => {
     });
   } catch (error: any) {
     console.error("[send-push-notification] Server error:", error.message);
+    await captureServerException(error, { functionName: 'send-push-notification', statusCode: 500 });
     return new Response(JSON.stringify({ error: "Failed to send push notification." }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

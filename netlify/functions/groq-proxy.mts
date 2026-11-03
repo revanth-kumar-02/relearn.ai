@@ -1,5 +1,8 @@
 import { Context } from "@netlify/functions";
 import { createClient } from "@supabase/supabase-js";
+import { initServerSentry, captureServerException } from "./utils/sentry";
+
+initServerSentry();
 
 let supabaseClient: any = null;
 
@@ -54,6 +57,7 @@ export default async (req: Request, context: Context) => {
     supabase = getSupabase();
   } catch (err: any) {
     console.error("[groq-proxy] Configuration Error:", err.message);
+    await captureServerException(err, { functionName: 'groq-proxy', statusCode: 500 });
     return new Response(JSON.stringify({ error: "Service configuration error." }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -71,7 +75,7 @@ export default async (req: Request, context: Context) => {
     });
   }
 
-  const apiKey = (process.env.GROQ_API_KEY || process.env.VITE_GROQ_API_KEY || "").trim();
+  const apiKey = (process.env.GROQ_API_KEY || "").trim();
 
   if (!apiKey) {
     return new Response(JSON.stringify({ error: "Groq API Key not configured." }), {
@@ -121,6 +125,7 @@ export default async (req: Request, context: Context) => {
     });
   } catch (error: any) {
     console.error("[groq-proxy] Fetch Error:", error.message);
+    await captureServerException(error, { functionName: 'groq-proxy', statusCode: 500 });
     return new Response(JSON.stringify({ error: "Proxy connection error." }), {
       status: 500,
       headers: { 'Content-Type': 'application/json', ...corsHeaders }

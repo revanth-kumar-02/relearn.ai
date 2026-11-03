@@ -1,5 +1,6 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { performSystemReset, generateErrorReport, downloadErrorReport } from '../../utils/reset';
+import { captureException } from '../../lib/monitoring/sentry';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -56,8 +57,19 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     this.setState({ errorInfo });
-    // Log to console — in production, this could be sent to Sentry/LogRocket
     console.error('[ErrorBoundary] Uncaught error:', error, errorInfo);
+
+    // Capture render exception to Sentry with component stack
+    captureException(error, {
+      extra: {
+        componentStack: errorInfo?.componentStack,
+        isChunkError: this.state.isChunkError,
+      },
+      tags: {
+        boundary: 'global_react_error_boundary',
+        isChunkError: String(this.state.isChunkError),
+      },
+    });
   }
 
   handleReload = (): void => {

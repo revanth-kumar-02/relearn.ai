@@ -58,6 +58,7 @@ const StudyRooms = lazy(() => import('../features/learning/StudyRooms'));
 const RoomView = lazy(() => import('../features/learning/RoomView'));
 const AdminDashboard = lazy(() => import('../features/dashboard/AdminDashboard'));
 const CollaborationHub = lazy(() => import('../features/learning/CollaborationHub'));
+const PlaygroundPage = lazy(() => import('../features/learning/PlaygroundPage'));
 const GratitudeLog = lazy(() => import('../features/learning/GratitudeLog'));
 
 const PageLoader = () => (
@@ -252,7 +253,7 @@ const AppContent: React.FC = () => {
     '/learning-workspace', '/add-task', '/edit-task', '/notifications',
     '/notification-settings', '/settings', '/profile', '/diary', '/create-plan',
     '/templates', '/shared/', '/help-center', '/feedback', '/archived',
-    '/rooms', '/collaboration', '/gratitude', '/admin'
+    '/rooms', '/collaboration', '/gratitude', '/admin', '/playground'
   ];
 
   const isKnownRoute = (path: string) => {
@@ -292,7 +293,8 @@ const AppContent: React.FC = () => {
         '/rooms': 'Study Rooms',
         '/collaboration': 'Collaboration Hub',
         '/gratitude': 'Gratitude Log',
-        '/admin': 'Admin Dashboard'
+        '/admin': 'Admin Dashboard',
+        '/playground': 'Code Playground'
       };
 
       let matchedTitle = titlesByPath[path];
@@ -454,6 +456,14 @@ const AppContent: React.FC = () => {
               showLabel={isSidebarExpanded}
             />
             <SidebarItem
+              icon="code"
+              label="Playground"
+              active={location.pathname === '/playground'}
+              onClick={() => navigate('/playground')}
+              ariaLabel="Navigate to Code Playground"
+              showLabel={isSidebarExpanded}
+            />
+            <SidebarItem
               icon="dashboard_customize"
               label="Templates"
               active={location.pathname === '/templates'}
@@ -551,6 +561,7 @@ const AppContent: React.FC = () => {
                         <Route path="/rooms/:id" element={<ProtectedRoute><RoomView /></ProtectedRoute>} />
                         <Route path="/collaboration" element={<ProtectedRoute><CollaborationHub /></ProtectedRoute>} />
                         <Route path="/gratitude" element={<ProtectedRoute><GratitudeLog /></ProtectedRoute>} />
+                        <Route path="/playground" element={<ProtectedRoute><PlaygroundPage /></ProtectedRoute>} />
                         <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
                         <Route path="*" element={<NotFound />} />
                     </Routes>

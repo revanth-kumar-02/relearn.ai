@@ -6,7 +6,7 @@
  *  Verifies:
  *  - planGeneratorService invokes generateAI with task 'learning_plan'
  *  - Router resolves Qwen3-Next-80B-A3B-Instruct
- *  - Zero Gemini or Groq calls are made
+ *  - Zero direct external SDK calls are made
  *  - Response parsing & structure validation work
  *  - Invalid AI output format throws clean error
  *  - AbortSignal cancellation works
@@ -23,6 +23,7 @@ import {
   clearProviders,
 } from '../pipeline/provider';
 import {
+  AI_MODEL_IDS,
   type AIInferenceProvider,
   type AIRequest,
   type ModelDefinition,
@@ -95,8 +96,8 @@ export async function runPlanGeneratorTests(): Promise<void> {
     assert(lastCapturedRequest !== null, 'Request must be sent to provider');
     assert(lastCapturedRequest!.task === 'learning_plan', 'Task must be learning_plan');
     assert(
-      lastCapturedModel!.id === 'Qwen3-Next-80B-A3B-Instruct',
-      `Model must resolve to Qwen3-Next-80B-A3B-Instruct, got: ${lastCapturedModel!.id}`
+      lastCapturedModel!.id === AI_MODEL_IDS.GPT_OSS_120B,
+      `Model must resolve to ${AI_MODEL_IDS.GPT_OSS_120B}, got: ${lastCapturedModel!.id}`
     );
 
     const parsed = JSON.parse(resultJson);
@@ -191,6 +192,12 @@ export async function runPlanGeneratorTests(): Promise<void> {
       },
     };
     registerProvider(rateLimitProvider, { makeActive: true });
+    registerProvider({
+      name: 'openrouter',
+      async generate() {
+        throw new AIRuntimeError('Rate limit', 429);
+      },
+    });
     let caught429 = false;
     try {
       await generateLearningPlan('Python', 5);
@@ -209,6 +216,12 @@ export async function runPlanGeneratorTests(): Promise<void> {
       },
     };
     registerProvider(timeoutProvider, { makeActive: true });
+    registerProvider({
+      name: 'openrouter',
+      async generate() {
+        throw new AITimeoutError(60000);
+      },
+    });
     let caughtTimeout = false;
     try {
       await generateLearningPlan('Python', 5);
@@ -227,6 +240,12 @@ export async function runPlanGeneratorTests(): Promise<void> {
       },
     };
     registerProvider(connErrorProvider, { makeActive: true });
+    registerProvider({
+      name: 'openrouter',
+      async generate() {
+        throw new AIConnectionError('Cannot reach runtime');
+      },
+    });
     let caughtConn = false;
     try {
       await generateLearningPlan('Python', 5);
@@ -250,7 +269,7 @@ export async function runPlanGeneratorTests(): Promise<void> {
         }
         return {
           text: '{}',
-          model: 'Qwen3-Next-80B-A3B-Instruct',
+          model: AI_MODEL_IDS.GPT_OSS_120B,
           usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
           finishReason: 'stop',
           latencyMs: 10,

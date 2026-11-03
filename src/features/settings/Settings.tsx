@@ -92,12 +92,12 @@ const Settings: React.FC = () => {
               <h3 className="px-2 text-[11px] font-black text-text-secondary-light/60 dark:text-text-secondary-dark/60 uppercase tracking-[0.15em]">AI Tutor</h3>
               <div className="bg-white dark:bg-surface-dark rounded-2xl overflow-hidden border border-border-light dark:border-border-dark shadow-sm">
                   {/* Persona Selector */}
-                  <div className="w-full flex items-center justify-between p-5 border-b border-border-light dark:border-border-dark">
-                      <div className="flex items-center gap-4">
-                          <div className="text-[#334155] dark:text-text-secondary-dark">
+                  <div className="w-full flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 p-4 sm:p-5 border-b border-border-light dark:border-border-dark">
+                      <div className="flex items-center gap-3.5 sm:gap-4 min-w-0">
+                          <div className="text-[#334155] dark:text-text-secondary-dark shrink-0">
                               <span className="material-symbols-outlined text-2xl">psychology</span>
                           </div>
-                          <div>
+                          <div className="min-w-0">
                               <span className="font-bold text-text-primary-light dark:text-text-primary-dark text-base">Study Buddy Persona</span>
                               <p className="text-[11px] text-text-secondary-light dark:text-text-secondary-dark mt-0.5">Determines the AI's tone and behavior</p>
                           </div>
@@ -106,7 +106,7 @@ const Settings: React.FC = () => {
                           id="ai-persona-select"
                           value={aiPersona}
                           onChange={(e) => updateAiPersona(e.target.value)}
-                          className="bg-stone-100 dark:bg-stone-800 text-text-primary-light dark:text-text-primary-dark text-sm font-bold rounded-xl px-3 py-2 border border-border-light dark:border-border-dark outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer transition-all hover:bg-stone-200 dark:hover:bg-stone-700"
+                          className="w-full sm:w-auto bg-stone-100 dark:bg-stone-800 text-text-primary-light dark:text-text-primary-dark text-sm font-bold rounded-xl px-3 py-2.5 sm:py-2 border border-border-light dark:border-border-dark outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer transition-all hover:bg-stone-200 dark:hover:bg-stone-700 min-w-0 shrink-0"
                       >
                           {AI_PERSONA_OPTIONS.map(opt => (
                               <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -115,12 +115,12 @@ const Settings: React.FC = () => {
                   </div>
 
                   {/* Learning Style Selector */}
-                  <div className="w-full flex items-center justify-between p-5">
-                      <div className="flex items-center gap-4">
-                          <div className="text-[#334155] dark:text-text-secondary-dark">
+                  <div className="w-full flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 p-4 sm:p-5">
+                      <div className="flex items-center gap-3.5 sm:gap-4 min-w-0">
+                          <div className="text-[#334155] dark:text-text-secondary-dark shrink-0">
                               <span className="material-symbols-outlined text-2xl">auto_awesome</span>
                           </div>
-                          <div>
+                          <div className="min-w-0">
                               <span className="font-bold text-text-primary-light dark:text-text-primary-dark text-base">Explanation Format</span>
                               <p className="text-[11px] text-text-secondary-light dark:text-text-secondary-dark mt-0.5">Choose how lessons are presented</p>
                           </div>
@@ -129,7 +129,7 @@ const Settings: React.FC = () => {
                           id="learning-style-select"
                           value={learningStyle}
                           onChange={(e) => updateLearningStyle(e.target.value)}
-                          className="bg-stone-100 dark:bg-stone-800 text-text-primary-light dark:text-text-primary-dark text-sm font-bold rounded-xl px-3 py-2 border border-border-light dark:border-border-dark outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer transition-all hover:bg-stone-200 dark:hover:bg-stone-700"
+                          className="w-full sm:w-auto bg-stone-100 dark:bg-stone-800 text-text-primary-light dark:text-text-primary-dark text-sm font-bold rounded-xl px-3 py-2.5 sm:py-2 border border-border-light dark:border-border-dark outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer transition-all hover:bg-stone-200 dark:hover:bg-stone-700 min-w-0 shrink-0"
                       >
                           {LEARNING_STYLE_OPTIONS.map(opt => (
                               <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -142,17 +142,17 @@ const Settings: React.FC = () => {
           {/* Appearance Section */}
           <div className="space-y-3">
               <h3 className="px-2 text-[11px] font-black text-text-secondary-light/60 dark:text-text-secondary-dark/60 uppercase tracking-[0.15em]">Appearance</h3>
-              <div className="bg-white dark:bg-surface-dark rounded-2xl overflow-hidden border border-border-light dark:border-border-dark shadow-sm p-5 flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                      <div className="text-[#334155] dark:text-text-secondary-dark">
+              <div className="bg-white dark:bg-surface-dark rounded-2xl overflow-hidden border border-border-light dark:border-border-dark shadow-sm p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3.5 sm:gap-4 min-w-0">
+                      <div className="text-[#334155] dark:text-text-secondary-dark shrink-0">
                           <span className="material-symbols-outlined text-2xl">palette</span>
                       </div>
-                      <div>
+                      <div className="min-w-0">
                           <span className="font-bold text-text-primary-light dark:text-text-primary-dark text-base">Interface Theme</span>
                           <p className="text-[11px] text-text-secondary-light dark:text-text-secondary-dark mt-0.5">Select Light, Dark, or System preference</p>
                       </div>
                   </div>
-                  <ThemeToggle variant="segmented" showLabels />
+                  <ThemeToggle variant="segmented" showLabels className="w-full sm:w-auto shrink-0" />
               </div>
           </div>
 
@@ -161,12 +161,12 @@ const Settings: React.FC = () => {
               <h3 className="px-2 text-[11px] font-black text-text-secondary-light/60 dark:text-text-secondary-dark/60 uppercase tracking-[0.15em]">Language</h3>
               <div className="bg-white dark:bg-surface-dark rounded-2xl overflow-hidden border border-border-light dark:border-border-dark shadow-sm">
                   {/* Video Language Selector */}
-                  <div className="w-full flex items-center justify-between p-5 border-b border-border-light dark:border-border-dark">
-                      <div className="flex items-center gap-4">
-                          <div className="text-[#334155] dark:text-text-secondary-dark">
+                  <div className="w-full flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 p-4 sm:p-5 border-b border-border-light dark:border-border-dark">
+                      <div className="flex items-center gap-3.5 sm:gap-4 min-w-0">
+                          <div className="text-[#334155] dark:text-text-secondary-dark shrink-0">
                               <span className="material-symbols-outlined text-2xl">smart_display</span>
                           </div>
-                          <div>
+                          <div className="min-w-0">
                               <span className="font-bold text-text-primary-light dark:text-text-primary-dark text-base">Video Language</span>
                               <p className="text-[11px] text-text-secondary-light dark:text-text-secondary-dark mt-0.5">Tutorial videos will be in this language</p>
                           </div>
@@ -175,7 +175,7 @@ const Settings: React.FC = () => {
                           id="video-language-select"
                           value={videoLanguage}
                           onChange={(e) => updateVideoLanguage(e.target.value as VideoLanguageCode)}
-                          className="bg-stone-100 dark:bg-stone-800 text-text-primary-light dark:text-text-primary-dark text-sm font-bold rounded-xl px-3 py-2 border border-border-light dark:border-border-dark outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer transition-all hover:bg-stone-200 dark:hover:bg-stone-700"
+                          className="w-full sm:w-auto bg-stone-100 dark:bg-stone-800 text-text-primary-light dark:text-text-primary-dark text-sm font-bold rounded-xl px-3 py-2.5 sm:py-2 border border-border-light dark:border-border-dark outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer transition-all hover:bg-stone-200 dark:hover:bg-stone-700 min-w-0 shrink-0"
                       >
                           {VIDEO_LANGUAGE_OPTIONS.map(opt => (
                               <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -184,12 +184,12 @@ const Settings: React.FC = () => {
                   </div>
 
                   {/* Text Language Selector */}
-                  <div className="w-full flex items-center justify-between p-5">
-                      <div className="flex items-center gap-4">
-                          <div className="text-[#334155] dark:text-text-secondary-dark">
+                  <div className="w-full flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 p-4 sm:p-5">
+                      <div className="flex items-center gap-3.5 sm:gap-4 min-w-0">
+                          <div className="text-[#334155] dark:text-text-secondary-dark shrink-0">
                               <span className="material-symbols-outlined text-2xl">translate</span>
                           </div>
-                          <div>
+                          <div className="min-w-0">
                               <span className="font-bold text-text-primary-light dark:text-text-primary-dark text-base">Text Language</span>
                               <p className="text-[11px] text-text-secondary-light dark:text-text-secondary-dark mt-0.5">AI study content will be in this language</p>
                           </div>
@@ -198,7 +198,7 @@ const Settings: React.FC = () => {
                           id="content-language-select"
                           value={contentLanguage}
                           onChange={(e) => updateContentLanguage(e.target.value as LanguageCode)}
-                          className="bg-stone-100 dark:bg-stone-800 text-text-primary-light dark:text-text-primary-dark text-sm font-bold rounded-xl px-3 py-2 border border-border-light dark:border-border-dark outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer transition-all hover:bg-stone-200 dark:hover:bg-stone-700"
+                          className="w-full sm:w-auto bg-stone-100 dark:bg-stone-800 text-text-primary-light dark:text-text-primary-dark text-sm font-bold rounded-xl px-3 py-2.5 sm:py-2 border border-border-light dark:border-border-dark outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer transition-all hover:bg-stone-200 dark:hover:bg-stone-700 min-w-0 shrink-0"
                       >
                           {VIDEO_LANGUAGE_OPTIONS.map(opt => (
                               <option key={opt.value} value={opt.value}>{opt.label}</option>

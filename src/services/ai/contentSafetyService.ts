@@ -1,8 +1,5 @@
-import { Type } from "@google/genai";
-import { getProxyConfiguredGenAI } from "./genai";
-import { AI_MODELS, IS_GROQ_MODEL } from "../../config/gemini.config";
+import { generateAI } from "./pipeline";
 import { sanitizeInput } from "../../utils/sanitize";
-import { getAuthHeaders } from "../../utils/authUtils";
 
 export interface SafetyValidationResult {
   isSafe: boolean;
@@ -10,13 +7,14 @@ export interface SafetyValidationResult {
   redirectedTopic?: string;
 }
 
-const buildSafetyRequest = (topic: string) => ({
-  contents: [{
-    role: 'user',
-    parts: [{ text: `Validate the following topic: ${sanitizeInput(topic)}` }]
-  }],
-  config: {
-    systemInstruction: `You are a content safety system for an academic learning platform.
+export const validateTopicSafety = async (
+  topic: string,
+  _model?: string,
+  signal?: AbortSignal
+): Promise<SafetyValidationResult> => {
+  if (signal?.aborted) throw new Error("AbortError");
+
+  const systemPrompt = `You are a content safety system for an academic learning platform.
 Your task is to validate user input topics before generating learning plans.
 
 Safety Criteria:
@@ -28,149 +26,51 @@ Safety Criteria:
 Your response MUST be a JSON object with the following schema:
 {
   "isSafe": boolean (true if the topic is safe or educational, false if strictly sexual/18+),
-  "message": string (If isSafe is false, provide a professional restriction message. If true, can be null/empty),
-  "redirectedTopic": string (If the topic is borderline, provide the safer educational alternative. Otherwise, return the original safe topic. If isSafe is false, this can be null/empty)
-}`,
-    responseMimeType: "application/json",
-    responseSchema: {
-      type: Type.OBJECT,
-      properties: {
-        isSafe: { type: Type.BOOLEAN },
-        message: { type: Type.STRING },
-        redirectedTopic: { type: Type.STRING }
+  "message": string (If isSafe is false, provide a professional restriction message. If true, can be empty),
+  "redirectedTopic": string (If the topic is borderline, provide the safer educational alternative. Otherwise, return the original safe topic. If isSafe is false, this can be empty)
+}`;
+
+  const prompt = `Validate the following topic: <topic_input>${sanitizeInput(topic)}</topic_input>`;
+
+  try {
+    const response = await generateAI({
+      task: 'content_safety',
+      prompt,
+      systemPrompt,
+      options: {
+        temperature: 0.1,
+        responseFormat: 'json',
+        signal,
+        timeoutMs: 15000,
       },
-      required: ["isSafe"]
-    }
-  }
-});
+    });
 
-export const validateTopicSafety = async (
-  topic: string,
-  model: string = AI_MODELS.FAST_LITE,
-  signal?: AbortSignal
-): Promise<SafetyValidationResult> => {
-  const ai = getProxyConfiguredGenAI('plan');
-  const request = buildSafetyRequest(topic);
-
-  // First try with the FAST model, then fallback to current PRIMARY and then the full fallback chain
-  const modelsToTry = [
-    model, 
-    AI_MODELS.PRIMARY, 
-    ...AI_MODELS.FALLBACK_CHAIN.filter(m => m !== model && m !== AI_MODELS.PRIMARY)
-  ];
-  let lastError: any = null;
-
-  for (const currentModel of modelsToTry) {
-    if (signal?.aborted) throw new Error("AbortError");
-
-    try {
-      console.log(`[SafetyService] Validating topic with model: ${currentModel}`);
-
-      const modelTimeout = new AbortController();
-      const timeoutId = setTimeout(() => modelTimeout.abort(), 12000);
-
-      try {
-        let text = "";
-
-        if (IS_GROQ_MODEL(currentModel)) {
-          // Groq Integration
-          const response = await fetch('/api/groq/chat/completions', {
-            method: 'POST',
-            headers: { 
-              'Content-Type': 'application/json',
-              ...getAuthHeaders()
-            },
-            body: JSON.stringify({
-              model: currentModel,
-              messages: [
-                { role: 'system', content: `You are a content safety system for an academic learning platform. Validate user topics. ONLY block strictly sexual/18+ content. ALWAYS ALLOW technical/academic subjects like hacking or biology. Returns ONLY valid JSON: { "isSafe": boolean, "message": "string", "redirectedTopic": "string" }.` },
-                { role: 'user', content: `Validate topic: ${sanitizeInput(topic)}` }
-              ],
-              response_format: { type: "json_object" },
-              temperature: 0.1
-            })
-          });
-
-          if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            const err: any = new Error(errorData.error?.message || `Groq API error: ${response.status}`);
-            err.status = response.status;
-            throw err;
-          }
-
-          const data = await response.json();
-          text = data.choices?.[0]?.message?.content || "";
-        } else {
-          // Gemini Integration
-          const response = await ai.models.generateContent({
-            model: currentModel,
-            ...request
-          });
-          text = response.text;
-        }
-
-        clearTimeout(timeoutId);
-
-        if (text) {
-          try {
-            const jsonMatch = text.match(/\{[\s\S]*\}/);
-            const jsonText = jsonMatch ? jsonMatch[0] : text;
-            const result = JSON.parse(jsonText) as SafetyValidationResult;
-            console.log(`[SafetyService] Topic validation result:`, result);
-            return result;
-          } catch (validationError) {
-            console.warn(`[SafetyService] JSON Parse failed for ${currentModel}`, validationError);
-            continue;
-          }
-        }
-      } catch (error: any) {
-        clearTimeout(timeoutId);
-        
-        const errorMessage = (error.message || "").toLowerCase();
-        const status = error?.status || (errorMessage.match(/\b(400|401|403|429|500|502|503|504)\b/)?.[1] ? Number(errorMessage.match(/\b(400|401|403|429|500|502|503|504)\b/)[1]) : undefined);
-        
-        // Handle 401 Unauthorized API key issues
-        if (status === 401 || errorMessage.includes("api key expired") || errorMessage.includes("invalid api key")) {
-          console.error(`[SafetyService] API Key issue detected for ${currentModel}. Trying local fallback...`);
-          lastError = new Error("API_KEY_EXPIRED_OR_INVALID");
-          (lastError as any).status = 401;
-          continue; 
-        }
-
-        // Handle 400 Bad Request
-        if (status === 400) {
-          console.warn(`[SafetyService] Model ${currentModel} returned 400 Bad Request: ${error.message}. Trying next model...`);
-          lastError = error;
-          continue;
-        }
-
-        if (error.name === 'AbortError' || errorMessage.includes('aborterror')) {
-          console.warn(`[SafetyService] Model ${currentModel} timed out. Trying next...`);
-          continue;
-        }
-
-        lastError = error;
-        console.warn(`[SafetyService] Model ${currentModel} failed:`, error.message);
-        continue;
+    const text = response.text;
+    if (text) {
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      const jsonText = jsonMatch ? jsonMatch[0] : text;
+      const result = JSON.parse(jsonText) as SafetyValidationResult;
+      if (typeof result.isSafe === 'boolean') {
+        return result;
       }
-    } catch (error: any) {
-      lastError = error;
-      continue;
     }
+  } catch (error: any) {
+    if (error.name === 'AbortError' || signal?.aborted) {
+      throw new Error("AbortError");
+    }
+    console.warn(`[SafetyService] AI validation failed, applying local fallback:`, error?.message || error);
   }
 
   // --- LOCAL FALLBACK (The Safety Shield) ---
-  // If we reach here, ALL AI attempts failed for technical reasons (Keys, 404, 504).
-  // We check if the topic is "evidently safe" (academic) to allow the user to proceed.
   console.log(`[SafetyService] AI validation unavailable. Running local academic check for: "${topic}"`);
-  
+
   const academicKeywords = [
     'math', 'science', 'history', 'physics', 'bio', 'chem', 'coding', 'programming', 
     'react', 'js', 'html', 'python', 'engine', 'tech', 'study', 'learn', 'lesson',
     'exam', 'test', 'algebra', 'calculus', 'nature', 'space', 'art', 'music',
     'sql', 'c++', 'c#', 'rust', 'java', 'philosophy', 'geography', 'literature'
   ];
-  
+
   const lowerTopic = topic.toLowerCase();
   const isEvidentlySafe = academicKeywords.some(kw => lowerTopic.includes(kw)) || 
                           (topic.length > 3 && topic.length < 50 && /^[\p{L}\p{N}\s?.,!+#&()_-]*$/u.test(topic));
@@ -184,11 +84,8 @@ export const validateTopicSafety = async (
     };
   }
 
-  // If even the local check is unsure and the key is invalid
-  if (lastError?.message === "API_KEY_EXPIRED_OR_INVALID" || lastError?.status === 401) {
-    throw new Error("Your AI API key is missing or invalid. Please check your API key settings or Netlify configuration.");
-  }
-
-  console.error(`[SafetyService] All validation attempts failed. Last error:`, lastError);
-  throw new Error("Unable to validate safety. Please check your network or try a simpler academic topic.");
+  return {
+    isSafe: true,
+    redirectedTopic: topic
+  };
 };

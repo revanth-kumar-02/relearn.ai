@@ -88,8 +88,8 @@ export const healthCheckService = {
       const { data: apiData } = await supabase
         .from('api_usage')
         .select('*')
-        .eq('id', 'gemini_tokens')
-        .single();
+        .limit(1)
+        .maybeSingle();
       
       if (apiData && apiData.used_tokens > apiData.limit_tokens * 0.9) {
         issues.push({

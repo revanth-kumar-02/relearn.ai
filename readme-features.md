@@ -5,7 +5,7 @@ ReLearn.ai is a comprehensive, AI-powered learning and collaboration platform de
 Below is a detailed breakdown of the features implemented in the application:
 
 ## 🤖 AI-Powered Learning
-* **Dynamic Learning Plans**: Users can automatically generate custom daily study schedules (e.g., 30-Day Circuit Theory) using Gemini AI.
+* **Dynamic Learning Plans**: Users can automatically generate custom daily study schedules (e.g., 30-Day Circuit Theory) using Groq and OpenRouter AI.
 * **AI Chat Assistant (ChatBot)**: A floating AI tutor that provides instant explanations, answers questions, and helps users understand complex topics within their current workspace.
 * **Intelligent Goal Setting**: Auto-calculated daily goal minutes and task distribution based on the chosen subject and timeframe.
 

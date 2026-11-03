@@ -20,6 +20,10 @@ export const AI_TASKS = [
   'flashcards',
   'quizzes',
   'concept_collision',
+  'quality_scoring',
+  'content_safety',
+  'youtube_query',
+  'translation',
 ] as const;
 
 export type AITask = (typeof AI_TASKS)[number];
@@ -29,6 +33,10 @@ export type AITask = (typeof AI_TASKS)[number];
 // -----------------------------------------------------------------
 
 export const AI_MODEL_IDS = {
+  GPT_OSS_120B: 'openai/gpt-oss-120b',
+  GPT_OSS_120B_FREE: 'openai/gpt-oss-120b:free',
+  GPT_OSS_20B: 'openai/gpt-oss-20b',
+  GPT_OSS_20B_FREE: 'openai/gpt-oss-20b:free',
   QWEN_80B: 'Qwen3-Next-80B-A3B-Instruct',
   QWEN_80B_SHORT: 'Qwen3-Next-80B-A3B',
   GEMMA_27B: 'Gemma-3-27B',
@@ -97,6 +105,8 @@ export interface AIRequestOptions {
   readonly signal?: AbortSignal;
   readonly timeoutMs?: number;
   readonly metadata?: Record<string, unknown>;
+  /** Disable automatic cross-provider fallback (e.g. for benchmark runs) */
+  readonly disableFallback?: boolean;
 }
 
 export interface AIRequest {

@@ -16,6 +16,9 @@
 
 import { Context } from "@netlify/functions";
 import { createClient } from "@supabase/supabase-js";
+import { initServerSentry, captureServerException } from "./utils/sentry";
+
+initServerSentry();
 
 let supabaseClient: any = null;
 
@@ -44,7 +47,6 @@ const ALLOWED_ORIGINS = [
 // Whitelist of allowed runtime paths to prevent open proxy / SSRF vulnerabilities
 const ALLOWED_OLLAMA_PATHS = ["/api/chat", "/api/tags"];
 const ALLOWED_VLLM_PATHS = ["/chat/completions", "/models", "/health"];
-const ALLOWED_HF_PATHS = ["/chat/completions", "/models"];
 
 export default async (req: Request, context: Context) => {
   const origin = req.headers.get("origin") || "";
@@ -72,7 +74,8 @@ export default async (req: Request, context: Context) => {
   let supabase;
   try {
     supabase = getSupabase();
-  } catch {
+  } catch (err: any) {
+    await captureServerException(err, { functionName: 'ai-proxy', statusCode: 500 });
     return new Response(JSON.stringify({ error: "Authentication service configuration error." }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -103,7 +106,6 @@ export default async (req: Request, context: Context) => {
 
   const isOllama = cleanPath.startsWith("/ollama");
   const isVllm = cleanPath.startsWith("/vllm");
-  const isHf = cleanPath.startsWith("/hf");
 
   let targetBaseUrl = "";
   let targetApiKey = "";
@@ -127,18 +129,6 @@ export default async (req: Request, context: Context) => {
     if (!subPath.startsWith("/")) subPath = "/" + subPath;
 
     if (!ALLOWED_VLLM_PATHS.includes(subPath)) {
-      return new Response(JSON.stringify({ error: "Forbidden: Endpoint not allowed" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-  } else if (isHf) {
-    targetBaseUrl = process.env.AI_HF_SERVER_URL || process.env.HF_BASE_URL || "https://router.huggingface.co/v1";
-    targetApiKey = process.env.HF_API_KEY || process.env.HUGGINGFACE_API_KEY || "";
-    subPath = cleanPath.replace(/^\/hf(\/v1)?/, "");
-    if (!subPath.startsWith("/")) subPath = "/" + subPath;
-
-    if (!ALLOWED_HF_PATHS.includes(subPath)) {
       return new Response(JSON.stringify({ error: "Forbidden: Endpoint not allowed" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -226,7 +216,8 @@ export default async (req: Request, context: Context) => {
         ...corsHeaders,
       },
     });
-  } catch {
+  } catch (err: any) {
+    await captureServerException(err, { functionName: 'ai-proxy', statusCode: 503 });
     // Return sanitized error without exposing internal backend URLs or IPs
     return new Response(
       JSON.stringify({ error: "AI runtime is currently unreachable. Please try again later." }),

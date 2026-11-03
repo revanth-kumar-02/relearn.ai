@@ -23,6 +23,7 @@ import { generateQuiz } from '../quizService';
 import { generateConceptCollision } from '../conceptCollisionService';
 import { registerProvider, clearProviders } from '../pipeline/provider';
 import {
+  AI_MODEL_IDS,
   type AIInferenceProvider,
   type AIRequest,
   type ModelDefinition,
@@ -108,8 +109,8 @@ export async function runMigratedFeaturesTests(): Promise<void> {
     assert(capturedRequest !== null, 'Learning Space request must be captured');
     assert(capturedRequest!.task === 'learning_space', `Expected task 'learning_space', got: ${capturedRequest!.task}`);
     assert(
-      capturedModel!.id === 'Qwen3-Next-80B-A3B-Instruct',
-      `Expected model Qwen3-Next-80B-A3B-Instruct, got: ${capturedModel!.id}`
+      capturedModel!.id === AI_MODEL_IDS.GPT_OSS_120B,
+      `Expected model ${AI_MODEL_IDS.GPT_OSS_120B}, got: ${capturedModel!.id}`
     );
     const parsedLesson = JSON.parse(lessonText);
     assert(parsedLesson.topic === 'React Hooks', 'Lesson topic mismatch');
@@ -136,8 +137,8 @@ export async function runMigratedFeaturesTests(): Promise<void> {
     assert(capturedRequest !== null, 'Cheat Sheet request must be captured');
     assert(capturedRequest!.task === 'cheat_sheet', `Expected task 'cheat_sheet', got: ${capturedRequest!.task}`);
     assert(
-      capturedModel!.id === 'Qwen3-Next-80B-A3B-Instruct',
-      `Expected model Qwen3-Next-80B-A3B-Instruct, got: ${capturedModel!.id}`
+      capturedModel!.id === AI_MODEL_IDS.GPT_OSS_120B,
+      `Expected model ${AI_MODEL_IDS.GPT_OSS_120B}, got: ${capturedModel!.id}`
     );
     assert(cheatSheet.title === 'Cheat Sheet: Docker Commands', 'Cheat sheet title mismatch');
     assert(cheatSheet.quickReference.length === 2, 'Quick reference count mismatch');
@@ -157,8 +158,8 @@ export async function runMigratedFeaturesTests(): Promise<void> {
     assert(capturedRequest !== null, 'Chat request must be captured');
     assert(capturedRequest!.task === 'chatbot', `Expected task 'chatbot', got: ${capturedRequest!.task}`);
     assert(
-      capturedModel!.id === 'Gemma-3-27B',
-      `Expected model Gemma-3-27B, got: ${capturedModel!.id}`
+      capturedModel!.id === AI_MODEL_IDS.GPT_OSS_120B,
+      `Expected model ${AI_MODEL_IDS.GPT_OSS_120B}, got: ${capturedModel!.id}`
     );
     assert(chatResponse === 'Hello! I am your study assistant.', 'Chat response mismatch');
     console.log('   ✓ AI Chatbot (non-streaming) routed to Gemma-3-27B successfully.');
@@ -172,7 +173,7 @@ export async function runMigratedFeaturesTests(): Promise<void> {
       'English'
     );
     assert(capturedRequest!.task === 'chatbot', `Expected streaming task 'chatbot', got: ${capturedRequest!.task}`);
-    assert(capturedModel!.id === 'Gemma-3-27B', `Expected model Gemma-3-27B, got: ${capturedModel!.id}`);
+    assert(capturedModel!.id === AI_MODEL_IDS.GPT_OSS_120B, `Expected model ${AI_MODEL_IDS.GPT_OSS_120B}, got: ${capturedModel!.id}`);
     assert(streamedResponse === 'Hello from Gemma!', 'Streamed response mismatch');
     assert(streamChunks.length === 2, 'Expected 2 streamed chunks');
     console.log('   ✓ AI Chatbot (streaming) routed to Gemma-3-27B and streamed successfully.');
@@ -192,8 +193,8 @@ export async function runMigratedFeaturesTests(): Promise<void> {
     assert(capturedRequest !== null, 'Flashcards request must be captured');
     assert(capturedRequest!.task === 'flashcards', `Expected task 'flashcards', got: ${capturedRequest!.task}`);
     assert(
-      capturedModel!.id === 'Gemma-3-27B',
-      `Expected model Gemma-3-27B, got: ${capturedModel!.id}`
+      capturedModel!.id === AI_MODEL_IDS.GPT_OSS_120B,
+      `Expected model ${AI_MODEL_IDS.GPT_OSS_120B}, got: ${capturedModel!.id}`
     );
     assert(flashcards.length === 2, 'Expected 2 flashcards');
     assert(typeof flashcards[0].id === 'string' && flashcards[0].id.length > 0, 'Flashcard must have generated ID');
@@ -219,8 +220,8 @@ export async function runMigratedFeaturesTests(): Promise<void> {
     assert(capturedRequest !== null, 'Quiz request must be captured');
     assert(capturedRequest!.task === 'quizzes', `Expected task 'quizzes', got: ${capturedRequest!.task}`);
     assert(
-      capturedModel!.id === 'Gemma-3-27B',
-      `Expected model Gemma-3-27B, got: ${capturedModel!.id}`
+      capturedModel!.id === AI_MODEL_IDS.GPT_OSS_120B,
+      `Expected model ${AI_MODEL_IDS.GPT_OSS_120B}, got: ${capturedModel!.id}`
     );
     assert(quiz.topic === 'Binary Search', 'Quiz topic mismatch');
     assert(quiz.questions.length === 1, 'Quiz question count mismatch');
@@ -243,8 +244,8 @@ export async function runMigratedFeaturesTests(): Promise<void> {
     assert(capturedRequest !== null, 'Concept collision request must be captured');
     assert(capturedRequest!.task === 'concept_collision', `Expected task 'concept_collision', got: ${capturedRequest!.task}`);
     assert(
-      capturedModel!.id === 'Gemma-3-27B',
-      `Expected model Gemma-3-27B, got: ${capturedModel!.id}`
+      capturedModel!.id === AI_MODEL_IDS.GPT_OSS_120B,
+      `Expected model ${AI_MODEL_IDS.GPT_OSS_120B}, got: ${capturedModel!.id}`
     );
     assert(collision.topicA === 'Quantum Physics', 'Topic A mismatch');
     assert(collision.topicB === 'Cooking', 'Topic B mismatch');

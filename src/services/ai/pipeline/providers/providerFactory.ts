@@ -4,7 +4,7 @@
  * ─────────────────────────────────────────────────────────────────
  *
  *  Instantiates and configures AIInferenceProvider instances.
- *  Auto-initializes the default provider (Ollama or vLLM) based
+ *  Auto-initializes the default provider (Groq primary) based
  *  on centralized runtime configuration.
  */
 
@@ -15,14 +15,16 @@ import {
   type AIRuntimeConfig,
 } from '../config/runtimeConfig';
 import { registerProvider, hasActiveProvider, getActiveProvider, setActiveProvider } from '../provider';
+import { GroqProvider, type GroqProviderOptions } from './groqProvider';
+import { OpenRouterProvider, type OpenRouterProviderOptions } from './openRouterProvider';
 import { OllamaProvider, type OllamaProviderOptions } from './ollamaProvider';
 import { VLLMProvider, type VLLMProviderOptions } from './vllmProvider';
-import { HuggingFaceProvider, type HuggingFaceProviderOptions } from './huggingFaceProvider';
 
 export interface ProviderCreationOptions {
+  readonly groqOptions?: GroqProviderOptions;
+  readonly openRouterOptions?: OpenRouterProviderOptions;
   readonly ollamaOptions?: OllamaProviderOptions;
   readonly vllmOptions?: VLLMProviderOptions;
-  readonly huggingFaceOptions?: HuggingFaceProviderOptions;
 }
 
 /**
@@ -33,12 +35,14 @@ export function createInferenceProvider(
   options?: ProviderCreationOptions
 ): AIInferenceProvider {
   switch (type) {
+    case 'groq':
+      return new GroqProvider(options?.groqOptions);
+    case 'openrouter':
+      return new OpenRouterProvider(options?.openRouterOptions);
     case 'ollama':
       return new OllamaProvider(options?.ollamaOptions);
     case 'vllm':
       return new VLLMProvider(options?.vllmOptions);
-    case 'huggingface':
-      return new HuggingFaceProvider(options?.huggingFaceOptions);
     case 'mock':
       // Return a lightweight mock provider for test/benchmark simulation
       return {
@@ -53,6 +57,7 @@ export function createInferenceProvider(
             metadata: {
               runtime: 'mock',
               runtimeModel: modelDef.id,
+              provider: 'mock',
             },
           };
         },
@@ -90,4 +95,3 @@ try {
 } catch {
   // Silent fallback in test/mocking environments
 }
-

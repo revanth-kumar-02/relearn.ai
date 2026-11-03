@@ -13,22 +13,30 @@ export default defineConfig(({ mode }) => {
         'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
       },
       proxy: {
-        // Proxy Gemini API calls to avoid CORS issues in browser
-        '/api/gemini': {
-          target: 'https://generativelanguage.googleapis.com',
-          changeOrigin: true,
-          rewrite: (path: string) => path.replace(/^\/api\/gemini/, ''),
-          headers: {
-            'x-goog-api-key': env.VITE_GEMINI_LEARNING_API_KEY || env.GEMINI_API_KEY || env.VITE_GEMINI_API_KEY || '',
-          },
-        },
         // Proxy Groq API calls to avoid CORS issues in browser
         '/api/groq': {
           target: 'https://api.groq.com/openai/v1',
           changeOrigin: true,
           rewrite: (path: string) => path.replace(/^\/api\/groq/, ''),
+          configure: (proxy) => {
+            proxy.on('proxyReq', (proxyReq) => {
+              const latestKey = process.env.GROQ_API_KEY || process.env.VITE_GROQ_API_KEY || env.GROQ_API_KEY || env.VITE_GROQ_API_KEY || '';
+              if (latestKey) {
+                proxyReq.setHeader('Authorization', `Bearer ${latestKey}`);
+              }
+            });
+          },
+        },
+
+        // Proxy OpenRouter API calls to avoid CORS issues in browser
+        '/api/openrouter': {
+          target: 'https://openrouter.ai/api/v1',
+          changeOrigin: true,
+          rewrite: (path: string) => path.replace(/^\/api\/openrouter/, ''),
           headers: {
-            'Authorization': `Bearer ${env.VITE_GROQ_API_KEY || ''}`,
+            'Authorization': `Bearer ${env.OPENROUTER_API_KEY || ''}`,
+            'HTTP-Referer': 'https://relearn.ai',
+            'X-Title': 'Relearn.ai',
           },
         },
 
@@ -51,18 +59,6 @@ export default defineConfig(({ mode }) => {
           target: env.AI_VLLM_SERVER_URL || env.VITE_AI_VLLM_BASE_URL || 'http://localhost:8000',
           changeOrigin: true,
           rewrite: (path: string) => path.replace(/^\/api\/ai\/vllm/, ''),
-        },
-
-        // Dev Proxy for Hugging Face Inference API
-        '/api/ai/hf': {
-          target: env.AI_HF_SERVER_URL || env.HF_BASE_URL || 'https://router.huggingface.co/v1',
-          changeOrigin: true,
-          rewrite: (path: string) => path.replace(/^\/api\/ai\/hf/, ''),
-          headers: {
-            ...(env.HF_API_KEY || env.HUGGINGFACE_API_KEY
-              ? { 'Authorization': `Bearer ${env.HF_API_KEY || env.HUGGINGFACE_API_KEY}` }
-              : {}),
-          },
         },
       },
     },
@@ -96,9 +92,6 @@ export default defineConfig(({ mode }) => {
               }
               if (id.includes('jspdf') || id.includes('html2canvas')) {
                 return 'vendor-jspdf';
-              }
-              if (id.includes('@google/genai')) {
-                return 'vendor-genai';
               }
               if (id.includes('dompurify')) {
                 return 'vendor-dompurify';

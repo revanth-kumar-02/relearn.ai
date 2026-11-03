@@ -205,7 +205,7 @@ const CreatePlan: React.FC = () => {
             console.error("Plan Generation Failed:", e);
 
             if (e.message === "API_KEY_EXPIRED") {
-                showToast("Your Gemini API Key has expired. Please update it in your settings or Netlify environment.", "error");
+                showToast("Your AI API Key has expired. Please update it in your settings or Netlify environment.", "error");
             } else {
                 showToast(e?.message || "We lost connection for a moment. Let's reconnect.", "error");
             }

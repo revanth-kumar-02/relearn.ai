@@ -4,7 +4,7 @@
  * ─────────────────────────────────────────────────────────────────
  *
  *  Executes ONE real learning plan generation via generateLearningPlan()
- *  using AI_PROVIDER=huggingface and Qwen/Qwen3-Next-80B-A3B-Instruct.
+ *  using Groq (primary) or OpenRouter (fallback) with GPT-OSS 120B.
  */
 
 import { generateLearningPlan } from '../planGeneratorService';
@@ -18,20 +18,19 @@ async function runLivePlanTest() {
   const config = getAIRuntimeConfig();
   console.log('Runtime Configuration:');
   console.log(`  - Active Provider: ${config.provider}`);
-  console.log(`  - HF Base URL: ${config.hfBaseUrl}`);
-  console.log(`  - Target Model for Task 'learning_plan': ${config.modelMappings.hfQwenModelName}\n`);
+  console.log(`  - Groq Base URL: ${config.groqBaseUrl}`);
+  console.log(`  - Target Model for Task 'learning_plan': ${config.groqDefaultModel}\n`);
 
-  console.log('Invoking generateLearningPlan for "Modern Web Security with OWASP Top 10" (3-day plan)...');
+  console.log('Invoking generateLearningPlan for "flutter" (70-day plan)...');
   const startTime = performance.now();
 
   try {
     const resultJson = await generateLearningPlan(
-      'Modern Web Security with OWASP Top 10',
-      3,
-      'Intermediate',
+      'flutter',
+      70,
+      'Beginner',
       undefined,
-      'English',
-      'Student has 1 year of JavaScript experience and wants to secure REST APIs.'
+      'English'
     );
 
     const durationMs = Math.round(performance.now() - startTime);

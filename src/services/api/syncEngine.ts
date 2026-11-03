@@ -8,7 +8,7 @@
  */
 
 import { lsGet, lsSet } from '../storage/storageService';
-import { SYNC_MAX_RETRIES } from '../../config/gemini.config';
+import { SYNC_MAX_RETRIES } from '../../config/ai.config';
 
 export interface UnsyncedChange {
   id: string;

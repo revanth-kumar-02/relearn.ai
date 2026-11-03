@@ -58,8 +58,13 @@ export function validatePlanStructure(data: any): ValidatedPlan {
  * Constructs the educational system prompt for curriculum generation.
  */
 function buildSystemPrompt(days: number, difficulty: string, language: string, userContext?: string): string {
+  const isExtendedPlan = days > 30;
+  const guidanceRule = isExtendedPlan
+    ? `Guidance for each day MUST be extremely brief (5-8 words per day, e.g. "Install Flutter SDK and verify dev environment") so that all ${days} days fit cleanly in one complete valid JSON without truncation.`
+    : `Guidance for each day should be concise, actionable, and approximately 10-15 words.`;
+
   return `You are an expert educational consultant and curriculum architect.
-Your response MUST be a JSON object with the following schema:
+Your response MUST be a single, complete, valid JSON object with the following schema:
 {
   "title": "Concise plan title",
   "description": "Brief 1-2 sentence overview of what the student will achieve",
@@ -67,7 +72,7 @@ Your response MUST be a JSON object with the following schema:
     {
       "day": 1,
       "topic": "Specific granular topic title",
-      "guidance": "Concise, actionable guidance of approximately 15-20 words"
+      "guidance": "Concise, actionable instruction"
     }
   ]
 }
@@ -82,7 +87,7 @@ The difficulty level should be strictly "${difficulty}".
 CRITICAL RULE: Every single day MUST have a unique, highly specific educational topic. 
 NEVER use placeholder topics like "Practice", "Review", or "Deep Dive" for more than one day in the entire plan. 
 Break down large subjects into granular sub-topics (e.g., instead of 5 days of "CSS", do "Selectors", "Flexbox", "Grid", "Animations", "Responsive Design").
-Guidance for each day should be concise, actionable, and approximately 15-20 words.
+${guidanceRule}
 Guidance MUST be written in ${language}.
 ${userContext ? `Tailor the plan to the user's academic level, goals, and preferred study time mentioned in the context.` : ''} Proprietary or technical terms like "JavaScript", "Function", "React", or "API" should remain in English for clarity.`;
 }
@@ -114,8 +119,9 @@ export const generateLearningPlan = async (
       options: {
         temperature: 0.2,
         responseFormat: 'json',
+        maxTokens: 8192,
         signal,
-        timeoutMs: 60000,
+        timeoutMs: 90000,
       },
     });
 

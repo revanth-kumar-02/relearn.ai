@@ -176,7 +176,7 @@ const OverviewPanel: React.FC<OverviewPanelProps> = ({ stats, growthData, analyt
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Gemini API Usage Card */}
+                {/* AI API Usage Card */}
                 <div className="lg:col-span-2 glass-card noise-overlay rounded-[2.5rem] p-8 border border-white/40 shadow-xl overflow-hidden relative group">
                     <div className="flex items-center justify-between mb-6 relative z-10">
                         <h3 className="text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2 text-stone-500">
@@ -380,7 +380,7 @@ const OverviewPanel: React.FC<OverviewPanelProps> = ({ stats, growthData, analyt
                         <div>
                             <div className="text-xs font-black uppercase tracking-wider">AI API Utilization</div>
                             <div className="text-[10px] font-bold text-slate-400 mt-1">
-                                Gemini tokens operating at normal levels.
+                                AI tokens operating at normal levels.
                             </div>
                         </div>
                     </div>

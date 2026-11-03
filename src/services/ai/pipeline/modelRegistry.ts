@@ -20,6 +20,74 @@ import {
 // Model Definitions
 // -----------------------------------------------------------------
 
+export const MODEL_GPT_OSS_120B: ModelDefinition = {
+  id: AI_MODEL_IDS.GPT_OSS_120B, // 'openai/gpt-oss-120b'
+  name: 'GPT-OSS 120B',
+  description:
+    'Primary frontier open-weights model for curriculum planning, deep conceptual study, reference synthesis, Socratic tutoring, quizzes, flashcards, concept collisions, quality scoring, and translation.',
+  supportedTasks: [
+    'learning_plan',
+    'learning_space',
+    'cheat_sheet',
+    'chatbot',
+    'flashcards',
+    'quizzes',
+    'concept_collision',
+    'quality_scoring',
+    'content_safety',
+    'youtube_query',
+    'translation',
+  ],
+  context: {
+    contextWindow: 131072, // 128k context window
+    maxOutputTokens: 8192,
+  },
+  capabilities: {
+    streaming: true,
+    structuredOutput: true,
+    toolCalling: true,
+    systemPrompt: true,
+    multimodal: false,
+  },
+  defaultConfig: {
+    temperature: 0.3,
+    topP: 0.9,
+    topK: 40,
+    maxTokens: 8192,
+  },
+};
+
+export const MODEL_GPT_OSS_20B: ModelDefinition = {
+  id: AI_MODEL_IDS.GPT_OSS_20B, // 'openai/gpt-oss-20b'
+  name: 'GPT-OSS 20B',
+  description:
+    'Fast, lightweight frontier open-weights model for rapid safety validation, queries, and quick responses.',
+  supportedTasks: [
+    'content_safety',
+    'youtube_query',
+    'quizzes',
+    'flashcards',
+    'chatbot',
+  ],
+  context: {
+    contextWindow: 65536,
+    maxOutputTokens: 4096,
+  },
+  capabilities: {
+    streaming: true,
+    structuredOutput: true,
+    toolCalling: true,
+    systemPrompt: true,
+    multimodal: false,
+  },
+  defaultConfig: {
+    temperature: 0.1,
+    topP: 0.9,
+    topK: 40,
+    maxTokens: 2048,
+  },
+};
+
 export const MODEL_QWEN_80B: ModelDefinition = {
   id: AI_MODEL_IDS.QWEN_80B, // 'Qwen3-Next-80B-A3B-Instruct'
   name: 'Qwen3 Next 80B A3B Instruct',
@@ -74,6 +142,18 @@ export const MODEL_GEMMA_27B: ModelDefinition = {
  * Registry map indexed by model ID and common alias variants.
  */
 const MODEL_REGISTRY = new Map<string, ModelDefinition>([
+  [MODEL_GPT_OSS_120B.id, MODEL_GPT_OSS_120B],
+  [AI_MODEL_IDS.GPT_OSS_120B_FREE, MODEL_GPT_OSS_120B],
+  ['gpt-oss-120b', MODEL_GPT_OSS_120B],
+  ['gpt-oss-120b:free', MODEL_GPT_OSS_120B],
+  ['openai/gpt-oss-120b', MODEL_GPT_OSS_120B],
+  ['openai/gpt-oss-120b:free', MODEL_GPT_OSS_120B],
+  [MODEL_GPT_OSS_20B.id, MODEL_GPT_OSS_20B],
+  [AI_MODEL_IDS.GPT_OSS_20B_FREE, MODEL_GPT_OSS_20B],
+  ['gpt-oss-20b', MODEL_GPT_OSS_20B],
+  ['gpt-oss-20b:free', MODEL_GPT_OSS_20B],
+  ['openai/gpt-oss-20b', MODEL_GPT_OSS_20B],
+  ['openai/gpt-oss-20b:free', MODEL_GPT_OSS_20B],
   [MODEL_QWEN_80B.id, MODEL_QWEN_80B],
   [AI_MODEL_IDS.QWEN_80B_SHORT, MODEL_QWEN_80B],
   ['qwen3-next-80b-a3b-instruct', MODEL_QWEN_80B],
@@ -113,7 +193,7 @@ export function getModelOrThrow(modelId: string): ModelDefinition {
  * List all unique model definitions registered in the pipeline.
  */
 export function getAllModels(): readonly ModelDefinition[] {
-  return [MODEL_QWEN_80B, MODEL_GEMMA_27B];
+  return [MODEL_GPT_OSS_120B, MODEL_GPT_OSS_20B, MODEL_QWEN_80B, MODEL_GEMMA_27B];
 }
 
 /**
