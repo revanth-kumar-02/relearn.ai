@@ -63,13 +63,30 @@ export class GroqProvider implements AIInferenceProvider {
     };
   }
 
-  private getMergedHeaders(): Record<string, string> {
-    const dynamicKey = typeof process !== 'undefined' && process.env ? process.env.GROQ_API_KEY : undefined;
+  private getHeadersForTask(task?: string): Record<string, string> {
+    const isWorkspace = task === 'learning_space';
+    const scope = isWorkspace ? 'workspace' : 'plan_chat';
+
+    // In Node.js / test environments where process.env is accessible directly:
+    let dynamicKey: string | undefined;
+    if (typeof process !== 'undefined' && process.env) {
+      if (isWorkspace) {
+        dynamicKey = (process.env.GROQ_API_KEY_WORKSPACE || process.env.GROQ_API_KEY || '').trim();
+      } else {
+        dynamicKey = (process.env.GROQ_API_KEY_PLAN_CHAT || process.env.GROQ_API_KEY || '').trim();
+      }
+    }
+
     return {
       ...(dynamicKey ? { Authorization: `Bearer ${dynamicKey}` } : {}),
+      'x-groq-scope': scope,
       ...this.staticHeaders,
       ...getAuthHeaders(),
     };
+  }
+
+  private getMergedHeaders(): Record<string, string> {
+    return this.getHeadersForTask();
   }
 
   /**
@@ -119,7 +136,7 @@ export class GroqProvider implements AIInferenceProvider {
 
       const response = await fetch(endpoint, {
         method: 'POST',
-        headers: this.getMergedHeaders(),
+        headers: this.getHeadersForTask(request.task),
         body: JSON.stringify(payload),
         signal: controller.signal,
       });
@@ -215,7 +232,7 @@ export class GroqProvider implements AIInferenceProvider {
 
       const response = await fetch(endpoint, {
         method: 'POST',
-        headers: this.getMergedHeaders(),
+        headers: this.getHeadersForTask(request.task),
         body: JSON.stringify(payload),
         signal: controller.signal,
       });

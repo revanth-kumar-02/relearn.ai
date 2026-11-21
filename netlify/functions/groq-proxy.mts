@@ -34,7 +34,7 @@ export default async (req: Request, context: Context) => {
   const corsHeaders = {
     "Access-Control-Allow-Origin": isAllowedOrigin ? origin : ALLOWED_ORIGINS[0],
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, x-groq-scope",
     "Access-Control-Allow-Credentials": "true",
   };
 
@@ -76,10 +76,24 @@ export default async (req: Request, context: Context) => {
     });
   }
 
-  const apiKey = (process.env.GROQ_API_KEY || "").trim();
+  const scope = (req.headers.get("x-groq-scope") || "").toLowerCase().trim();
+  let apiKey = "";
+
+  if (scope === "workspace") {
+    apiKey = (process.env.GROQ_API_KEY_WORKSPACE || "").trim();
+  } else if (scope === "plan_chat") {
+    apiKey = (process.env.GROQ_API_KEY_PLAN_CHAT || "").trim();
+  }
+
+  // Graceful fallback to default GROQ_API_KEY if specific key is not set
+  if (!apiKey) {
+    apiKey = (process.env.GROQ_API_KEY || "").trim();
+  }
 
   if (!apiKey) {
-    return new Response(JSON.stringify({ error: "Groq API Key not configured." }), {
+    return new Response(JSON.stringify({ 
+      error: `Groq API Key not configured on server${scope ? ` for scope '${scope}'` : ''}.` 
+    }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });

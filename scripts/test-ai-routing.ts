@@ -60,23 +60,38 @@ async function testPipeline() {
     }
   }
 
-  // Test 3: Test generateAI router execution with Groq
-  console.log('\n[Test 3] Router generateAI Test (Groq):');
+  // Test 3: Test generateAI router execution with Groq across scopes
+  console.log('\n[Test 3] Router generateAI Test (Plan & Chatbot Scope):');
   try {
     const res = await generateAI({
       task: 'chatbot',
-      prompt: 'Hello Groq! Respond with "Groq Ready".',
+      prompt: 'Hello Groq! Respond with "Chatbot Groq Ready".',
       options: { maxTokens: 20 },
     });
-    console.log('Router Response:', res.text.trim());
+    console.log('Chatbot Response:', res.text.trim());
     console.log('Provider used:', res.metadata?.provider);
     console.log('Model used:', res.model);
-    console.log('Router Status: SUCCESS');
+    console.log('Plan & Chatbot Scope: SUCCESS');
   } catch (e: any) {
-    console.error('Router test error:', e.message);
+    console.error('Plan & Chatbot test error:', e.message);
   }
 
-  console.log('\n--- Groq Pipeline Testing Complete ---');
+  console.log('\n[Test 4] Router generateAI Test (Workspace Scope):');
+  try {
+    const res = await generateAI({
+      task: 'learning_space',
+      prompt: 'Generate 1 short study goal for Dart basics.',
+      options: { maxTokens: 30 },
+    });
+    console.log('Workspace Response:', res.text.trim());
+    console.log('Provider used:', res.metadata?.provider);
+    console.log('Model used:', res.model);
+    console.log('Workspace Scope: SUCCESS');
+  } catch (e: any) {
+    console.error('Workspace test error:', e.message);
+  }
+
+  console.log('\n--- Groq Dual-Key Pipeline Testing Complete ---');
 }
 
 testPipeline().catch(console.error);

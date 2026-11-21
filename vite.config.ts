@@ -19,11 +19,25 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           rewrite: (path: string) => path.replace(/^\/api\/groq/, ''),
           configure: (proxy) => {
-            proxy.on('proxyReq', (proxyReq) => {
-              const latestKey = process.env.GROQ_API_KEY || env.GROQ_API_KEY || '';
-              if (latestKey) {
-                proxyReq.setHeader('Authorization', `Bearer ${latestKey}`);
+            proxy.on('proxyReq', (proxyReq, req) => {
+              const scope = ((req.headers['x-groq-scope'] as string) || '').toLowerCase().trim();
+              let apiKey = '';
+
+              if (scope === 'workspace') {
+                apiKey = (process.env.GROQ_API_KEY_WORKSPACE || env.GROQ_API_KEY_WORKSPACE || '').trim();
+              } else if (scope === 'plan_chat') {
+                apiKey = (process.env.GROQ_API_KEY_PLAN_CHAT || env.GROQ_API_KEY_PLAN_CHAT || '').trim();
               }
+
+              // Fallback to general GROQ_API_KEY if specific scope key is not provided
+              if (!apiKey) {
+                apiKey = (process.env.GROQ_API_KEY || env.GROQ_API_KEY || '').trim();
+              }
+
+              if (apiKey) {
+                proxyReq.setHeader('Authorization', `Bearer ${apiKey}`);
+              }
+              proxyReq.removeHeader('x-groq-scope');
             });
           },
         },

@@ -48,7 +48,7 @@ export interface AIRuntimeConfig {
  */
 export function getEnvVar(key: string, defaultValue = ''): string {
   // Security guard: never load Groq API keys from Vite browser env
-  if (key === 'GROQ_API_KEY') {
+  if (key === 'GROQ_API_KEY' || key === 'GROQ_API_KEY_PLAN_CHAT' || key === 'GROQ_API_KEY_WORKSPACE') {
     if (typeof process !== 'undefined' && process.env) {
       const val = process.env[key];
       if (val !== undefined && val !== null && val !== '') {
