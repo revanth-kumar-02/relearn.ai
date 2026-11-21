@@ -66,7 +66,7 @@ async function testPipeline() {
     const res = await generateAI({
       task: 'chatbot',
       prompt: 'Hello Groq! Respond with "Chatbot Groq Ready".',
-      options: { maxTokens: 20 },
+      options: { maxTokens: 100 },
     });
     console.log('Chatbot Response:', res.text.trim());
     console.log('Provider used:', res.metadata?.provider);
@@ -81,7 +81,7 @@ async function testPipeline() {
     const res = await generateAI({
       task: 'learning_space',
       prompt: 'Generate 1 short study goal for Dart basics.',
-      options: { maxTokens: 30 },
+      options: { maxTokens: 120 },
     });
     console.log('Workspace Response:', res.text.trim());
     console.log('Provider used:', res.metadata?.provider);
