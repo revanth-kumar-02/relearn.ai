@@ -3,10 +3,9 @@
  *  AI Model Pipeline - Public Interface
  * ─────────────────────────────────────────────────────────────────
  *
- *  Provider-independent AI foundation for Relearn.ai.
+ *  Groq-powered AI inference pipeline for Relearn.ai.
  *  Exports types, model registry, task configuration, router,
- *  runtime adapters (Ollama & vLLM), provider abstraction,
- *  and benchmarking harness.
+ *  Groq provider adapter, and benchmarking harness.
  */
 
 // Types & Errors
@@ -24,9 +23,8 @@ export * from './config/runtimeConfig';
 // Provider Interface & Registry
 export * from './provider';
 
-// Runtime Inference Providers
-export * from './providers/ollamaProvider';
-export * from './providers/vllmProvider';
+// Runtime Inference Providers (Groq Exclusive)
+export * from './providers/groqProvider';
 export * from './providers/providerFactory';
 
 // Validation

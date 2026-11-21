@@ -86,6 +86,7 @@ const LearningWorkspace: React.FC = () => {
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [pdfContent, setPdfContent] = useState<string>('');
   const [pdfError, setPdfError] = useState<string>('');
+  const [generationError, setGenerationError] = useState<string | null>(null);
   const [isPdfProcessing, setIsPdfProcessing] = useState(false);
   const [showPdfPanel, setShowPdfPanel] = useState(!task?.aiExplanation);
   const [timeLeft, setTimeLeft] = useState(10);
@@ -138,7 +139,7 @@ const LearningWorkspace: React.FC = () => {
   useEffect(() => {
     let timer: any;
     
-    if (showPdfPanel && !pdfFile && !isLoading && !task?.aiExplanation && !isPdfProcessing) {
+    if (showPdfPanel && !pdfFile && !isLoading && !task?.aiExplanation && !isPdfProcessing && !generationError) {
       if (timeLeft <= 0) {
         handleSkipPdf();
       } else {
@@ -151,7 +152,7 @@ const LearningWorkspace: React.FC = () => {
     return () => {
       if (timer) clearInterval(timer);
     };
-  }, [timeLeft, showPdfPanel, pdfFile, isLoading, !!task?.aiExplanation, isPdfProcessing]);
+  }, [timeLeft, showPdfPanel, pdfFile, isLoading, !!task?.aiExplanation, isPdfProcessing, generationError]);
 
   useEffect(() => {
     if (!taskId || !task) {
@@ -244,7 +245,9 @@ const LearningWorkspace: React.FC = () => {
       });
     } catch (error: any) {
       console.error("Failed to fetch session data:", error);
-      showToast('We’re having trouble preparing your workspace right now. Let’s try again in a moment.', 'error');
+      const errMsg = error?.message || 'We’re having trouble preparing your workspace right now. Let’s try again in a moment.';
+      setGenerationError(errMsg);
+      showToast(errMsg, 'error');
       setShowPdfPanel(true); // Let them try again
     } finally {
       setIsLoading(false);
@@ -252,12 +255,14 @@ const LearningWorkspace: React.FC = () => {
   }, [task, plan, contentLanguage, pdfContent, user, lessonMode, updateTask, showToast]);
 
   const handleGenerateWithPdf = () => {
+    setGenerationError(null);
     fetchSession();
   };
 
   const handleSkipPdf = (manualTrigger = false) => {
     if (isLoading || task?.aiExplanation) return;
     
+    setGenerationError(null);
     setShowPdfPanel(false);
     setIsLoading(true);
     
@@ -289,9 +294,10 @@ const LearningWorkspace: React.FC = () => {
       })
       .catch(err => {
         console.error("Failed to fetch session data:", err);
-        showToast('We’re having trouble preparing your workspace right now. Let’s try again in a moment.', 'error');
+        const errMsg = err?.message || 'We’re having trouble preparing your workspace right now. Let’s try again in a moment.';
+        setGenerationError(errMsg);
+        showToast(errMsg, 'error');
         setShowPdfPanel(true);
-        setTimeLeft(10); // Reset timer on error
       })
       .finally(() => setIsLoading(false));
   };
@@ -300,6 +306,7 @@ const LearningWorkspace: React.FC = () => {
     setPdfFile(null);
     setPdfContent('');
     setPdfError('');
+    setGenerationError(null);
     setTimeLeft(10); // Reset timer when PDF is removed
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
@@ -628,6 +635,43 @@ const LearningWorkspace: React.FC = () => {
               </div>
             )}
 
+            {/* Generation Error Banner */}
+            {generationError && (
+              <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 space-y-3">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="shrink-0 mt-0.5 text-red-500" size={18} />
+                  <div className="flex-1 text-sm">
+                    <p className="font-bold">Session generation failed</p>
+                    <p className="text-xs mt-1 text-stone-600 dark:text-stone-300 leading-relaxed">{generationError}</p>
+                  </div>
+                </div>
+                <div className="flex gap-2 justify-end pt-1">
+                  <button
+                    onClick={() => {
+                      setGenerationError(null);
+                      setTimeLeft(10);
+                    }}
+                    className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-stone-200 dark:bg-stone-800 text-stone-700 dark:text-stone-300 hover:bg-stone-300 dark:hover:bg-stone-700 transition-colors"
+                  >
+                    Dismiss
+                  </button>
+                  <button
+                    onClick={() => {
+                      setGenerationError(null);
+                      if (pdfFile) {
+                        handleGenerateWithPdf();
+                      } else {
+                        handleSkipPdf(true);
+                      }
+                    }}
+                    className="px-4 py-1.5 text-xs font-bold rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors shadow-sm"
+                  >
+                    Try Again
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Mode Switcher: Auto Mode (Subtle) vs Manual Mode (Button) */}
             <div className="pt-2">
               <AnimatePresence mode="wait">
@@ -640,32 +684,34 @@ const LearningWorkspace: React.FC = () => {
                     exit={{ opacity: 0, y: -5 }}
                     className="flex flex-col items-center gap-4"
                   >
-                    <div className="flex items-center gap-3 px-4 py-2 bg-stone-100/80 dark:bg-stone-800/80 md:backdrop-blur-md rounded-full border border-stone-200/50 dark:border-stone-700/50 shadow-inner">
-                      <div className="relative w-4 h-4">
-                        <svg className="w-full h-full -rotate-90">
-                          <circle
-                            cx="8" cy="8" r="7"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            className="text-stone-200 dark:text-stone-800"
-                          />
-                          <motion.circle
-                            cx="8" cy="8" r="7"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            className="text-sky-500"
-                            strokeDasharray={44}
-                            animate={{ strokeDashoffset: 44 - (44 * (10 - timeLeft)) / 10 }}
-                            transition={{ duration: 1, ease: "linear" }}
-                          />
-                        </svg>
+                    {!generationError && (
+                      <div className="flex items-center gap-3 px-4 py-2 bg-stone-100/80 dark:bg-stone-800/80 md:backdrop-blur-md rounded-full border border-stone-200/50 dark:border-stone-700/50 shadow-inner">
+                        <div className="relative w-4 h-4">
+                          <svg className="w-full h-full -rotate-90">
+                            <circle
+                              cx="8" cy="8" r="7"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              className="text-stone-200 dark:text-stone-800"
+                            />
+                            <motion.circle
+                              cx="8" cy="8" r="7"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              className="text-sky-500"
+                              strokeDasharray={44}
+                              animate={{ strokeDashoffset: 44 - (44 * (10 - timeLeft)) / 10 }}
+                              transition={{ duration: 1, ease: "linear" }}
+                            />
+                          </svg>
+                        </div>
+                        <span className="text-xs font-medium text-stone-500 dark:text-stone-400">
+                          Auto-generating lesson in <span className="text-stone-900 dark:text-stone-100 font-bold">{timeLeft}s</span>
+                        </span>
                       </div>
-                      <span className="text-xs font-medium text-stone-500 dark:text-stone-400">
-                        Auto-generating lesson in <span className="text-stone-900 dark:text-stone-100 font-bold">{timeLeft}s</span>
-                      </span>
-                    </div>
+                    )}
                     
                     <button 
                       onClick={() => handleSkipPdf(true)}

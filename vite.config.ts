@@ -20,23 +20,11 @@ export default defineConfig(({ mode }) => {
           rewrite: (path: string) => path.replace(/^\/api\/groq/, ''),
           configure: (proxy) => {
             proxy.on('proxyReq', (proxyReq) => {
-              const latestKey = process.env.GROQ_API_KEY || process.env.VITE_GROQ_API_KEY || env.GROQ_API_KEY || env.VITE_GROQ_API_KEY || '';
+              const latestKey = process.env.GROQ_API_KEY || env.GROQ_API_KEY || '';
               if (latestKey) {
                 proxyReq.setHeader('Authorization', `Bearer ${latestKey}`);
               }
             });
-          },
-        },
-
-        // Proxy OpenRouter API calls to avoid CORS issues in browser
-        '/api/openrouter': {
-          target: 'https://openrouter.ai/api/v1',
-          changeOrigin: true,
-          rewrite: (path: string) => path.replace(/^\/api\/openrouter/, ''),
-          headers: {
-            'Authorization': `Bearer ${env.OPENROUTER_API_KEY || ''}`,
-            'HTTP-Referer': 'https://relearn.ai',
-            'X-Title': 'Relearn.ai',
           },
         },
 
@@ -45,20 +33,6 @@ export default defineConfig(({ mode }) => {
           target: 'https://formspree.io',
           changeOrigin: true,
           rewrite: (path: string) => path.replace(/^\/api\/feedback/, ''),
-        },
-
-        // Dev Proxy for Local Ollama runtime
-        '/api/ai/ollama': {
-          target: env.AI_OLLAMA_SERVER_URL || env.VITE_AI_OLLAMA_BASE_URL || 'http://localhost:11434',
-          changeOrigin: true,
-          rewrite: (path: string) => path.replace(/^\/api\/ai\/ollama/, ''),
-        },
-
-        // Dev Proxy for Local vLLM runtime
-        '/api/ai/vllm': {
-          target: env.AI_VLLM_SERVER_URL || env.VITE_AI_VLLM_BASE_URL || 'http://localhost:8000',
-          changeOrigin: true,
-          rewrite: (path: string) => path.replace(/^\/api\/ai\/vllm/, ''),
         },
       },
     },

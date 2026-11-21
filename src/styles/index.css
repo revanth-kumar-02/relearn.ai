@@ -113,50 +113,36 @@
     }
   }
   .dark .glass-card {
-    background: rgba(24, 38, 47, 0.9);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    box-shadow: 
-      0 20px 40px rgba(0, 0, 0, 0.4);
+    background: #18262f;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.35);
   }
   @media (min-width: 768px) {
     .dark .glass-card {
-      background: rgba(24, 38, 47, 0.5);
-      backdrop-filter: blur(12px) saturate(150%);
-      -webkit-backdrop-filter: blur(12px) saturate(150%);
-      box-shadow: 
-        0 20px 40px rgba(0, 0, 0, 0.4),
-        inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+      background: #18262f;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.4);
     }
   }
 
   /* =============================================
-     UTILITY: NEON GLOWS
+     UTILITY: NEON GLOWS (RESTRAINED)
      ============================================= */
   .glow-primary {
-    box-shadow: 0 0 25px rgba(19, 164, 236, 0.3);
+    box-shadow: 0 0 16px rgba(19, 164, 236, 0.15);
   }
   .glow-secondary {
-    box-shadow: 0 0 25px rgba(8, 131, 149, 0.3);
+    box-shadow: 0 0 16px rgba(8, 131, 149, 0.15);
   }
 
   /* =============================================
-     UTILITY: NOISE TEXTURE OVERLAY
+     UTILITY: NOISE TEXTURE OVERLAY (DEPRECATED - SMOOTH REFINED SYSTEM)
      ============================================= */
   .noise-overlay {
     position: relative;
-    overflow: hidden;
   }
   .noise-overlay::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    opacity: 0.04;
-    pointer-events: none;
-    z-index: 1;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    display: none !important;
   }
 
   /* =============================================

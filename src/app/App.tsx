@@ -353,7 +353,7 @@ const AppContent: React.FC = () => {
   const isDiary = location.pathname === '/diary';
 
   return (
-    <div className={`flex min-h-screen ${isDiary ? 'bg-cream dark:bg-dark-cream' : 'bg-background-light dark:bg-background-dark'} overflow-hidden transition-colors duration-500 noise-overlay`}>
+    <div className={`flex min-h-screen ${isDiary ? 'bg-cream dark:bg-dark-cream' : 'bg-background-light dark:bg-background-dark'} overflow-hidden transition-colors duration-500`}>
       <a 
         href="#main-content" 
         className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:bg-primary focus:text-white focus:px-4 focus:py-2 focus:rounded-lg focus:font-bold focus:shadow-xl"
@@ -388,7 +388,7 @@ const AppContent: React.FC = () => {
         <motion.aside 
           initial={false}
           animate={{ width: isSidebarExpanded ? 288 : 80 }}
-          className="hidden md:flex flex-col h-screen glass-card fixed left-0 top-0 z-50 overflow-hidden"
+          className="hidden md:flex flex-col h-screen glass-card dark:!bg-[#0c161b] dark:border-r dark:border-white/5 fixed left-0 top-0 z-50 overflow-hidden"
         >
           <div className={`p-6 flex items-center border-b border-white/10 dark:border-white/5 ${isSidebarExpanded ? 'gap-4' : 'justify-center'}`}>
             <motion.div 

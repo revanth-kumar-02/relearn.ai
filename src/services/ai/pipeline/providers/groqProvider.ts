@@ -54,8 +54,7 @@ export class GroqProvider implements AIInferenceProvider {
 
     const apiKey =
       options?.apiKey ||
-      (typeof process !== 'undefined' && process.env ? process.env.GROQ_API_KEY : undefined) ||
-      (typeof import.meta !== 'undefined' && (import.meta as any)?.env ? (import.meta as any).env.VITE_GROQ_API_KEY : undefined);
+      (typeof process !== 'undefined' && process.env ? process.env.GROQ_API_KEY : undefined);
 
     this.staticHeaders = {
       'Content-Type': 'application/json',
@@ -65,7 +64,9 @@ export class GroqProvider implements AIInferenceProvider {
   }
 
   private getMergedHeaders(): Record<string, string> {
+    const dynamicKey = typeof process !== 'undefined' && process.env ? process.env.GROQ_API_KEY : undefined;
     return {
+      ...(dynamicKey ? { Authorization: `Bearer ${dynamicKey}` } : {}),
       ...this.staticHeaders,
       ...getAuthHeaders(),
     };

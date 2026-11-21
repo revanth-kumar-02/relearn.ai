@@ -240,12 +240,10 @@ export async function runSmokeTestSuite(): Promise<void> {
   const config = getAIRuntimeConfig();
   console.log('Phase 1: Environment & Active Provider Check:');
   console.log(`  - Configured Provider: ${config.provider}`);
-  console.log(`  - Ollama Base URL: ${config.ollamaBaseUrl}`);
-  console.log(`  - vLLM Base URL: ${config.vllmBaseUrl}`);
-  console.log(`  - Groq Default Model: ${config.modelMappings.groqDefaultModel}`);
-  console.log(`  - OpenRouter Fallback Model: ${config.modelMappings.openRouterFallbackModel}\n`);
+  console.log(`  - Groq Base URL: ${config.groqBaseUrl}`);
+  console.log(`  - Groq Default Model: ${config.modelMappings.groqDefaultModel}\n`);
 
-  // 1. Test with configured runtime provider (Ollama / vLLM / Hugging Face)
+  // 1. Test with configured Groq provider
   const provider = createInferenceProvider(config.provider);
   registerProvider(provider, { makeActive: true });
   console.log(`  - Initialized Active Provider: ${provider.name}\n`);

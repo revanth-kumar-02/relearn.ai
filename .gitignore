@@ -36,3 +36,5 @@ scratch/
 # Test artifacts
 test-results/
 playwright-report/
+screenshots/
+*.png

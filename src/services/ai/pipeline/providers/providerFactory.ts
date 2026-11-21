@@ -4,45 +4,32 @@
  * ─────────────────────────────────────────────────────────────────
  *
  *  Instantiates and configures AIInferenceProvider instances.
- *  Auto-initializes the default provider (Groq primary) based
- *  on centralized runtime configuration.
+ *  Uses Groq exclusively.
  */
 
 import { type AIInferenceProvider } from '../types';
 import {
-  getAIRuntimeConfig,
   type AIProviderType,
-  type AIRuntimeConfig,
 } from '../config/runtimeConfig';
-import { registerProvider, hasActiveProvider, getActiveProvider, setActiveProvider } from '../provider';
 import { GroqProvider, type GroqProviderOptions } from './groqProvider';
-import { OpenRouterProvider, type OpenRouterProviderOptions } from './openRouterProvider';
-import { OllamaProvider, type OllamaProviderOptions } from './ollamaProvider';
-import { VLLMProvider, type VLLMProviderOptions } from './vllmProvider';
 
 export interface ProviderCreationOptions {
   readonly groqOptions?: GroqProviderOptions;
-  readonly openRouterOptions?: OpenRouterProviderOptions;
-  readonly ollamaOptions?: OllamaProviderOptions;
-  readonly vllmOptions?: VLLMProviderOptions;
 }
+
+import { registerProvider, hasActiveProvider, getActiveProvider } from '../provider';
+import { getAIRuntimeConfig, type AIRuntimeConfig } from '../config/runtimeConfig';
 
 /**
  * Creates an inference provider instance for the specified type.
  */
 export function createInferenceProvider(
-  type: AIProviderType,
+  type: AIProviderType = 'groq',
   options?: ProviderCreationOptions
 ): AIInferenceProvider {
   switch (type) {
     case 'groq':
       return new GroqProvider(options?.groqOptions);
-    case 'openrouter':
-      return new OpenRouterProvider(options?.openRouterOptions);
-    case 'ollama':
-      return new OllamaProvider(options?.ollamaOptions);
-    case 'vllm':
-      return new VLLMProvider(options?.vllmOptions);
     case 'mock':
       // Return a lightweight mock provider for test/benchmark simulation
       return {
@@ -63,12 +50,12 @@ export function createInferenceProvider(
         },
       };
     default:
-      throw new Error(`Unsupported AI provider type: '${String(type)}'`);
+      return new GroqProvider(options?.groqOptions);
   }
 }
 
 /**
- * Automatically initializes and registers the default provider based on runtime environment configuration.
+ * Automatically initializes and registers the default provider (Groq).
  */
 export function initializeDefaultProvider(
   config: AIRuntimeConfig = getAIRuntimeConfig()

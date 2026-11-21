@@ -4,7 +4,7 @@
  * ─────────────────────────────────────────────────────────────────
  *
  *  Single source of truth for all AI model IDs and settings.
- *  The platform primarily uses Groq with OpenRouter as fallback.
+ *  The platform exclusively uses Groq.
  */
 
 export const AI_MODELS = {
@@ -20,11 +20,10 @@ export const AI_MODELS = {
   /** Premium image generation model */
   IMAGE: 'pollinations-flux',
 
-  /** Ordered fallback chain for peak demand */
+  /** Ordered model tier for Groq */
   FALLBACK_CHAIN: [
     (typeof import.meta !== 'undefined' && import.meta.env?.VITE_LLM_MODEL_PRIMARY) || (typeof process !== 'undefined' && process.env?.VITE_LLM_MODEL_PRIMARY) || 'openai/gpt-oss-120b',
     (typeof import.meta !== 'undefined' && import.meta.env?.VITE_LLM_MODEL_FAST) || (typeof process !== 'undefined' && process.env?.VITE_LLM_MODEL_FAST) || 'openai/gpt-oss-20b',
-    'openai/gpt-oss-120b:free',
   ],
 } as const;
 

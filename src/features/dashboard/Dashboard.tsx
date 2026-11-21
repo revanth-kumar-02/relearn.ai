@@ -163,13 +163,13 @@ const Dashboard: React.FC = () => {
                     <div className="flex items-center gap-2.5 shrink-0 pt-5 md:pt-0">
                         <ThemeToggle 
                             variant="icon"
-                            className="w-10 h-10 md:w-12 md:h-12 rounded-2xl glass-card noise-overlay flex items-center justify-center text-stone-600 dark:text-stone-300 relative shadow-xl"
+                            className="w-10 h-10 md:w-12 md:h-12 rounded-2xl glass-card flex items-center justify-center text-stone-600 dark:text-stone-300 relative shadow-xl"
                         />
                         <motion.button 
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             onClick={() => navigate('/notifications')}
-                            className="w-10 h-10 md:w-12 md:h-12 rounded-2xl glass-card noise-overlay flex items-center justify-center text-stone-600 dark:text-stone-300 relative shadow-xl"
+                            className="w-10 h-10 md:w-12 md:h-12 rounded-2xl glass-card flex items-center justify-center text-stone-600 dark:text-stone-300 relative shadow-xl"
                         >
                             <Icon name="notifications" className="text-lg md:text-xl" />
                             {unreadCount > 0 && (
@@ -185,7 +185,7 @@ const Dashboard: React.FC = () => {
                             onClick={() => navigate('/profile')}
                             className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-primary text-white flex items-center justify-center shadow-xl shadow-primary/20 overflow-hidden relative"
                         >
-                            <div className="absolute inset-0 bg-white/10 noise-overlay" />
+                            <div className="absolute inset-0 bg-white/10" />
                             <span className="text-base md:text-lg font-bold relative z-10">{firstInitial}</span>
                         </motion.button>
                     </div>
@@ -212,7 +212,7 @@ const Dashboard: React.FC = () => {
                                 <motion.div 
                                     whileHover={{ y: -4 }}
                                     onClick={() => navigate('/create-plan')}
-                                    className="glass-card noise-overlay rounded-2xl p-12 border-dashed border-2 border-stone-200 dark:border-stone-800 flex flex-col items-center text-center cursor-pointer group"
+                                    className="glass-card rounded-2xl p-12 border-dashed border-2 border-stone-200 dark:border-stone-800 flex flex-col items-center text-center cursor-pointer group"
                                 >
                                     <div className="w-16 h-16 rounded-3xl bg-primary/10 flex items-center justify-center mb-6 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 shadow-lg shadow-primary/5">
                                         <Icon name="auto_awesome" className="text-3xl text-primary" />
@@ -234,7 +234,7 @@ const Dashboard: React.FC = () => {
                             <motion.section 
                                 initial={{ opacity: 0, x: 20 }}
                                 animate={{ opacity: 1, x: 0 }}
-                                className="glass-card noise-overlay rounded-2xl p-8 border border-red-500/10 relative overflow-hidden group"
+                                className="glass-card rounded-2xl p-8 border border-red-500/10 relative overflow-hidden group"
                             >
                                 <div className="absolute -right-8 -top-8 w-32 h-32 bg-red-500/5 rounded-full blur-3xl" />
                                 <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-red-500 mb-4 flex items-center gap-2">
@@ -290,7 +290,7 @@ const PlanCard = React.memo(({ plan, index, navigate }: any) => (
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: index * 0.1 }}
         onClick={() => navigate('/plan-details', { state: { planId: plan.id } })}
-        className="glass-card noise-overlay rounded-[2rem] p-7 text-left border border-white/40 shadow-xl group relative overflow-hidden transition-all duration-300 hover:shadow-2xl hover:shadow-primary/5 hover:-translate-y-1.5"
+        className="glass-card rounded-[2rem] p-7 text-left border border-stone-200/60 dark:border-white/10 shadow-xl group relative overflow-hidden transition-all duration-300 hover:shadow-2xl hover:shadow-primary/5 hover:-translate-y-1.5"
     >
         <div className="absolute top-0 right-0 p-7 opacity-0 group-hover:opacity-10 transition-opacity duration-300">
             <Icon name="rocket_launch" className="text-6xl" />
@@ -342,7 +342,7 @@ const ScheduleSection = React.memo(({
     navigate
 }: any) => {
     return (
-        <section className="glass-card noise-overlay rounded-2xl p-6 shadow-xl">
+        <section className="glass-card rounded-2xl p-6 shadow-xl">
             <div className="flex items-center justify-between mb-5">
                 <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-stone-500">Timeline</h3>
                 <div className="flex gap-2">
@@ -435,7 +435,7 @@ const ScheduleSection = React.memo(({
 });
 
 const ActivitySection = React.memo(({ recentActivity, clearAllActivity }: any) => (
-    <section className="glass-card noise-overlay rounded-2xl p-6 shadow-xl">
+    <section className="glass-card rounded-2xl p-6 shadow-xl">
         <div className="flex items-center justify-between mb-5">
             <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-stone-500">Neural Log</h3>
             {(recentActivity || []).length > 0 && (
