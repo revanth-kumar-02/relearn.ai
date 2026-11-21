@@ -3,13 +3,9 @@ import { generateYouTubeSearchQuery } from '../ai/youtubeQueryService';
 import { getAuthHeaders } from '../../utils/authUtils';
 
 /**
- * In production, YouTube requests are proxied through /api/youtube (Netlify Function)
- * so the API key never reaches the browser. In local dev, we fall back to the VITE key
- * since the Netlify function isn't available via `npm run dev`.
+ * YouTube requests are proxied through /api/youtube (Netlify Function in production,
+ * and Vite dev server middleware in local development) so the API key never reaches the browser.
  */
-const IS_DEV = import.meta.env.DEV;
-const YOUTUBE_API_KEY_DEV = import.meta.env.VITE_YOUTUBE_API_KEY;
-const YOUTUBE_API_URL = 'https://www.googleapis.com/youtube/v3';
 
 // ═══════════════════════════════════════════════════════════════
 //  Types
@@ -324,29 +320,59 @@ const generateReason = (
 };
 
 // ═══════════════════════════════════════════════════════════════
-//  5️⃣  localStorage Cache Layer
+//  5️⃣  Cache Layer (24h TTL, Scoped)
 // ═══════════════════════════════════════════════════════════════
 
-/**  
- * USER REQUEST: No localStorage caching for videos.
- * These are now NOOPs to prevent saving/reading video data from local storage.
- */
+const CACHE_PREFIX = 'relearn_videos_v2_';
+
 const buildCacheKey = (language: string, dayTitle: string): string => {
   const vidLang = getVideoLanguagePreference();
-  return `relearn_videos_${vidLang}_${language.toLowerCase().replace(/\s+/g, '_')}_${dayTitle.toLowerCase().replace(/\s+/g, '_')}`;
+  const cleanLang = (language || 'general').toLowerCase().trim().replace(/[^a-z0-9]/g, '_');
+  const cleanTopic = dayTitle.toLowerCase().trim().replace(/[^a-z0-9]/g, '_');
+  return `${CACHE_PREFIX}${vidLang}_${cleanLang}_${cleanTopic}`;
 };
 
-const getCachedVideos = (_language: string, _dayTitle: string): YouTubeVideo[] | null => {
-  return null; // Always return null to force fresh fetch
+const memoryVideoCache = new Map<string, { videos: YouTubeVideo[]; timestamp: number }>();
+
+const getCachedVideos = (language: string, dayTitle: string): YouTubeVideo[] | null => {
+  const key = buildCacheKey(language, dayTitle);
+  // 1. Check in-memory cache
+  const mem = memoryVideoCache.get(key);
+  if (mem && (Date.now() - mem.timestamp) < CACHE_TTL_MS && mem.videos?.length > 0) {
+    return mem.videos;
+  }
+  // 2. Check localStorage
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw) {
+      const parsed: CachedResult = JSON.parse(raw);
+      if ((Date.now() - parsed.timestamp) < CACHE_TTL_MS && parsed.videos?.length > 0) {
+        memoryVideoCache.set(key, parsed);
+        return parsed.videos;
+      }
+    }
+  } catch { /* noop */ }
+  return null;
 };
 
-const setCachedVideos = (_language: string, _dayTitle: string, _videos: YouTubeVideo[]): void => {
-  // Noop - don't save to localStorage
+const setCachedVideos = (language: string, dayTitle: string, videos: YouTubeVideo[]): void => {
+  if (!videos || videos.length === 0) return; // Never cache empty results or error states
+  const key = buildCacheKey(language, dayTitle);
+  const data: CachedResult = { videos, timestamp: Date.now() };
+  memoryVideoCache.set(key, data);
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch { /* quota limit */ }
 };
 
 export const clearVideosCache = (topic: string, subject: string = ''): void => {
-  // We still provide this for the UI, but it's a noop now since there's no cache
-  console.log(`[YouTube] Refreshing recommendations for "${topic}"...`);
+  const language = subject ? detectLanguage(subject) : '';
+  const key = buildCacheKey(language, topic);
+  memoryVideoCache.delete(key);
+  try {
+    localStorage.removeItem(key);
+  } catch { /* noop */ }
+  console.log(`[YouTube] Cleared cache for "${topic}"`);
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -381,29 +407,23 @@ const buildFallbackQueries = (language: string, dayTitle: string): string[] => {
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Calls a YouTube Data API endpoint.
- * In production → POST to /api/youtube (Netlify Function proxy, key is server-side).
- * In dev        → Direct fetch with the VITE_YOUTUBE_API_KEY.
+ * Calls a YouTube Data API endpoint via the secure serverless/dev proxy.
+ * In production → POST /api/youtube (Netlify Function proxy, key is server-side).
+ * In dev        → POST /api/youtube (Vite dev server middleware proxy).
  */
+const getYouTubeEndpoint = (): string => {
+  if (typeof window !== 'undefined') return '/api/youtube';
+  const port = (typeof process !== 'undefined' && process.env?.PORT) || '3000';
+  return `http://localhost:${port}/api/youtube`;
+};
+
 async function callYouTubeAPI(endpoint: 'search', params: Record<string, string>): Promise<YTSearchResponse>;
 async function callYouTubeAPI(endpoint: 'videos', params: Record<string, string>): Promise<YTVideoDetailResponse>;
 async function callYouTubeAPI(
   endpoint: 'search' | 'videos',
   params: Record<string, string>
 ): Promise<YTSearchResponse | YTVideoDetailResponse> {
-  if (IS_DEV && YOUTUBE_API_KEY_DEV) {
-    // Direct call in development
-    const searchParams = new URLSearchParams({ ...params, key: YOUTUBE_API_KEY_DEV });
-    const res = await fetch(`${YOUTUBE_API_URL}/${endpoint}?${searchParams}`);
-    if (!res.ok) {
-      const errBody = await res.json().catch(() => ({}));
-      throw new Error(errBody.error?.message || `YouTube ${endpoint} failed (${res.status})`);
-    }
-    return res.json();
-  }
-
-  // Production → secure serverless proxy
-  const res = await fetch('/api/youtube', {
+  const res = await fetch(getYouTubeEndpoint(), {
     method: 'POST',
     headers: { 
       'Content-Type': 'application/json',
@@ -414,7 +434,12 @@ async function callYouTubeAPI(
 
   if (!res.ok) {
     const errBody = await res.json().catch(() => ({}));
-    throw new Error(errBody.error?.message || `YouTube ${endpoint} failed (${res.status})`);
+    const message = errBody.error?.message || `YouTube ${endpoint} failed (${res.status})`;
+    const error: any = new Error(message);
+    error.status = res.status;
+    error.code = errBody.error?.code || res.status;
+    error.reason = errBody.error?.errors?.[0]?.reason || (res.status === 403 ? 'quotaExceeded' : 'unknown');
+    throw error;
   }
   return res.json();
 }
@@ -510,14 +535,18 @@ const filterAndRank = (
 export const fetchEducationalVideos = async (
   topic: string,       // Day title (e.g., "Variables", "Loops")
   subject: string = '', // Plan subject (e.g., "Python", "JavaScript")
-  randomize: boolean = false // Whether to add randomness to the query
+  randomize: boolean = false // Whether to add randomness to the query / force fresh fetch
 ): Promise<YouTubeVideo[]> => {
   const language = subject ? detectLanguage(subject) : '';
 
-  // ── 1. Check cache first ──────────────────────────────────
-  const cached = getCachedVideos(language || 'general', topic);
-  if (cached && cached.length > 0) {
-    return cached;
+  // ── 1. Check cache first (unless explicit refresh) ────────
+  if (!randomize) {
+    const cached = getCachedVideos(language || 'general', topic);
+    if (cached && cached.length > 0) {
+      return cached;
+    }
+  } else {
+    clearVideosCache(topic, subject);
   }
 
   try {
@@ -531,7 +560,7 @@ export const fetchEducationalVideos = async (
     let rawItems = await fetchFromYouTube(primaryQuery);
     let results = filterAndRank(rawItems, language, topic);
 
-    // ── 4. Fallback strategy if results are sparse ──────────
+    // ── 3. Fallback strategy if results are sparse ──────────
     if (results.length < 2) {
       const fallbacks = buildFallbackQueries(language || subject, topic);
 
@@ -548,26 +577,30 @@ export const fetchEducationalVideos = async (
       }
     }
 
-    // ── 5. Cache results ────────────────────────────────────
+    // ── 4. Cache results (only valid non-empty results) ──────
     if (results.length > 0) {
       setCachedVideos(language || 'general', topic, results);
     }
 
     return results;
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('[YouTube] API Error:', error);
-    // Last resort: return cached even if expired
+    // If we have expired cached videos, return them as offline fallback
     try {
       const key = buildCacheKey(language || 'general', topic);
       const raw = localStorage.getItem(key);
       if (raw) {
         const cached: CachedResult = JSON.parse(raw);
-        console.log('[YouTube] Returning expired cache after API failure');
-        return cached.videos;
+        if (cached.videos?.length > 0) {
+          console.log('[YouTube] Returning expired cache after API failure');
+          return cached.videos;
+        }
       }
     } catch { /* noop */ }
-    return [];
+
+    // Rethrow so caller UI can present differentiated error state
+    throw error;
   }
 };
 

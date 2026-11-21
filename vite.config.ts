@@ -50,7 +50,52 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
-    plugins: [react()],
+    plugins: [
+      react(),
+      {
+        name: 'youtube-dev-proxy',
+        configureServer(server) {
+          server.middlewares.use('/api/youtube', async (req, res) => {
+            if (req.method !== 'POST') {
+              res.statusCode = 405;
+              res.setHeader('Content-Type', 'application/json');
+              res.end(JSON.stringify({ error: { message: 'Method not allowed' } }));
+              return;
+            }
+            let body = '';
+            req.on('data', (chunk) => { body += chunk; });
+            req.on('end', async () => {
+              try {
+                const { endpoint, params } = JSON.parse(body || '{}');
+                const apiKey = (process.env.YOUTUBE_API_KEY || env.YOUTUBE_API_KEY || '').trim();
+                if (!apiKey) {
+                  res.statusCode = 500;
+                  res.setHeader('Content-Type', 'application/json');
+                  res.end(JSON.stringify({ error: { message: 'YOUTUBE_API_KEY is not configured on the local server.' } }));
+                  return;
+                }
+                if (!['search', 'videos'].includes(endpoint)) {
+                  res.statusCode = 400;
+                  res.setHeader('Content-Type', 'application/json');
+                  res.end(JSON.stringify({ error: { message: `Invalid endpoint: "${endpoint}"` } }));
+                  return;
+                }
+                const searchParams = new URLSearchParams({ ...params, key: apiKey });
+                const googleRes = await fetch(`https://www.googleapis.com/youtube/v3/${endpoint}?${searchParams}`);
+                const data = await googleRes.json();
+                res.statusCode = googleRes.status;
+                res.setHeader('Content-Type', 'application/json');
+                res.end(JSON.stringify(data));
+              } catch (e: any) {
+                res.statusCode = 500;
+                res.setHeader('Content-Type', 'application/json');
+                res.end(JSON.stringify({ error: { message: e?.message || 'Internal proxy error' } }));
+              }
+            });
+          });
+        },
+      },
+    ],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),

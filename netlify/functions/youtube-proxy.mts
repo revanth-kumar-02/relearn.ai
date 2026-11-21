@@ -20,6 +20,7 @@ function getSupabase() {
 const ALLOWED_ORIGINS = [
   "https://relearn-ai.netlify.app",
   "https://relearn.ai",
+  "http://localhost:3000",
   "http://localhost:5173",
   "http://localhost:8888"
 ];

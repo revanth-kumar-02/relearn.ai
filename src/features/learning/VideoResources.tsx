@@ -3,6 +3,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { fetchEducationalVideos, clearVideosCache, YouTubeVideo } from '../../services/api/youtubeService';
 import { useData } from '../../contexts/DataContext';
 
+type ErrorCategory = 'quota' | 'config' | 'network' | 'general';
+
 interface VideoResourcesProps {
   topic: string;
   subject?: string; // Plan subject / programming language
@@ -12,6 +14,7 @@ const VideoResources: React.FC<VideoResourcesProps> = ({ topic, subject }) => {
   const [videos, setVideos] = useState<YouTubeVideo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [errorCategory, setErrorCategory] = useState<ErrorCategory>('general');
   const [loaded, setLoaded] = useState(false); // for stagger animation
 
   // Read current video language from global context so we re-fetch when user changes it in Settings
@@ -25,9 +28,18 @@ const VideoResources: React.FC<VideoResourcesProps> = ({ topic, subject }) => {
     try {
       const results = await fetchEducationalVideos(topic, subject, isRefresh);
       setVideos(results);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to load videos', err);
-      setError('Could not load video resources.');
+      if (err.reason === 'quotaExceeded' || err.status === 403 || err.message?.toLowerCase().includes('quota')) {
+        setErrorCategory('quota');
+        setError('YouTube search quota has been reached for today. Video mentorship will resume tomorrow.');
+      } else if (err.status === 400 || err.message?.toLowerCase().includes('api key') || err.message?.includes('API_KEY_INVALID')) {
+        setErrorCategory('config');
+        setError('YouTube API key is misconfigured or invalid on the server.');
+      } else {
+        setErrorCategory('network');
+        setError('Could not connect to video service. Please check your network and try again.');
+      }
     } finally {
       setLoading(false);
       // Trigger stagger after a tiny delay for smoother transition
@@ -71,19 +83,32 @@ const VideoResources: React.FC<VideoResourcesProps> = ({ topic, subject }) => {
 
   // ── Error State ──────────────────────────────────────────
   if (error) {
+    const isQuota = errorCategory === 'quota';
+    const isConfig = errorCategory === 'config';
     return (
-      <div className="p-5 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 rounded-2xl flex items-center justify-between text-sm border border-red-200 dark:border-red-900/40">
+      <div className={`p-5 rounded-2xl flex items-center justify-between text-sm border ${
+        isQuota 
+          ? 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-900/40'
+          : isConfig
+          ? 'bg-orange-50 dark:bg-orange-950/30 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-900/40'
+          : 'bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border-red-200 dark:border-red-900/40'
+      }`}>
         <div className="flex items-center gap-3">
-          <span className="material-symbols-outlined text-lg">error_outline</span>
+          <span className="material-symbols-outlined text-lg">
+            {isQuota ? 'hourglass_bottom' : isConfig ? 'key_off' : 'cloud_off'}
+          </span>
           <span className="font-medium">{error}</span>
         </div>
-        <button
-          onClick={() => loadVideos()}
-          className="p-2 rounded-xl hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
-          aria-label="Retry loading videos"
-        >
-          <span className="material-symbols-outlined text-base">refresh</span>
-        </button>
+        {!isQuota && (
+          <button
+            onClick={() => loadVideos(true)}
+            className="p-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+            aria-label="Retry loading videos"
+            title="Retry"
+          >
+            <span className="material-symbols-outlined text-base">refresh</span>
+          </button>
+        )}
       </div>
     );
   }
@@ -95,13 +120,13 @@ const VideoResources: React.FC<VideoResourcesProps> = ({ topic, subject }) => {
         <span className="material-symbols-outlined text-4xl text-stone-300 dark:text-stone-600 mb-3 block">
           videocam_off
         </span>
-        <p className="text-stone-500 text-sm font-medium">No video resources found for this topic.</p>
+        <p className="text-stone-500 text-sm font-medium">No video tutorials found matching this lesson topic.</p>
         <button
-          onClick={() => loadVideos()}
+          onClick={() => loadVideos(true)}
           className="mt-4 text-xs text-primary hover:text-primary/80 flex items-center gap-1.5 mx-auto transition-colors font-bold"
         >
           <span className="material-symbols-outlined text-sm">refresh</span>
-          Try again
+          Search again
         </button>
       </div>
     );
