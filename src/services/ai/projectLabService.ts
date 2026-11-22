@@ -51,6 +51,14 @@ export interface ProjectLab {
   milestones: ProjectMilestone[];
   testChecklist: string[];
   solutionPreview?: string;
+  files?: Array<{
+    id: string;
+    name: string;
+    path: string;
+    language: string;
+    content: string;
+    isEntrypoint?: boolean;
+  }>;
 }
 
 export interface CodeReviewResult {
