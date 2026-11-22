@@ -11,6 +11,7 @@ import { extractTextFromPDF, validatePDFFile } from '../../services/api/document
 import { motion, AnimatePresence } from 'motion/react';
 import {
   ArrowLeft,
+  ArrowRight,
   BookOpen,
   Brain,
   CheckCircle,
@@ -37,9 +38,7 @@ import VideoResources from './VideoResources';
 import QuizModule from './QuizModule';
 import FlashcardModule from './FlashcardModule';
 import CheatSheetModule from './CheatSheetModule';
-import ProjectLabModule from './ProjectLabModule';
-import CodePlaygroundModule, { PlaygroundLanguage } from './CodePlaygroundModule';
-import { Code2, Laptop } from 'lucide-react';
+import { Rocket } from 'lucide-react';
 
 
 const LearningWorkspace: React.FC = () => {
@@ -93,18 +92,6 @@ const LearningWorkspace: React.FC = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [lessonMode, setLessonMode] = useState<'standard' | 'socratic' | 'story'>('standard');
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const [playgroundCode, setPlaygroundCode] = useState<string>('');
-  const [playgroundLang, setPlaygroundLang] = useState<PlaygroundLanguage>('javascript');
-  const playgroundRef = useRef<HTMLDivElement>(null);
-
-  const handleOpenPlaygroundWithCode = (code: string, language: string) => {
-    setPlaygroundCode(code);
-    setPlaygroundLang((language as PlaygroundLanguage) || 'javascript');
-    setTimeout(() => {
-      playgroundRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 100);
-  };
 
   const notesTimeout = useRef<any>(null);
   const sessionStartRef = useRef<number>(0);
@@ -916,33 +903,25 @@ const LearningWorkspace: React.FC = () => {
                     />
                   </section>
 
-                  {/* Hands-On Project Lab Module */}
-                  <section className="space-y-4">
-                    <div className="flex items-center gap-2 text-stone-500 dark:text-stone-400">
-                      <Laptop size={18} />
-                      <h2 className="text-xs font-black uppercase tracking-widest">Hands-On Project Lab</h2>
+                  {/* Dedicated Projects Gateway */}
+                  <div className="p-6 rounded-2xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border border-primary/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 text-primary font-bold text-sm">
+                        <Rocket size={16} />
+                        <span>Ready to build practical software?</span>
+                      </div>
+                      <p className="text-xs text-stone-500 dark:text-stone-400 max-w-xl leading-relaxed">
+                        Theoretical concepts from this lesson are ready to be implemented. Visit the dedicated Projects workspace to build real-world milestones with language-specific toolchains.
+                      </p>
                     </div>
-                    <ProjectLabModule
-                      topic={task.title}
-                      lessonContent={task.aiExplanation || ''}
-                      difficulty={plan?.difficulty || 'Intermediate'}
-                      onOpenPlaygroundWithCode={handleOpenPlaygroundWithCode}
-                    />
-                  </section>
-
-                  {/* Interactive Code Playground & Sandboxes */}
-                  <section ref={playgroundRef} className="space-y-4">
-                    <div className="flex items-center gap-2 text-stone-500 dark:text-stone-400">
-                      <Code2 size={18} />
-                      <h2 className="text-xs font-black uppercase tracking-widest">Interactive Code Sandbox</h2>
-                    </div>
-                    <CodePlaygroundModule
-                      topic={task.title}
-                      initialCode={playgroundCode || undefined}
-                      initialLanguage={playgroundLang}
-                      title={`Interactive Sandbox: ${task.title}`}
-                    />
-                  </section>
+                    <button
+                      onClick={() => navigate('/projects')}
+                      className="px-4 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-primary/20 transition-all shrink-0"
+                    >
+                      <span>Explore Projects</span>
+                      <ArrowRight size={14} />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Notes Area */}

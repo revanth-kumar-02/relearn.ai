@@ -1,89 +1,62 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Sparkles, Terminal, Code2, Cpu, Laptop } from 'lucide-react';
+import { ArrowLeft, Terminal, Keyboard } from 'lucide-react';
 import CodePlaygroundModule from './CodePlaygroundModule';
+import { triggerHaptic } from '../../utils/haptics';
 
 export const PlaygroundPage: React.FC = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-stone-100 dark:bg-stone-950 text-stone-900 dark:text-stone-100 py-6 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-6xl mx-auto space-y-6">
-        {/* Top Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate(-1)}
-              className="p-2.5 rounded-2xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 transition-colors shadow-sm"
-              title="Go Back"
-            >
-              <ArrowLeft size={18} />
-            </button>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
-                  Engineering Sandbox
-                </span>
-                <span className="text-[10px] font-bold text-stone-500 uppercase tracking-wider">
-                  Live Execution Engine
-                </span>
-              </div>
-              <h1 className="text-xl sm:text-2xl font-black text-stone-900 dark:text-stone-100 tracking-tight">
-                Relearn.ai Code Playground
-              </h1>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 text-xs text-stone-500">
-            <span className="flex items-center gap-1 bg-white dark:bg-stone-900 px-3 py-1.5 rounded-xl border border-stone-200 dark:border-stone-800">
-              <Cpu size={14} className="text-emerald-500" />
-              Isolated Client Runtime
+    <div className="min-h-screen py-4 px-3 sm:px-6 max-w-7xl mx-auto flex flex-col space-y-4">
+      {/* Sleek, Minimal Top Header */}
+      <header className="flex items-center justify-between py-2 border-b border-stone-200 dark:border-stone-800/80">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => {
+              triggerHaptic('light');
+              navigate(-1);
+            }}
+            className="p-2 rounded-xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 transition-colors shadow-sm"
+            title="Go Back"
+            aria-label="Go Back"
+          >
+            <ArrowLeft size={16} />
+          </button>
+          
+          <div className="flex items-center gap-2">
+            <h1 className="text-base font-black tracking-tight text-stone-900 dark:text-stone-100">
+              Code Playground
+            </h1>
+            <span className="text-stone-300 dark:text-stone-700">/</span>
+            <span className="text-xs font-mono text-stone-500">
+              Interactive Execution
             </span>
           </div>
         </div>
 
-        {/* Feature Banner */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div className="p-4 bg-white dark:bg-stone-900 rounded-2xl border border-stone-200 dark:border-stone-800 shadow-sm space-y-1">
-            <div className="flex items-center gap-2 text-xs font-bold text-stone-800 dark:text-stone-200">
-              <Code2 size={16} className="text-primary" />
-              <span>Multi-Language Sandboxes</span>
-            </div>
-            <p className="text-[11px] text-stone-500 leading-relaxed">
-              Switch freely between JavaScript algorithms, HTML/CSS live rendering, Python logic, and in-memory SQL query tables.
-            </p>
+        {/* Runtime & Keyboard Shortcut Indicators */}
+        <div className="flex items-center gap-2">
+          <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-stone-100 dark:bg-stone-900 border border-stone-200 dark:border-stone-800 text-[11px] font-mono text-stone-500">
+            <Keyboard size={13} className="text-stone-400" />
+            <span><kbd className="font-semibold text-stone-700 dark:text-stone-300">Ctrl</kbd> + <kbd className="font-semibold text-stone-700 dark:text-stone-300">Enter</kbd> to run</span>
           </div>
 
-          <div className="p-4 bg-white dark:bg-stone-900 rounded-2xl border border-stone-200 dark:border-stone-800 shadow-sm space-y-1">
-            <div className="flex items-center gap-2 text-xs font-bold text-stone-800 dark:text-stone-200">
-              <Sparkles size={16} className="text-amber-500" />
-              <span>Built-in AI Code Mentor</span>
-            </div>
-            <p className="text-[11px] text-stone-500 leading-relaxed">
-              1-click code explanation, automatic bug diagnosis, algorithm optimization, and automated test-case generation.
-            </p>
-          </div>
-
-          <div className="p-4 bg-white dark:bg-stone-900 rounded-2xl border border-stone-200 dark:border-stone-800 shadow-sm space-y-1">
-            <div className="flex items-center gap-2 text-xs font-bold text-stone-800 dark:text-stone-200">
-              <Terminal size={16} className="text-emerald-500" />
-              <span>Zero-Setup Client Execution</span>
-            </div>
-            <p className="text-[11px] text-stone-500 leading-relaxed">
-              Zero backend compilation delay. Real-time console logs, execution benchmarks, and sandboxed DOM preview.
-            </p>
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[11px] font-mono font-medium">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span>Runtime Active</span>
           </div>
         </div>
+      </header>
 
-        {/* The Core Playground */}
-        <div className="w-full">
-          <CodePlaygroundModule
-            topic="Free Practice"
-            title="General Engineering Sandbox"
-            initialLanguage="javascript"
-          />
-        </div>
-      </div>
+      {/* Main Full-Width Coding Canvas */}
+      <main className="flex-1 w-full">
+        <CodePlaygroundModule
+          topic="Interactive Sandbox"
+          title="Engineering Editor"
+          initialLanguage="javascript"
+        />
+      </main>
     </div>
   );
 };

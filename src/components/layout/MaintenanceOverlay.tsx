@@ -9,8 +9,14 @@ const MaintenanceOverlay: React.FC = () => {
   const [status, setStatus] = useState<SystemStatus | null>(null);
   const { user } = useAuth();
   
-  // Don't lock out the admin
-  const isAdmin = user?.role === 'admin' || user?.email === 'admin@relearn.ai' || user?.email === 'imposterz.rev02@gmail.com'; 
+  // Don't lock out the admin or local developer workspace
+  const isDev = typeof window !== 'undefined' && (
+    window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1' ||
+    Boolean(import.meta.env.DEV) ||
+    localStorage.getItem('relearn_bypass_maintenance') === 'true'
+  );
+  const isAdmin = isDev || user?.role === 'admin' || user?.email === 'admin@relearn.ai' || user?.email === 'imposterz.rev02@gmail.com'; 
 
   useEffect(() => {
     // Initial fetch

@@ -19,11 +19,12 @@ export interface ProjectMilestone {
   starterHint: string;
   criteria: string[];
   starterCode: {
-    language: 'javascript' | 'html' | 'python' | 'sql';
+    language: 'javascript' | 'html' | 'python' | 'sql' | 'rust' | 'dart' | 'typescript' | string;
     filename: string;
     code: string;
   };
   completed?: boolean;
+  completedCriteria?: Record<string, boolean>;
 }
 
 export interface ProjectLab {
@@ -34,6 +35,13 @@ export interface ProjectLab {
   difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
   estimatedMinutes: number;
   realWorldScenario: string;
+  technology?: string;
+  planId?: string;
+  planTitle?: string;
+  status?: 'not_started' | 'in_progress' | 'completed';
+  progress?: number;
+  createdAt?: string;
+  updatedAt?: string;
   techStack: string[];
   architecture: {
     components: string[];
@@ -56,26 +64,35 @@ export interface CodeReviewResult {
 }
 
 /**
- * Generates an end-to-end hands-on Project Lab based on the topic and lesson content.
+ * Generates an end-to-end hands-on Project Lab based on the topic, subject technology, and lesson content.
  */
 export async function generateProjectLab(
   topic: string,
+  subject?: string,
   lessonContent?: string,
-  difficulty: string = 'Intermediate'
+  difficulty: string = 'Intermediate',
+  planId?: string,
+  planTitle?: string
 ): Promise<ProjectLab> {
   const contentSection = lessonContent
     ? `\n\nUse this lesson material as foundation:\n<source_material>${sanitizeInput(lessonContent.slice(0, 8000))}</source_material>`
     : '';
 
+  const detectedTech = subject ? subject.trim() : 'Software Engineering';
+
   const systemPrompt = `You are a Principal Software Architect and Lead Curriculum Engineer at Relearn.ai.
 Your mission is to transform theoretical learning concepts into an exciting, industry-standard hands-on Micro-Project.
-The project must be realistic, interactive, and buildable in the browser sandbox.
+The project must be realistic, interactive, and aligned specifically with the technology domain: "${detectedTech}".
 
-CRITICAL RULES:
-1. The project must have exactly 3 progressive milestones (Milestone 1: Foundations/Scaffold, Milestone 2: Core Logic/Algorithms, Milestone 3: Polish/Edge Cases/Enhancements).
-2. Each milestone MUST provide functional, executable starterCode that can run in a browser sandbox (HTML/CSS/JS, JavaScript, Python, or SQL).
-3. The realWorldScenario must explain why software engineers or professionals build this in production.
-4. Return ONLY valid JSON with no markdown wrapping or conversational preambles.
+CRITICAL TECHNOLOGY RULES:
+1. Technology Matching: If the subject is Rust, the project MUST use Rust, Cargo, and rustup. If Flutter or Dart, it MUST use Flutter and Dart. If Python, it MUST use Python. Do NOT default to generic JavaScript or web code if the subject is a systems or mobile language.
+2. The project must have exactly 3 progressive milestones:
+   - Milestone 1: Foundations / Scaffolding & Setup
+   - Milestone 2: Core Processing & Engine Implementation
+   - Milestone 3: Testing, Verification & Production Polish
+3. Each milestone MUST provide functional, syntax-valid starter code appropriate for the technology (e.g. filename: "src/main.rs" for Rust, "lib/main.dart" for Flutter, "main.py" for Python).
+4. The realWorldScenario must explain why software engineers build this in production.
+5. Return ONLY valid JSON with no markdown wrapping or conversational preambles.
 
 SCHEMA:
 {
@@ -83,10 +100,11 @@ SCHEMA:
   "topic": "${topic}",
   "title": "Clear, engaging project title",
   "tagline": "Short 1-sentence description of the deliverable",
+  "technology": "${detectedTech}",
   "difficulty": "${difficulty}",
-  "estimatedMinutes": 45,
+  "estimatedMinutes": 60,
   "realWorldScenario": "Concrete real-world production use-case",
-  "techStack": ["JavaScript", "HTML5", "CSS"],
+  "techStack": ["${detectedTech}", "Toolchain/CLI", "Testing Library"],
   "architecture": {
     "components": ["Component/Module A", "Component/Module B"],
     "dataFlow": "Explanation of state & data lifecycle",
@@ -95,7 +113,7 @@ SCHEMA:
   "milestones": [
     {
       "id": "m1",
-      "title": "Milestone 1: Scaffold Data Model & State",
+      "title": "Milestone 1: Scaffold Project & Configuration",
       "objective": "Clear description of goal for step 1",
       "starterHint": "Helpful implementation tip or syntax clue",
       "criteria": [
@@ -103,14 +121,14 @@ SCHEMA:
         "Requirement 2"
       ],
       "starterCode": {
-        "language": "javascript",
-        "filename": "solution.js",
-        "code": "// Clean boilerplate code with TODO comments\\nfunction init() {\\n  // TODO: implement\\n}\\n"
+        "language": "${detectedTech.toLowerCase().includes('rust') ? 'rust' : detectedTech.toLowerCase().includes('flutter') || detectedTech.toLowerCase().includes('dart') ? 'dart' : detectedTech.toLowerCase().includes('python') ? 'python' : 'javascript'}",
+        "filename": "${detectedTech.toLowerCase().includes('rust') ? 'src/main.rs' : detectedTech.toLowerCase().includes('flutter') || detectedTech.toLowerCase().includes('dart') ? 'lib/main.dart' : detectedTech.toLowerCase().includes('python') ? 'main.py' : 'solution.js'}",
+        "code": "// Clean boilerplate code with TODO comments\\n"
       }
     },
     {
       "id": "m2",
-      "title": "Milestone 2: Core Processing & Engine",
+      "title": "Milestone 2: Core Logic & Implementation",
       "objective": "Implement the core algorithms or interactivity",
       "starterHint": "Algorithm tip",
       "criteria": [
@@ -118,24 +136,24 @@ SCHEMA:
         "Requirement 2"
       ],
       "starterCode": {
-        "language": "javascript",
-        "filename": "solution.js",
+        "language": "${detectedTech.toLowerCase().includes('rust') ? 'rust' : detectedTech.toLowerCase().includes('flutter') || detectedTech.toLowerCase().includes('dart') ? 'dart' : detectedTech.toLowerCase().includes('python') ? 'python' : 'javascript'}",
+        "filename": "${detectedTech.toLowerCase().includes('rust') ? 'src/main.rs' : detectedTech.toLowerCase().includes('flutter') || detectedTech.toLowerCase().includes('dart') ? 'lib/main.dart' : detectedTech.toLowerCase().includes('python') ? 'main.py' : 'solution.js'}",
         "code": "// Code extending step 1\\n"
       }
     },
     {
       "id": "m3",
       "title": "Milestone 3: Verification, Edge Cases & Polish",
-      "objective": "Finalize validation, styling, and tests",
+      "objective": "Finalize validation, tests, and documentation",
       "starterHint": "Edge-case handling tips",
       "criteria": [
         "Requirement 1",
         "Requirement 2"
       ],
       "starterCode": {
-        "language": "javascript",
-        "filename": "solution.js",
-        "code": "// Complete working blueprint with stretch goals\\n"
+        "language": "${detectedTech.toLowerCase().includes('rust') ? 'rust' : detectedTech.toLowerCase().includes('flutter') || detectedTech.toLowerCase().includes('dart') ? 'dart' : detectedTech.toLowerCase().includes('python') ? 'python' : 'javascript'}",
+        "filename": "${detectedTech.toLowerCase().includes('rust') ? 'src/main.rs' : detectedTech.toLowerCase().includes('flutter') || detectedTech.toLowerCase().includes('dart') ? 'lib/main.dart' : detectedTech.toLowerCase().includes('python') ? 'main.py' : 'solution.js'}",
+        "code": "// Complete working blueprint with test assertions\\n"
       }
     }
   ],
@@ -146,7 +164,7 @@ SCHEMA:
 }`;
 
   const prompt = `Synthesize a comprehensive hands-on Micro-Project Lab for the topic: <topic_input>${sanitizeInput(topic)}</topic_input>${contentSection}
-Target Difficulty: ${difficulty}. Ensure the starter code is clean, syntax-valid, and ready to edit in an interactive browser sandbox.`;
+Target Domain/Language: ${detectedTech}. Target Difficulty: ${difficulty}. Ensure the starter code strictly uses ${detectedTech}.`;
 
   try {
     const response = await generateAI({

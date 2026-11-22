@@ -60,6 +60,8 @@ const AdminDashboard = lazy(() => import('../features/dashboard/AdminDashboard')
 const CollaborationHub = lazy(() => import('../features/learning/CollaborationHub'));
 const PlaygroundPage = lazy(() => import('../features/learning/PlaygroundPage'));
 const GratitudeLog = lazy(() => import('../features/learning/GratitudeLog'));
+const ProjectsPage = lazy(() => import('../features/projects/ProjectsPage'));
+const ProjectWorkspacePage = lazy(() => import('../features/projects/ProjectWorkspacePage'));
 
 const PageLoader = () => (
   <div className="p-4 space-y-6 animate-pulse">
@@ -219,6 +221,12 @@ const AppContent: React.FC = () => {
       pageName = 'learning_diary';
       title = 'Opened Learning Diary';
       icon = 'book';
+    } else if (path.startsWith('/projects')) {
+      pageName = 'projects';
+      title = 'Opened Projects';
+      icon = 'folder_special';
+      color = 'text-primary';
+      bg = 'bg-primary/10';
     }
 
     if (pageName) {
@@ -253,12 +261,12 @@ const AppContent: React.FC = () => {
     '/learning-workspace', '/add-task', '/edit-task', '/notifications',
     '/notification-settings', '/settings', '/profile', '/diary', '/create-plan',
     '/templates', '/shared/', '/help-center', '/feedback', '/archived',
-    '/rooms', '/collaboration', '/gratitude', '/admin', '/playground'
+    '/rooms', '/collaboration', '/gratitude', '/admin', '/playground', '/projects'
   ];
 
   const isKnownRoute = (path: string) => {
     if (validRoutePrefixes.includes(path)) return true;
-    if (path.startsWith('/shared/') || path.startsWith('/rooms/')) return true;
+    if (path.startsWith('/shared/') || path.startsWith('/rooms/') || path.startsWith('/projects/')) return true;
     return false;
   };
 
@@ -294,12 +302,15 @@ const AppContent: React.FC = () => {
         '/collaboration': 'Collaboration Hub',
         '/gratitude': 'Gratitude Log',
         '/admin': 'Admin Dashboard',
-        '/playground': 'Code Playground'
+        '/playground': 'Code Playground',
+        '/projects': 'Projects & Engineering Labs'
       };
 
       let matchedTitle = titlesByPath[path];
       if (!matchedTitle && path.startsWith('/rooms/')) {
         matchedTitle = 'Study Room';
+      } else if (!matchedTitle && path.startsWith('/projects/')) {
+        matchedTitle = 'Project Workspace';
       }
 
       if (matchedTitle) {
@@ -429,6 +440,15 @@ const AppContent: React.FC = () => {
               active={location.pathname === '/progress'}
               onClick={() => navigate('/progress')}
               ariaLabel="Navigate to Progress"
+              showLabel={isSidebarExpanded}
+            />
+            <SidebarItem
+              id="tutorial-projects"
+              icon="folder_special"
+              label="Projects"
+              active={location.pathname.startsWith('/projects')}
+              onClick={() => navigate('/projects')}
+              ariaLabel="Navigate to Projects"
               showLabel={isSidebarExpanded}
             />
             <SidebarItem
@@ -562,6 +582,8 @@ const AppContent: React.FC = () => {
                         <Route path="/collaboration" element={<ProtectedRoute><CollaborationHub /></ProtectedRoute>} />
                         <Route path="/gratitude" element={<ProtectedRoute><GratitudeLog /></ProtectedRoute>} />
                         <Route path="/playground" element={<ProtectedRoute><PlaygroundPage /></ProtectedRoute>} />
+                        <Route path="/projects" element={<ProtectedRoute><ProjectsPage /></ProtectedRoute>} />
+                        <Route path="/projects/:id" element={<ProtectedRoute><ProjectWorkspacePage /></ProtectedRoute>} />
                         <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
                         <Route path="*" element={<NotFound />} />
                     </Routes>
