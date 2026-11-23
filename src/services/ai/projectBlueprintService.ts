@@ -217,14 +217,21 @@ JSON SCHEMA:
 ]`;
 
   try {
-    const response = await generateAI({
-      task: 'learning_space',
-      prompt,
-      options: {
-        temperature: 0.7,
-        maxTokens: 3500,
-      },
-    });
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('LLM project generation timed out')), 10000)
+    );
+
+    const response = await Promise.race([
+      generateAI({
+        task: 'learning_space',
+        prompt,
+        options: {
+          temperature: 0.7,
+          maxTokens: 3500,
+        },
+      }),
+      timeoutPromise,
+    ]);
 
     const parsed = safeParseAIResponse(response.text);
 

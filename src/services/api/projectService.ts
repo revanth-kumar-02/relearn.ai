@@ -3,10 +3,12 @@
  *  Relearn.ai — Dedicated Project Service & Persistence Layer
  * ─────────────────────────────────────────────────────────────────
  *
- *  Manages real-world hands-on projects, milestone tracking,
- *  acceptance verification, and persistent metrics.
+ *  Supabase-first with offline-localStorage fallback.
+ *  Manages hands-on project labs, cloud workspace sync,
+ *  milestone tracking, and persistent metrics.
  */
 
+import { supabase, supabaseAvailable } from '../../lib/supabase';
 import { lsGet, lsSet } from '../storage/storageService';
 import { ProjectLab, ProjectMilestone, generateProjectLab } from '../ai/projectLabService';
 import { ProjectBlueprint, synthesizeProjectFromBlueprint } from '../ai/projectBlueprintService';
@@ -22,32 +24,125 @@ export interface ProjectOverviewStats {
 
 const STORAGE_KEY_PREFIX = 'projects_v1_';
 
+function canUseSupabase(): boolean {
+  return supabaseAvailable && (typeof navigator === 'undefined' || navigator.onLine);
+}
+
 /**
- * Retrieves all persisted projects for a user.
+ * Maps a Supabase project_workspaces database record to a client-side ProjectLab object.
+ */
+function mapDatabaseRowToProjectLab(row: any): ProjectLab {
+  const meta = row.metadata || {};
+  return {
+    id: row.projectId,
+    topic: meta.topic || row.title,
+    title: row.title,
+    tagline: meta.tagline || `Engineering project in ${row.technology}`,
+    difficulty: (row.difficulty as any) || 'Intermediate',
+    estimatedMinutes: Number(meta.estimatedMinutes) || 60,
+    realWorldScenario: meta.realWorldScenario || '',
+    technology: row.technology,
+    planId: row.planId || undefined,
+    planTitle: meta.planTitle || undefined,
+    status: (row.status as any) || 'not_started',
+    progress: typeof meta.progress === 'number' ? meta.progress : 0,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+    techStack: Array.isArray(meta.techStack) ? meta.techStack : [row.technology],
+    architecture: meta.architecture || {
+      components: [row.technology],
+      dataFlow: 'Input -> Processing -> Output',
+      keyChallenges: [],
+    },
+    milestones: Array.isArray(meta.milestones) ? meta.milestones : [],
+    testChecklist: Array.isArray(meta.testChecklist) ? meta.testChecklist : [],
+    solutionPreview: meta.solutionPreview,
+    files: Array.isArray(row.files) && row.files.length > 0 ? row.files : (meta.files || []),
+  };
+}
+
+/**
+ * Retrieves all persisted projects for a user (Supabase-first with localStorage fallback).
  */
 export async function getUserProjects(userId: string): Promise<ProjectLab[]> {
   if (!userId) return [];
   const key = `${STORAGE_KEY_PREFIX}${userId}`;
-  return lsGet<ProjectLab[]>(key, []);
+  const localProjects = lsGet<ProjectLab[]>(key, []);
+
+  if (canUseSupabase()) {
+    try {
+      const { data, error } = await supabase
+        .from('project_workspaces')
+        .select('*')
+        .eq('userId', userId)
+        .order('createdAt', { ascending: false });
+
+      if (error) throw error;
+
+      if (data && Array.isArray(data)) {
+        const remoteProjects: ProjectLab[] = data.map(mapDatabaseRowToProjectLab);
+
+        // Merge remote projects with local projects (remote takes precedence on matching IDs,
+        // but local projects not yet in Supabase are preserved)
+        const remoteMap = new Map(remoteProjects.map((p) => [p.id, p]));
+        const merged: ProjectLab[] = [...remoteProjects];
+
+        for (const localP of localProjects) {
+          if (!remoteMap.has(localP.id)) {
+            merged.push(localP);
+            // Opportunistically sync unsynced local project to Supabase
+            saveProject(userId, localP).catch(() => {});
+          }
+        }
+
+        lsSet(key, merged);
+        return merged;
+      }
+    } catch (err) {
+      console.warn('[ProjectService] Supabase getUserProjects failed, falling back to local cache:', err);
+    }
+  }
+
+  return localProjects;
 }
 
 /**
  * Retrieves a single project by ID.
  */
 export async function getProjectById(userId: string, projectId: string): Promise<ProjectLab | null> {
+  if (!userId || !projectId) return null;
+
+  if (canUseSupabase()) {
+    try {
+      const { data, error } = await supabase
+        .from('project_workspaces')
+        .select('*')
+        .eq('userId', userId)
+        .eq('projectId', projectId)
+        .maybeSingle();
+
+      if (!error && data) {
+        return mapDatabaseRowToProjectLab(data);
+      }
+    } catch (err) {
+      console.warn('[ProjectService] Supabase getProjectById failed, falling back to local cache:', err);
+    }
+  }
+
   const projects = await getUserProjects(userId);
   return projects.find((p) => p.id === projectId) || null;
 }
 
 /**
- * Saves or updates a project in persistent storage.
+ * Saves or updates a project in persistent storage (Optimistic local cache + Supabase sync).
  */
 export async function saveProject(userId: string, project: ProjectLab): Promise<void> {
   if (!userId || !project.id) return;
-  const projects = await getUserProjects(userId);
+  const key = `${STORAGE_KEY_PREFIX}${userId}`;
+  const projects = lsGet<ProjectLab[]>(key, []);
   const index = projects.findIndex((p) => p.id === project.id);
 
-  const updatedProject = {
+  const updatedProject: ProjectLab = {
     ...project,
     updatedAt: new Date().toISOString(),
   };
@@ -61,8 +156,52 @@ export async function saveProject(userId: string, project: ProjectLab): Promise<
     });
   }
 
-  const key = `${STORAGE_KEY_PREFIX}${userId}`;
   lsSet(key, projects);
+
+  // Sync to Supabase cloud database
+  if (canUseSupabase()) {
+    try {
+      // Validate planId format (must be valid UUID for foreign key, otherwise null)
+      const isValidUUID =
+        project.planId &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(project.planId);
+
+      const payload = {
+        userId,
+        planId: isValidUUID ? project.planId : null,
+        projectId: project.id,
+        title: project.title,
+        technology: project.technology || 'General',
+        difficulty: project.difficulty || 'Intermediate',
+        status: project.status || 'not_started',
+        files: project.files || [],
+        metadata: {
+          topic: project.topic,
+          tagline: project.tagline,
+          estimatedMinutes: project.estimatedMinutes,
+          realWorldScenario: project.realWorldScenario,
+          planTitle: project.planTitle,
+          techStack: project.techStack,
+          architecture: project.architecture,
+          milestones: project.milestones,
+          testChecklist: project.testChecklist,
+          solutionPreview: project.solutionPreview,
+          progress: project.progress,
+        },
+        updatedAt: updatedProject.updatedAt,
+      };
+
+      const { error } = await supabase
+        .from('project_workspaces')
+        .upsert(payload, { onConflict: 'userId,projectId' });
+
+      if (error) {
+        console.warn('[ProjectService] Supabase workspace upsert error:', error.message);
+      }
+    } catch (err) {
+      console.warn('[ProjectService] Failed to sync project workspace to Supabase:', err);
+    }
+  }
 }
 
 /**
@@ -101,6 +240,37 @@ export async function updateMilestoneProgress(
   }
 
   await saveProject(userId, project);
+
+  // Sync to project_milestone_progress table if workspace exists in Supabase
+  if (canUseSupabase()) {
+    try {
+      const { data: wsRow } = await supabase
+        .from('project_workspaces')
+        .select('id')
+        .eq('userId', userId)
+        .eq('projectId', projectId)
+        .maybeSingle();
+
+      if (wsRow?.id) {
+        await supabase
+          .from('project_milestone_progress')
+          .upsert(
+            {
+              workspaceId: wsRow.id,
+              milestoneId,
+              completed,
+              completedCriteria: completedCriteria || {},
+              verifiedAt: completed ? new Date().toISOString() : null,
+              updatedAt: new Date().toISOString(),
+            },
+            { onConflict: 'workspaceId,milestoneId' }
+          );
+      }
+    } catch (err) {
+      console.warn('[ProjectService] Failed to sync milestone progress to Supabase:', err);
+    }
+  }
+
   return project;
 }
 
@@ -108,11 +278,23 @@ export async function updateMilestoneProgress(
  * Deletes a project.
  */
 export async function deleteProject(userId: string, projectId: string): Promise<void> {
-  if (!userId) return;
-  const projects = await getUserProjects(userId);
-  const filtered = projects.filter((p) => p.id !== projectId);
+  if (!userId || !projectId) return;
   const key = `${STORAGE_KEY_PREFIX}${userId}`;
+  const projects = lsGet<ProjectLab[]>(key, []);
+  const filtered = projects.filter((p) => p.id !== projectId);
   lsSet(key, filtered);
+
+  if (canUseSupabase()) {
+    try {
+      await supabase
+        .from('project_workspaces')
+        .delete()
+        .eq('userId', userId)
+        .eq('projectId', projectId);
+    } catch (err) {
+      console.warn('[ProjectService] Failed to delete project from Supabase:', err);
+    }
+  }
 }
 
 /**
@@ -125,8 +307,12 @@ export function calculateProjectStats(projects: ProjectLab[]): ProjectOverviewSt
   }
 
   const completed = projects.filter((p) => p.status === 'completed' || (p.progress ?? 0) === 100).length;
-  const active = projects.filter((p) => p.status === 'in_progress' || ((p.progress ?? 0) > 0 && (p.progress ?? 0) < 100)).length;
-  const notStarted = projects.filter((p) => !p.status || p.status === 'not_started' || (p.progress ?? 0) === 0).length;
+  const active = projects.filter(
+    (p) => p.status === 'in_progress' || ((p.progress ?? 0) > 0 && (p.progress ?? 0) < 100)
+  ).length;
+  const notStarted = projects.filter(
+    (p) => !p.status || p.status === 'not_started' || (p.progress ?? 0) === 0
+  ).length;
 
   const totalProgress = projects.reduce((acc, curr) => acc + (curr.progress || 0), 0);
   const averageProgress = Math.round(totalProgress / total);
@@ -169,14 +355,14 @@ export async function purgeLegacyMockProjects(userId: string): Promise<ProjectLa
       const keysToRemove: string[] = [];
       for (let i = 0; i < window.localStorage.length; i++) {
         const k = window.localStorage.key(i);
-        if (k && (k.startsWith('blueprints_llm_v2_') || k.startsWith('blueprints_v1_'))) {
+        if (k && (k.startsWith('blueprints_tier_v3_') || k.startsWith('blueprints_llm_v2_') || k.startsWith('blueprints_v1_'))) {
           const val = window.localStorage.getItem(k);
           if (val && val.includes('AI Generated')) {
             keysToRemove.push(k);
           }
         }
       }
-      keysToRemove.forEach(k => window.localStorage.removeItem(k));
+      keysToRemove.forEach((k) => window.localStorage.removeItem(k));
     } catch {
       // Ignore in non-browser environments
     }
@@ -187,7 +373,7 @@ export async function purgeLegacyMockProjects(userId: string): Promise<ProjectLa
 
 /**
  * Deprecated: Previously seeded hardcoded projects.
- * Now cleanly returns genuine user projects without injecting any mock data.
+ * Cleanly returns genuine user projects without injecting mock data.
  */
 export async function seedInitialProjectsIfEmpty(userId: string, _plans: Plan[]): Promise<ProjectLab[]> {
   return purgeLegacyMockProjects(userId);

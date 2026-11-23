@@ -46,6 +46,7 @@ import {
   CodeReviewResult 
 } from '../../services/ai/projectLabService';
 import { ProjectVirtualFile } from '../../services/ai/projectBlueprintService';
+import { executeCode } from '../../services/compiler/codeExecutionService';
 import { triggerHaptic } from '../../utils/haptics';
 
 interface EditorTab {
@@ -89,6 +90,26 @@ export const ProjectWorkspacePage: React.FC = () => {
 
   // Project Deletion State
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  // Eclipse Theia IDE Environment State
+  const [ideMode, setIdeMode] = useState<'theia' | 'editor'>('editor');
+  const theiaUrl = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_THEIA_URL) || 'http://localhost:3000';
+  const [isTheiaHealthy, setIsTheiaHealthy] = useState<boolean | null>(null);
+
+  // Ping Theia container on mount
+  useEffect(() => {
+    let active = true;
+    fetch(theiaUrl, { method: 'HEAD', mode: 'no-cors' })
+      .then(() => {
+        if (active) setIsTheiaHealthy(true);
+      })
+      .catch(() => {
+        if (active) setIsTheiaHealthy(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [theiaUrl]);
 
   // Load project by ID and initialize virtual filesystem
   useEffect(() => {
@@ -271,6 +292,31 @@ export const ProjectWorkspacePage: React.FC = () => {
     }));
   };
 
+  // Debounced auto-save: persist file edits back to project storage and Supabase
+  useEffect(() => {
+    if (!user?.id || !project || virtualFiles.length === 0) return;
+
+    const timer = setTimeout(() => {
+      const updatedFiles = virtualFiles.map(f => ({
+        ...f,
+        content: fileContents[f.id] !== undefined ? fileContents[f.id] : f.content,
+      }));
+
+      const hasChanged = updatedFiles.some((f, idx) => f.content !== virtualFiles[idx]?.content);
+      if (hasChanged) {
+        setVirtualFiles(updatedFiles);
+        const updatedProject: ProjectLab = {
+          ...project,
+          files: updatedFiles,
+        };
+        setProject(updatedProject);
+        saveProject(user.id, updatedProject);
+      }
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [fileContents, user?.id, project?.id]);
+
   // Handler: Handle Tab Key indentation inside Code Editor
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Tab') {
@@ -322,8 +368,8 @@ export const ProjectWorkspacePage: React.FC = () => {
     }
   };
 
-  // Handler: Execute code or run syntax check
-  const handleRunCommand = (cmd: string) => {
+  // Handler: Execute code or run syntax check via real execution engine
+  const handleRunCommand = async (cmd: string) => {
     triggerHaptic('medium');
     setIsBottomTerminalOpen(true);
     setBottomTab('terminal');
@@ -333,22 +379,53 @@ export const ProjectWorkspacePage: React.FC = () => {
       { text: `$ ${cmd}`, type: 'cmd' }
     ]);
 
-    setTimeout(() => {
-      if (cmd.includes('check') || cmd.includes('test')) {
+    // Prepare files array from current virtualFiles + active edits
+    const filesToExecute = virtualFiles.map(f => ({
+      name: f.name,
+      content: fileContents[f.id] !== undefined ? fileContents[f.id] : f.content,
+    }));
+
+    const targetLang = activeFile?.language || project?.technology || 'csharp';
+
+    setTerminalLogs(prev => [
+      ...prev,
+      { text: `[toolchain] Initializing ${targetLang} execution task...`, type: 'info' }
+    ]);
+
+    try {
+      const result = await executeCode({
+        language: targetLang,
+        files: filesToExecute,
+        args: cmd.split(' ').slice(1),
+      });
+
+      if (result.stdout) {
         setTerminalLogs(prev => [
           ...prev,
-          { text: `   Compiling ${project?.title.toLowerCase().replace(/[^a-z0-9]/g, '_')} v0.1.0 (workspace)...`, type: 'info' },
-          { text: `   Finished dev [unoptimized + debuginfo] target(s) in 0.42s`, type: 'success' },
-          { text: `✓ Zero compiler errors. All type signatures memory-safe.`, type: 'success' }
-        ]);
-      } else {
-        setTerminalLogs(prev => [
-          ...prev,
-          { text: `[runtime] Initializing binary execution process...`, type: 'info' },
-          { text: `[stdout] Process exited successfully with status code 0`, type: 'success' }
+          ...result.stdout.split('\n').filter(Boolean).map(text => ({ text, type: 'info' as const }))
         ]);
       }
-    }, 450);
+
+      if (result.stderr) {
+        setTerminalLogs(prev => [
+          ...prev,
+          ...result.stderr.split('\n').filter(Boolean).map(text => ({ text, type: 'error' as const }))
+        ]);
+      }
+
+      setTerminalLogs(prev => [
+        ...prev,
+        {
+          text: `[process] Exited with status code ${result.exitCode} in ${result.executionTimeMs}ms (${result.runner})`,
+          type: result.exitCode === 0 ? 'success' : 'warn'
+        }
+      ]);
+    } catch (err: any) {
+      setTerminalLogs(prev => [
+        ...prev,
+        { text: `[execution-error] ${err?.message || err}`, type: 'error' }
+      ]);
+    }
   };
 
   // Handler: Submit Code for AI Review

@@ -25,6 +25,7 @@ import { sanitizeInput } from '../../utils/sanitize';
 import { useAuth } from '../../contexts/AuthContext';
 import { addActivity } from '../../services/api/dataService';
 import { triggerHaptic } from '../../utils/haptics';
+import { executeCode } from '../../services/compiler/codeExecutionService';
 
 export type PlaygroundLanguage = 'javascript' | 'html' | 'python' | 'sql' | 'rust' | 'cpp';
 
@@ -379,7 +380,7 @@ ${code}`,
       return;
     }
 
-    // Python, Rust, C++ (Compiled / Backend Languages)
+    // Python, Rust, C++ (Real Sandboxed / Server Execution)
     if (language === 'python' || language === 'rust' || language === 'cpp') {
       setActiveTab('console');
       const langLabel = language === 'python' ? 'Python 3' : language === 'rust' ? 'Rust (rustc)' : 'C++20 (GCC)';
@@ -394,42 +395,52 @@ ${code}`,
       setLogs(newLogs);
 
       try {
-        const response = await generateAI({
-          task: 'chatbot',
-          prompt: `You are an accurate code compilation and runtime execution emulator for ${langLabel}.
-Execute this code mentally and return ONLY the exact standard output (stdout) that would print to terminal, and stderr if syntax/runtime errors occur.
-Do NOT include markdown formatting or commentary.
-
-Source Code:
-${code}`,
-          systemPrompt: `You are an accurate compiler runtime emulator for ${langLabel}. Output ONLY raw stdout/stderr.`,
-          options: { temperature: 0.1 }
+        const result = await executeCode({
+          language,
+          code,
         });
 
-        const output = (response.text || '').trim();
-        if (output) {
-          const lines = output.split('\n');
+        if (result.stdout) {
+          const lines = result.stdout.split('\n');
           for (const l of lines) {
-            newLogs.push({
-              id: crypto.randomUUID(),
-              type: l.toLowerCase().includes('error') ? 'error' : 'log',
-              message: l,
-              timestamp: new Date().toLocaleTimeString(),
-            });
+            if (l.trim()) {
+              newLogs.push({
+                id: crypto.randomUUID(),
+                type: 'log',
+                message: l,
+                timestamp: new Date().toLocaleTimeString(),
+              });
+            }
           }
-        } else {
+        }
+
+        if (result.stderr) {
+          const lines = result.stderr.split('\n');
+          for (const l of lines) {
+            if (l.trim()) {
+              newLogs.push({
+                id: crypto.randomUUID(),
+                type: 'error',
+                message: l,
+                timestamp: new Date().toLocaleTimeString(),
+              });
+            }
+          }
+        }
+
+        if (!result.stdout && !result.stderr) {
           newLogs.push({
             id: crypto.randomUUID(),
             type: 'log',
-            message: 'Process completed with code 0 (no output)',
+            message: `Process completed with exit code ${result.exitCode} (${result.runner})`,
             timestamp: new Date().toLocaleTimeString(),
           });
         }
       } catch (err: any) {
         newLogs.push({
           id: crypto.randomUUID(),
-          type: 'warn',
-          message: `Execution offline. Connect Piston server or compile locally with \`${language}\`.`,
+          type: 'error',
+          message: `Execution failed: ${err?.message || err}`,
           timestamp: new Date().toLocaleTimeString(),
         });
       }

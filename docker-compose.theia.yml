@@ -1,0 +1,72 @@
+version: '3.8'
+
+# ─────────────────────────────────────────────────────────────────
+# Relearn.ai — Eclipse Theia Studio & Piston Execution Environment
+# ─────────────────────────────────────────────────────────────────
+
+services:
+  # 1. Custom Eclipse Theia IDE Container
+  relearn-ide:
+    build:
+      context: ./ide/theia
+      dockerfile: Dockerfile
+    image: relearn-theia-ide:latest
+    container_name: relearn-theia-ide
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - HOST=0.0.0.0
+      - SHELL=/bin/bash
+      # Optional presigned Supabase Storage URL
+      - STORAGE_DOWNLOAD_URL=${STORAGE_DOWNLOAD_URL:-}
+    volumes:
+      # Mount persistent local volume or bind mount for development
+      - theia-project-data:/home/project
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2048M
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - relearn-network
+
+  # 2. Piston Automated Execution Engine (for Headless Verification & Testing)
+  piston-runner:
+    image: ghcr.io/engineer-man/piston:latest
+    container_name: relearn-piston-runner
+    restart: unless-stopped
+    privileged: true
+    ports:
+      - "2000:2000"
+    environment:
+      - PISTON_BIND_ADDRESS=0.0.0.0:2000
+      - PISTON_DISABLE_NETWORKING=true
+      - PISTON_RUN_TIMEOUT=5000
+      - PISTON_COMPILE_TIMEOUT=10000
+      - PISTON_RUN_MEMORY_LIMIT=268435456 # 256MB
+    volumes:
+      - piston-packages:/piston/packages
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1024M
+    networks:
+      - relearn-network
+
+volumes:
+  theia-project-data:
+    driver: local
+  piston-packages:
+    driver: local
+
+networks:
+  relearn-network:
+    driver: bridge

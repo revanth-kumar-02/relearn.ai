@@ -33,7 +33,9 @@ import {
 } from '../../services/api/projectService';
 import { 
   ProjectBlueprint, 
-  get10BlueprintsForPlan 
+  ProjectDifficultyTier,
+  getTierBlueprintsForPlan,
+  getAllTiersBlueprintsForPlan
 } from '../../services/ai/projectBlueprintService';
 import { ProjectLab } from '../../services/ai/projectLabService';
 import { triggerHaptic } from '../../utils/haptics';
@@ -54,7 +56,8 @@ export const ProjectsPage: React.FC = () => {
   const [activePlanId, setActivePlanId] = useState<string>('');
   const [blueprints, setBlueprints] = useState<ProjectBlueprint[]>([]);
   const [isLoadingBlueprints, setIsLoadingBlueprints] = useState(false);
-  const [blueprintDifficulty, setBlueprintDifficulty] = useState<'All' | 'Beginner' | 'Intermediate' | 'Advanced'>('All');
+  const [blueprintDifficulty, setBlueprintDifficulty] = useState<'All' | 'Beginner' | 'Intermediate' | 'Advanced'>('Beginner');
+  const [tierCache, setTierCache] = useState<Record<string, Partial<Record<'Beginner' | 'Intermediate' | 'Advanced', ProjectBlueprint[]>>>>({});
   const [showCatalogModal, setShowCatalogModal] = useState(false);
   const [isLaunchingId, setIsLaunchingId] = useState<string | null>(null);
 
@@ -99,30 +102,77 @@ export const ProjectsPage: React.FC = () => {
     return plans.find(p => p.id === activePlanId) || plans[0];
   }, [plans, activePlanId]);
 
-  // Fetch 10 blueprints whenever active plan changes
+  // Fetch blueprints for the active plan and difficulty tier
   useEffect(() => {
     let isMounted = true;
 
-    async function loadBlueprints() {
-      if (!activePlan) return;
-      setIsLoadingBlueprints(true);
-      try {
-        const bps = await get10BlueprintsForPlan(activePlan);
-        if (isMounted) {
-          setBlueprints(bps);
+    async function loadBlueprintsForSelection() {
+      if (!activePlan?.id) return;
+
+      const planCache = tierCache[activePlan.id] || {};
+
+      if (blueprintDifficulty === 'All') {
+        // If all 3 tiers already exist in cache, combine them with 0 latency
+        if (planCache.Beginner && planCache.Intermediate && planCache.Advanced) {
+          setBlueprints([...planCache.Beginner, ...planCache.Intermediate, ...planCache.Advanced]);
+          return;
         }
-      } catch (err) {
-        console.error('Failed to load project blueprints:', err);
-      } finally {
-        if (isMounted) setIsLoadingBlueprints(false);
+
+        setIsLoadingBlueprints(true);
+        try {
+          const { beginner, intermediate, advanced, all } = await getAllTiersBlueprintsForPlan(activePlan);
+          if (isMounted) {
+            setTierCache(prev => ({
+              ...prev,
+              [activePlan.id]: {
+                ...prev[activePlan.id],
+                Beginner: beginner,
+                Intermediate: intermediate,
+                Advanced: advanced,
+              }
+            }));
+            setBlueprints(all);
+          }
+        } catch (err) {
+          console.error('Failed to load all 30 tier blueprints:', err);
+        } finally {
+          if (isMounted) setIsLoadingBlueprints(false);
+        }
+      } else {
+        // Single tier selected ('Beginner' | 'Intermediate' | 'Advanced')
+        const cachedTier = planCache[blueprintDifficulty];
+        if (cachedTier && cachedTier.length > 0) {
+          setBlueprints(cachedTier);
+          return;
+        }
+
+        setIsLoadingBlueprints(true);
+        try {
+          const freshTier = await getTierBlueprintsForPlan(activePlan, blueprintDifficulty);
+          if (isMounted) {
+            setTierCache(prev => ({
+              ...prev,
+              [activePlan.id]: {
+                ...prev[activePlan.id],
+                [blueprintDifficulty]: freshTier,
+              }
+            }));
+            setBlueprints(freshTier);
+          }
+        } catch (err) {
+          console.error(`Failed to load ${blueprintDifficulty} blueprints:`, err);
+        } finally {
+          if (isMounted) setIsLoadingBlueprints(false);
+        }
       }
     }
 
-    loadBlueprints();
+    loadBlueprintsForSelection();
+
     return () => {
       isMounted = false;
     };
-  }, [activePlan]);
+  }, [activePlan?.id, blueprintDifficulty]);
 
   // Derived real live statistics from genuine projects array
   const stats: ProjectOverviewStats = useMemo(() => {
@@ -201,14 +251,34 @@ export const ProjectsPage: React.FC = () => {
     }
   };
 
-  // Handler: Regenerate 10 fresh blueprints with the LLM
+  // Handler: Regenerate fresh blueprints with the LLM for current tier or all tiers
   const handleRegenerateBlueprints = async () => {
     if (!activePlan) return;
     triggerHaptic('medium');
     setIsLoadingBlueprints(true);
     try {
-      const fresh = await get10BlueprintsForPlan(activePlan, true);
-      setBlueprints(fresh);
+      if (blueprintDifficulty === 'All') {
+        const { beginner, intermediate, advanced, all } = await getAllTiersBlueprintsForPlan(activePlan, true);
+        setTierCache(prev => ({
+          ...prev,
+          [activePlan.id]: {
+            Beginner: beginner,
+            Intermediate: intermediate,
+            Advanced: advanced,
+          }
+        }));
+        setBlueprints(all);
+      } else {
+        const fresh = await getTierBlueprintsForPlan(activePlan, blueprintDifficulty, true);
+        setTierCache(prev => ({
+          ...prev,
+          [activePlan.id]: {
+            ...prev[activePlan.id],
+            [blueprintDifficulty]: fresh,
+          }
+        }));
+        setBlueprints(fresh);
+      }
     } catch (err) {
       console.error('Failed to regenerate project blueprints:', err);
     } finally {
@@ -281,7 +351,7 @@ export const ProjectsPage: React.FC = () => {
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold text-sm shadow-md shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
               <Plus size={16} />
-              <span>Browse 10-Project Catalog</span>
+              <span>Browse 30-Project Catalog</span>
             </button>
           </div>
         )}
@@ -541,7 +611,7 @@ export const ProjectsPage: React.FC = () => {
       )}
 
       {/* ─────────────────────────────────────────────────────────────
-          10-PROJECT SELECTION MATRIX (Empty State / Primary Catalog)
+          30-PROJECT SELECTION MATRIX (Empty State / Primary Catalog)
           Shown directly on the page when user has 0 active projects!
       ───────────────────────────────────────────────────────────── */}
       {projects.length === 0 && !isLoading && (
@@ -553,10 +623,10 @@ export const ProjectsPage: React.FC = () => {
                 Select Your Project Lab
               </span>
               <h2 className="text-xl sm:text-2xl font-black text-stone-900 dark:text-stone-100 tracking-tight mt-1">
-                10 Real-World Engineering Blueprints
+                30 Real-World Engineering Blueprints
               </h2>
               <p className="text-xs sm:text-sm text-stone-600 dark:text-stone-400 mt-1">
-                Every project is dynamically architected by AI for your curriculum with runnable files, milestones, and rigorous verification.
+                10 Beginner · 10 Intermediate · 10 Hard — dynamically architected by AI for your curriculum with runnable files, milestones, and rigorous verification.
               </p>
             </div>
 
@@ -583,7 +653,7 @@ export const ProjectsPage: React.FC = () => {
                       <BookOpen size={14} className="shrink-0" />
                       <span className="max-w-[240px] truncate">{p.title}</span>
                       <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-black/20 text-white font-mono shrink-0">
-                        10
+                        30
                       </span>
                     </button>
                   ))}
@@ -594,35 +664,63 @@ export const ProjectsPage: React.FC = () => {
             {/* Difficulty Filter Chips & Live AI Regenerate Button */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-stone-100 dark:border-stone-800 pt-4">
               <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
-                {(['All', 'Beginner', 'Intermediate', 'Advanced'] as const).map(diff => (
+                {[
+                  { key: 'Beginner', label: 'Beginner (10)' },
+                  { key: 'Intermediate', label: 'Intermediate (10)' },
+                  { key: 'Advanced', label: 'Hard (10)' },
+                  { key: 'All', label: 'All (30)' },
+                ].map(item => (
                   <button
-                    key={diff}
+                    key={item.key}
                     onClick={() => {
                       triggerHaptic('light');
-                      setBlueprintDifficulty(diff);
+                      setBlueprintDifficulty(item.key as any);
                     }}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                      blueprintDifficulty === diff
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                      blueprintDifficulty === item.key
                         ? 'bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 shadow-sm'
                         : 'text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800'
                     }`}
                   >
-                    {diff === 'All' ? 'All (10)' : diff}
+                    {item.label}
                   </button>
                 ))}
               </div>
 
-              {/* ✨ LIVE AI GENERATE 10 FRESH PROJECTS BUTTON */}
+              {/* ✨ LIVE AI GENERATE FRESH PROJECTS BUTTON */}
               <button
                 onClick={handleRegenerateBlueprints}
                 disabled={isLoadingBlueprints}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 text-xs font-bold transition-all active:scale-95 shadow-sm"
-                title="Ask the AI to generate a brand new set of 10 unique engineering projects"
+                title="Ask the AI to generate a brand new set of unique engineering projects"
               >
                 <Sparkles size={14} className={isLoadingBlueprints ? 'animate-spin' : ''} />
-                <span>{isLoadingBlueprints ? 'AI is Architecting...' : 'Generate 10 Fresh Projects with AI'}</span>
+                <span>
+                  {isLoadingBlueprints
+                    ? 'AI is Architecting...'
+                    : blueprintDifficulty === 'Beginner'
+                    ? 'Generate 10 Fresh Beginner Projects with AI'
+                    : blueprintDifficulty === 'Intermediate'
+                    ? 'Generate 10 Fresh Intermediate Projects with AI'
+                    : blueprintDifficulty === 'Advanced'
+                    ? 'Generate 10 Fresh Hard Projects with AI'
+                    : 'Generate 30 Fresh Projects with AI'}
+                </span>
               </button>
             </div>
+          </div>
+
+          {/* Subtext info bar */}
+          <div className="flex items-center justify-between text-xs text-stone-500 font-medium px-1">
+            <span>
+              {blueprintDifficulty === 'Beginner' && 'Showing 10 Beginner engineering blueprints'}
+              {blueprintDifficulty === 'Intermediate' && 'Showing 10 Intermediate engineering blueprints'}
+              {blueprintDifficulty === 'Advanced' && 'Showing 10 Hard / Advanced engineering blueprints'}
+              {blueprintDifficulty === 'All' && 'Showing all 30 engineering blueprints across 3 difficulty tiers'}
+            </span>
+            <span className="font-mono text-[11px] text-stone-400">
+              {filteredBlueprints.length} blueprints
+            </span>
           </div>
 
           {/* 10-Project Grid */}
@@ -730,7 +828,7 @@ export const ProjectsPage: React.FC = () => {
       )}
 
       {/* ─────────────────────────────────────────────────────────────
-          10-PROJECT CATALOG MODAL (When opened from "+ Browse Catalog")
+          30-PROJECT CATALOG MODAL (When opened from "+ Browse Catalog")
       ───────────────────────────────────────────────────────────── */}
       <AnimatePresence>
         {showCatalogModal && (
@@ -744,10 +842,10 @@ export const ProjectsPage: React.FC = () => {
               <div className="flex items-start justify-between border-b border-stone-200 dark:border-stone-800 pb-4">
                 <div>
                   <h3 className="text-xl font-black text-stone-900 dark:text-stone-100">
-                    10-Project Blueprint Catalog
+                    30-Project Blueprint Catalog
                   </h3>
                   <p className="text-xs text-stone-500 mt-0.5">
-                    Select any project blueprint to scaffold its multi-file architecture and launch the in-browser IDE.
+                    10 Beginner · 10 Intermediate · 10 Hard — select any project blueprint to scaffold its multi-file architecture and launch the in-browser IDE.
                   </p>
                 </div>
                 <button
@@ -774,13 +872,41 @@ export const ProjectsPage: React.FC = () => {
                     }`}
                   >
                     <span>{p.title}</span>
+                    <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/20 text-white font-mono">
+                      30
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Difficulty Tabs inside modal */}
+              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2 border-b border-stone-100 dark:border-stone-800">
+                {[
+                  { key: 'Beginner', label: 'Beginner (10)' },
+                  { key: 'Intermediate', label: 'Intermediate (10)' },
+                  { key: 'Advanced', label: 'Hard (10)' },
+                  { key: 'All', label: 'All (30)' },
+                ].map(item => (
+                  <button
+                    key={item.key}
+                    onClick={() => {
+                      triggerHaptic('light');
+                      setBlueprintDifficulty(item.key as any);
+                    }}
+                    className={`px-3 py-1 rounded-xl text-xs font-bold transition-all ${
+                      blueprintDifficulty === item.key
+                        ? 'bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 shadow-sm'
+                        : 'text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800'
+                    }`}
+                  >
+                    {item.label}
                   </button>
                 ))}
               </div>
 
               {/* Blueprint Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {blueprints.map(blueprint => (
+                {filteredBlueprints.map(blueprint => (
                   <div
                     key={blueprint.id}
                     className="p-5 rounded-2xl border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-950 flex flex-col justify-between space-y-4"
