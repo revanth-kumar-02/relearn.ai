@@ -529,6 +529,132 @@ export const ProjectWorkspacePage: React.FC = () => {
   // Line numbers calculation for active file
   const lineCount = Math.max(1, currentCode.split('\n').length);
 
+  const renderMilestoneContent = () => {
+    if (!activeMilestone) return null;
+    return (
+      <div className="flex flex-col h-full space-y-4">
+        {/* Milestone Selector Tabs */}
+        <div className="flex items-center justify-between border-b border-stone-800 pb-2">
+          <div className="text-xs font-black uppercase tracking-wider text-primary">
+            Milestone Roadmap
+          </div>
+          <button
+            onClick={() => setIsMilestoneDrawerOpen(false)}
+            className="text-stone-500 hover:text-stone-300"
+          >
+            <X size={14} />
+          </button>
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          {project.milestones.map((m, mIdx) => {
+            const isActive = mIdx === activeMilestoneIndex;
+            const isDone = !!m.completed;
+
+            return (
+              <button
+                key={m.id || mIdx}
+                onClick={() => {
+                  triggerHaptic('light');
+                  setActiveMilestoneIndex(mIdx);
+                }}
+                className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1 ${
+                  isActive
+                    ? 'bg-primary text-white shadow-sm'
+                    : isDone
+                    ? 'bg-emerald-500/20 text-emerald-400'
+                    : 'bg-stone-800 text-stone-400 hover:text-stone-200'
+                }`}
+              >
+                {isDone ? <Check size={12} /> : <span>{mIdx + 1}</span>}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Active Milestone Title & Objective */}
+        <div className="space-y-2">
+          <h3 className="text-sm font-black text-stone-100">
+            {activeMilestone.title}
+          </h3>
+          <p className="text-xs text-stone-400 leading-relaxed bg-stone-950 p-3 rounded-xl border border-stone-800">
+            {activeMilestone.objective}
+          </p>
+        </div>
+
+        {/* Hint Card */}
+        {activeMilestone.starterHint && (
+          <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 leading-relaxed">
+            <span className="font-bold block mb-0.5">💡 Hint:</span>
+            {activeMilestone.starterHint}
+          </div>
+        )}
+
+        {/* Acceptance Criteria Checklist */}
+        <div className="space-y-2 pt-1">
+          <div className="flex items-center justify-between text-xs font-bold text-stone-300">
+            <span>Acceptance Criteria</span>
+            <span className="text-[11px] text-stone-500">
+              {activeMilestone.criteria.filter(c => activeMilestone.completedCriteria?.[c]).length}/{activeMilestone.criteria.length}
+            </span>
+          </div>
+
+          <div className="space-y-2">
+            {activeMilestone.criteria.map((criterion, cIdx) => {
+              const isChecked = !!activeMilestone.completedCriteria?.[criterion];
+
+              return (
+                <div
+                  key={cIdx}
+                  onClick={() => handleToggleCriterion(criterion)}
+                  className={`cursor-pointer p-2.5 rounded-xl border text-xs transition-all flex items-start gap-2.5 ${
+                    isChecked
+                      ? 'bg-emerald-500/10 border-emerald-500/30 text-stone-200'
+                      : 'bg-stone-950 border-stone-800 hover:border-stone-700 text-stone-300'
+                  }`}
+                >
+                  <div className={`mt-0.5 w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${
+                    isChecked
+                      ? 'bg-emerald-500 border-emerald-500 text-white'
+                      : 'border-stone-600'
+                  }`}>
+                    {isChecked && <Check size={11} />}
+                  </div>
+                  <span className={`leading-relaxed ${
+                    isChecked ? 'line-through text-stone-500' : 'text-stone-300'
+                  }`}>
+                    {criterion}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Review Code Button */}
+        <div className="pt-3 border-t border-stone-800">
+          <button
+            onClick={handleReviewCode}
+            disabled={isReviewing}
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-primary hover:bg-primary-dark disabled:opacity-50 text-white font-bold text-xs shadow-md shadow-primary/20 transition-all hover:scale-[1.01] active:scale-[0.99]"
+          >
+            {isReviewing ? (
+              <>
+                <RefreshCw size={13} className="animate-spin" />
+                <span>Auditing Code...</span>
+              </>
+            ) : (
+              <>
+                <Sparkles size={14} />
+                <span>Run AI Code Review</span>
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className={`min-h-screen py-4 px-3 sm:px-6 max-w-7xl mx-auto space-y-4 ${isFullScreen ? 'fixed inset-0 z-50 bg-stone-950 p-4 max-w-none overflow-y-auto' : ''}`}>
       
@@ -560,6 +686,48 @@ export const ProjectWorkspacePage: React.FC = () => {
               {project.title}
             </h1>
           </div>
+        </div>
+
+        {/* Environment Mode Controller: Eclipse Theia vs Focused Web Editor */}
+        <div className="flex items-center gap-1 p-1 rounded-xl bg-stone-100 dark:bg-stone-900 border border-stone-200 dark:border-stone-800">
+          <button
+            onClick={() => {
+              triggerHaptic('light');
+              setIdeMode('theia');
+            }}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              ideMode === 'theia'
+                ? 'bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 shadow-sm'
+                : 'text-stone-500 hover:text-stone-800 dark:hover:text-stone-200'
+            }`}
+          >
+            <Cpu size={13} className={ideMode === 'theia' ? 'text-primary' : ''} />
+            <span>Eclipse Theia Studio</span>
+            <span
+              className={`w-1.5 h-1.5 rounded-full ${
+                isTheiaHealthy === true
+                  ? 'bg-emerald-500'
+                  : isTheiaHealthy === false
+                  ? 'bg-amber-400 animate-pulse'
+                  : 'bg-stone-400'
+              }`}
+            />
+          </button>
+
+          <button
+            onClick={() => {
+              triggerHaptic('light');
+              setIdeMode('editor');
+            }}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              ideMode === 'editor'
+                ? 'bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 shadow-sm'
+                : 'text-stone-500 hover:text-stone-800 dark:hover:text-stone-200'
+            }`}
+          >
+            <Code2 size={13} />
+            <span>Focused Editor</span>
+          </button>
         </div>
 
         {/* Right Action Tools: Local VS Code Link, Fullscreen, Delete */}
@@ -626,11 +794,74 @@ export const ProjectWorkspacePage: React.FC = () => {
       </div>
 
       {/* ─────────────────────────────────────────────────────────────
-          BUILT-IN WEB IDE CANVAS (VS CODE EXPERIENCE)
+          IDE CANVAS (ECLIPSE THEIA CLOUD STUDIO vs FOCUSED WEB EDITOR)
       ───────────────────────────────────────────────────────────── */}
-      <div className="bg-stone-950 rounded-3xl border border-stone-800 shadow-2xl overflow-hidden flex flex-col min-h-[700px]">
-        {/* Workspace Body: Activity Bar + Explorer + Editor Pane + Milestone Drawer */}
-        <div className="flex flex-1 overflow-hidden relative">
+      {ideMode === 'theia' ? (
+        <div className="bg-stone-950 rounded-3xl border border-stone-800 shadow-2xl overflow-hidden flex flex-col min-h-[750px]">
+          <div className="flex flex-1 overflow-hidden relative">
+            {/* Theia Container Frame Area */}
+            <div className="flex-1 bg-stone-950 flex flex-col relative">
+              {isTheiaHealthy === false ? (
+                <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-4 max-w-lg mx-auto">
+                  <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500">
+                    <Cpu size={28} />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-black text-stone-100 tracking-tight">Eclipse Theia Studio Container</h3>
+                    <p className="text-xs text-stone-400 mt-1">
+                      The containerized IDE runtime on <code className="text-primary font-mono">{theiaUrl}</code> is offline or starting up.
+                    </p>
+                  </div>
+                  <div className="w-full p-3 rounded-xl bg-black/60 border border-stone-800 text-left font-mono text-xs text-stone-300 space-y-1">
+                    <div className="text-[10px] text-stone-500 uppercase tracking-wider font-sans">Start container stack:</div>
+                    <div className="text-emerald-400 select-all font-mono">$ docker compose -f docker-compose.theia.yml up -d</div>
+                  </div>
+                  <div className="flex items-center gap-3 pt-2">
+                    <button
+                      onClick={() => {
+                        triggerHaptic('light');
+                        fetch(theiaUrl, { method: 'HEAD', mode: 'no-cors' })
+                          .then(() => setIsTheiaHealthy(true))
+                          .catch(() => setIsTheiaHealthy(false));
+                      }}
+                      className="px-4 py-2 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-200 font-bold text-xs transition-colors flex items-center gap-2"
+                    >
+                      <RefreshCw size={13} />
+                      <span>Ping Container</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        triggerHaptic('light');
+                        setIdeMode('editor');
+                      }}
+                      className="px-4 py-2 rounded-xl bg-primary text-white font-bold text-xs hover:bg-primary-dark transition-colors"
+                    >
+                      Use Focused Web Editor
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <iframe
+                  src={theiaUrl}
+                  title="Eclipse Theia IDE Studio"
+                  className="w-full flex-1 min-h-[750px] border-0"
+                  allow="clipboard-read; clipboard-write;"
+                />
+              )}
+            </div>
+
+            {/* Right Milestone Drawer inside Theia view */}
+            {isMilestoneDrawerOpen && (
+              <div className="w-80 border-l border-stone-800 bg-stone-900/95 backdrop-blur-md flex flex-col shrink-0 overflow-y-auto p-4">
+                {renderMilestoneContent()}
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="bg-stone-950 rounded-3xl border border-stone-800 shadow-2xl overflow-hidden flex flex-col min-h-[700px]">
+          {/* Workspace Body: Activity Bar + Explorer + Editor Pane + Milestone Drawer */}
+          <div className="flex flex-1 overflow-hidden relative">
           
           {/* 1. SLIM ACTIVITY BAR (VS Code Left Strip) */}
           <div className="w-12 bg-stone-900 border-r border-stone-800 flex flex-col items-center py-3 space-y-4 shrink-0 text-stone-400">
@@ -929,126 +1160,9 @@ export const ProjectWorkspacePage: React.FC = () => {
                 animate={{ width: 330, opacity: 1 }}
                 exit={{ width: 0, opacity: 0 }}
                 transition={{ duration: 0.15 }}
-                className="bg-stone-900 border-l border-stone-800 flex flex-col shrink-0 overflow-y-auto p-4 space-y-4"
+                className="bg-stone-900 border-l border-stone-800 flex flex-col shrink-0 overflow-y-auto p-4"
               >
-                {/* Milestone Selector Tabs */}
-                <div className="flex items-center justify-between border-b border-stone-800 pb-2">
-                  <div className="text-xs font-black uppercase tracking-wider text-primary">
-                    Milestone Roadmap
-                  </div>
-                  <button
-                    onClick={() => setIsMilestoneDrawerOpen(false)}
-                    className="text-stone-500 hover:text-stone-300"
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
-
-                <div className="flex items-center gap-1.5">
-                  {project.milestones.map((m, mIdx) => {
-                    const isActive = mIdx === activeMilestoneIndex;
-                    const isDone = !!m.completed;
-
-                    return (
-                      <button
-                        key={m.id || mIdx}
-                        onClick={() => {
-                          triggerHaptic('light');
-                          setActiveMilestoneIndex(mIdx);
-                        }}
-                        className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1 ${
-                          isActive
-                            ? 'bg-primary text-white shadow-sm'
-                            : isDone
-                            ? 'bg-emerald-500/20 text-emerald-400'
-                            : 'bg-stone-800 text-stone-400 hover:text-stone-200'
-                        }`}
-                      >
-                        {isDone ? <Check size={12} /> : <span>{mIdx + 1}</span>}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Active Milestone Title & Objective */}
-                <div className="space-y-2">
-                  <h3 className="text-sm font-black text-stone-100">
-                    {activeMilestone.title}
-                  </h3>
-                  <p className="text-xs text-stone-400 leading-relaxed bg-stone-950 p-3 rounded-xl border border-stone-800">
-                    {activeMilestone.objective}
-                  </p>
-                </div>
-
-                {/* Hint Card */}
-                {activeMilestone.starterHint && (
-                  <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 leading-relaxed">
-                    <span className="font-bold block mb-0.5">💡 Hint:</span>
-                    {activeMilestone.starterHint}
-                  </div>
-                )}
-
-                {/* Acceptance Criteria Checklist */}
-                <div className="space-y-2 pt-1">
-                  <div className="flex items-center justify-between text-xs font-bold text-stone-300">
-                    <span>Acceptance Criteria</span>
-                    <span className="text-[11px] text-stone-500">
-                      {activeMilestone.criteria.filter(c => activeMilestone.completedCriteria?.[c]).length}/{activeMilestone.criteria.length}
-                    </span>
-                  </div>
-
-                  <div className="space-y-2">
-                    {activeMilestone.criteria.map((criterion, cIdx) => {
-                      const isChecked = !!activeMilestone.completedCriteria?.[criterion];
-
-                      return (
-                        <div
-                          key={cIdx}
-                          onClick={() => handleToggleCriterion(criterion)}
-                          className={`cursor-pointer p-2.5 rounded-xl border text-xs transition-all flex items-start gap-2.5 ${
-                            isChecked
-                              ? 'bg-emerald-500/10 border-emerald-500/30 text-stone-200'
-                              : 'bg-stone-950 border-stone-800 hover:border-stone-700 text-stone-300'
-                          }`}
-                        >
-                          <div className={`mt-0.5 w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${
-                            isChecked
-                              ? 'bg-emerald-500 border-emerald-500 text-white'
-                              : 'border-stone-600'
-                          }`}>
-                            {isChecked && <Check size={11} />}
-                          </div>
-                          <span className={`leading-relaxed ${
-                            isChecked ? 'line-through text-stone-500' : 'text-stone-300'
-                          }`}>
-                            {criterion}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Review Code Button */}
-                <div className="pt-3 border-t border-stone-800">
-                  <button
-                    onClick={handleReviewCode}
-                    disabled={isReviewing}
-                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-primary hover:bg-primary-dark disabled:opacity-50 text-white font-bold text-xs shadow-md shadow-primary/20 transition-all hover:scale-[1.01] active:scale-[0.99]"
-                  >
-                    {isReviewing ? (
-                      <>
-                        <RefreshCw size={13} className="animate-spin" />
-                        <span>Auditing Code...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles size={14} />
-                        <span>Run AI Code Review</span>
-                      </>
-                    )}
-                  </button>
-                </div>
+                {renderMilestoneContent()}
               </motion.div>
             )}
           </AnimatePresence>
@@ -1071,6 +1185,7 @@ export const ProjectWorkspacePage: React.FC = () => {
           </div>
         </div>
       </div>
+      )}
 
       {/* ─────────────────────────────────────────────────────────────
           AI CODE REVIEW MODAL
