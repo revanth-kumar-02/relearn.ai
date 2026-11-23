@@ -88,8 +88,14 @@ CRITICAL RULE: Every single day MUST have a unique, highly specific educational 
 NEVER use placeholder topics like "Practice", "Review", or "Deep Dive" for more than one day in the entire plan. 
 Break down large subjects into granular sub-topics (e.g., instead of 5 days of "CSS", do "Selectors", "Flexbox", "Grid", "Animations", "Responsive Design").
 ${guidanceRule}
-Guidance MUST be written in ${language}.
-${userContext ? `Tailor the plan to the user's academic level, goals, and preferred study time mentioned in the context.` : ''} Proprietary or technical terms like "JavaScript", "Function", "React", or "API" should remain in English for clarity.`;
+LANGUAGE RULE:
+You MUST generate ALL text fields in ${language}:
+1. "title": The plan title MUST be written in ${language}.
+2. "description": The overview description MUST be written in ${language}.
+3. "topic": Every daily topic title MUST be written in ${language}.
+4. "guidance": Every daily guidance instruction MUST be written in ${language}.
+PROPRIETARY TERMS EXCEPTION: Technical keywords, framework names, and programming terms (e.g. "JavaScript", "Python", "SQL", "Excel", "Power BI", "React", "Docker", "API", "HTML", "CSS") MUST remain in English for educational clarity.
+${userContext ? `Tailor the plan to the user's academic level, goals, and preferred study time mentioned in the context.` : ''}`;
 }
 
 /**

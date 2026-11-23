@@ -46,7 +46,7 @@ const LearningWorkspace: React.FC = () => {
   const location = useLocation();
   const { user } = useAuth();
   const { 
-    tasks, plans, updateTask, addActivity, contentLanguage, 
+    tasks, plans, updateTask, addActivity, contentLanguage, videoLanguage,
     processGamificationReward, addNotification, 
     startAnalyticsSession, endAnalyticsSession, trackAnalyticsEvent 
   } = useData();
@@ -66,6 +66,13 @@ const LearningWorkspace: React.FC = () => {
   const currentTaskIndex = planTasks.findIndex(t => t.id === taskId);
   const prevTask = currentTaskIndex > 0 ? planTasks[currentTaskIndex - 1] : null;
   const nextTask = currentTaskIndex >= 0 && currentTaskIndex < planTasks.length - 1 ? planTasks[currentTaskIndex + 1] : null;
+
+  // Track task language vs user preferred text language
+  const taskLangCode = task?.language || task?.tags?.find(t => t.startsWith('lang:'))?.replace('lang:', '') || 'en';
+  const taskLangLabel = getContentLanguageLabel(taskLangCode);
+  const userPreferredLangLabel = getContentLanguageLabel(contentLanguage);
+  const isLanguageMismatch = Boolean(task?.aiExplanation && taskLangCode !== contentLanguage);
+  const [isRegeneratingLang, setIsRegeneratingLang] = useState(false);
 
   useEffect(() => {
     if (taskId) {
@@ -222,13 +229,16 @@ const LearningWorkspace: React.FC = () => {
       if (!result) throw new Error("No content generated");
       const data = safeParseAIResponse<any>(result);
 
+      const existingTags = (task.tags || []).filter(t => !t.startsWith('lang:'));
       updateTask(task.id, {
         learningObjective: data.learningObjective,
         aiExplanation: data.aiExplanation,
         practiceActivities: data.practiceActivities,
         resources: data.resources,
         practiceQuestion: data.practiceQuestion,
-        status: 'In Progress'
+        status: 'In Progress',
+        language: contentLanguage,
+        tags: [...existingTags, `lang:${contentLanguage}`]
       });
     } catch (error: any) {
       console.error("Failed to fetch session data:", error);
@@ -244,6 +254,43 @@ const LearningWorkspace: React.FC = () => {
   const handleGenerateWithPdf = () => {
     setGenerationError(null);
     fetchSession();
+  };
+
+  const handleRegenerateInPreferredLanguage = async () => {
+    if (!task) return;
+    setIsRegeneratingLang(true);
+    showToast(`Translating and updating lesson to ${userPreferredLangLabel}...`, 'info');
+    try {
+      const result = await generateLessonContent(
+        task.title,
+        plan?.title || 'General Study',
+        userPreferredLangLabel,
+        undefined,
+        {
+          persona: user?.preferences?.aiPersona || 'Expert Tutor',
+          explainStyle: user?.preferences?.learningStyle === 'Standard' ? undefined : user?.preferences?.learningStyle,
+          mode: lessonMode
+        }
+      );
+      if (!result) throw new Error("No content generated");
+      const data = safeParseAIResponse<any>(result);
+      const existingTags = (task.tags || []).filter(t => !t.startsWith('lang:'));
+      updateTask(task.id, {
+        learningObjective: data.learningObjective,
+        aiExplanation: data.aiExplanation,
+        practiceActivities: data.practiceActivities,
+        resources: data.resources,
+        practiceQuestion: data.practiceQuestion,
+        language: contentLanguage,
+        tags: [...existingTags, `lang:${contentLanguage}`]
+      });
+      showToast(`Lesson regenerated in ${userPreferredLangLabel}!`, 'success');
+    } catch (err: any) {
+      console.error("Failed to regenerate lesson in preferred language:", err);
+      showToast(`Could not regenerate lesson in ${userPreferredLangLabel}. Please try again.`, 'error');
+    } finally {
+      setIsRegeneratingLang(false);
+    }
   };
 
   const handleSkipPdf = (manualTrigger = false) => {
@@ -270,13 +317,16 @@ const LearningWorkspace: React.FC = () => {
       .then(result => {
         if (!result) throw new Error("No content generated");
         const data = safeParseAIResponse<any>(result);
+        const existingTags = (task!.tags || []).filter(t => !t.startsWith('lang:'));
         updateTask(task!.id, {
           learningObjective: data.learningObjective,
           aiExplanation: data.aiExplanation,
           practiceActivities: data.practiceActivities,
           resources: data.resources,
           practiceQuestion: data.practiceQuestion,
-          status: 'In Progress'
+          status: 'In Progress',
+          language: contentLanguage,
+          tags: [...existingTags, `lang:${contentLanguage}`]
         });
       })
       .catch(err => {
@@ -768,6 +818,38 @@ const LearningWorkspace: React.FC = () => {
               <div className="space-y-8">
                 {/* Main Content Area */}
                 <div className="space-y-8">
+                  {/* Language Mismatch Alert Banner */}
+                  {isLanguageMismatch && (
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl text-amber-900 dark:text-amber-200">
+                      <div className="flex items-center gap-3">
+                        <span className="material-symbols-outlined text-amber-600 dark:text-amber-400 text-xl shrink-0">translate</span>
+                        <div>
+                          <p className="text-xs font-bold">Language Setting Changed</p>
+                          <p className="text-xs text-amber-800/80 dark:text-amber-300/80">
+                            This lesson was generated in {taskLangLabel}, but your current preferred language is {userPreferredLangLabel}.
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={handleRegenerateInPreferredLanguage}
+                        disabled={isRegeneratingLang}
+                        className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm transition-all disabled:opacity-50 shrink-0 self-end sm:self-auto"
+                      >
+                        {isRegeneratingLang ? (
+                          <>
+                            <span className="animate-spin material-symbols-outlined text-sm">progress_activity</span>
+                            Regenerating...
+                          </>
+                        ) : (
+                          <>
+                            <span className="material-symbols-outlined text-sm">refresh</span>
+                            Regenerate in {userPreferredLangLabel}
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )}
+
                   {/* Objective */}
                   <section className="space-y-3">
                     <div className="flex items-center gap-2 text-primary">
@@ -852,7 +934,25 @@ const LearningWorkspace: React.FC = () => {
                     <p className="text-xs text-stone-500 dark:text-stone-400">
                       AI-selected educational videos from trusted channels, matched to your current topic.
                     </p>
-                    <VideoResources topic={task.title} subject={plan?.subject || plan?.title} />
+                    <VideoResources
+                      topic={task.title}
+                      subject={plan?.subject || plan?.title}
+                      learningObjective={task.learningObjective}
+                      lessonDescription={task.description}
+                      difficulty={plan?.difficulty}
+                      tags={task.tags}
+                      context={{
+                        planTitle: plan?.title,
+                        subject: plan?.subject || plan?.title,
+                        difficulty: plan?.difficulty,
+                        lessonTitle: task.title,
+                        learningObjective: task.learningObjective,
+                        lessonDescription: task.description,
+                        tags: task.tags,
+                        preferredLanguage: videoLanguage,
+                        userId: user?.id,
+                      }}
+                    />
                   </section>
 
                   {/* Reflection */}

@@ -91,25 +91,36 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Synchronize initial preferences from user profile if they change
   useEffect(() => {
-    if (user?.preferences?.videoLanguage) {
-      setVideoLanguageState(user.preferences.videoLanguage as VideoLanguageCode);
-      setVideoLanguagePreference(user.preferences.videoLanguage as VideoLanguageCode);
+    if (!user) {
+      setVideoLanguageState('en');
+      setContentLanguageState('en');
+      return;
     }
-    if (user?.preferences?.contentLanguage) {
-      setContentLanguageState(user.preferences.contentLanguage as LanguageCode);
-      setContentLanguagePreference(user.preferences.contentLanguage as LanguageCode);
-    }
-    if (user?.preferences?.aiPersona) {
+
+    const vLang = (user.preferences?.videoLanguage as VideoLanguageCode) || getVideoLanguagePreference(user.id);
+    const cLang = (user.preferences?.contentLanguage as LanguageCode) || getContentLanguagePreference(user.id);
+
+    setVideoLanguageState(vLang);
+    setVideoLanguagePreference(vLang, user.id);
+
+    setContentLanguageState(cLang);
+    setContentLanguagePreference(cLang, user.id);
+
+    if (user.preferences?.aiPersona) {
       setAiPersonaState(user.preferences.aiPersona);
     }
-    if (user?.preferences?.learningStyle) {
+    if (user.preferences?.learningStyle) {
       setLearningStyleState(user.preferences.learningStyle);
     }
-  }, [user?.preferences?.videoLanguage, user?.preferences?.contentLanguage, user?.preferences?.aiPersona, user?.preferences?.learningStyle]);
+  }, [user?.id, user?.preferences?.videoLanguage, user?.preferences?.contentLanguage, user?.preferences?.aiPersona, user?.preferences?.learningStyle]);
 
   const updateVideoLanguage = async (code: VideoLanguageCode) => {
     setVideoLanguageState(code);
-    setVideoLanguagePreference(code);
+    if (user?.id) {
+      setVideoLanguagePreference(code, user.id);
+    } else {
+      setVideoLanguagePreference(code);
+    }
     
     // Notify components to re-fetch freshly
     window.dispatchEvent(new Event('videoLanguageChanged'));
@@ -117,7 +128,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (user) {
       await updateProfile({
         preferences: {
-          ...(user.preferences || defaultPreferences),
+          ...defaultPreferences,
+          ...(user.preferences || {}),
           videoLanguage: code
         }
       });
@@ -126,7 +138,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const updateContentLanguage = async (code: LanguageCode) => {
     setContentLanguageState(code);
-    setContentLanguagePreference(code);
+    if (user?.id) {
+      setContentLanguagePreference(code, user.id);
+    } else {
+      setContentLanguagePreference(code);
+    }
     
     // Notify components to re-fetch freshly
     window.dispatchEvent(new Event('contentLanguageChanged'));
@@ -134,7 +150,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (user) {
       await updateProfile({
         preferences: {
-          ...(user.preferences || defaultPreferences),
+          ...defaultPreferences,
+          ...(user.preferences || {}),
           contentLanguage: code
         }
       });

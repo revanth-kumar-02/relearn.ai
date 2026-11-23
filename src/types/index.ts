@@ -22,6 +22,7 @@ export interface Plan {
   teamMembers?: string[];
   isImported?: boolean;
   userId?: string;
+  language?: string; // Content language code e.g. 'en', 'ta', 'hi', 'te', 'ml'
 }
 
 export interface MistakeEntry {
@@ -63,6 +64,7 @@ export interface Task {
   resources?: { title: string; url: string; type: 'video' | 'article' | 'link' }[];
   practiceQuestion?: string;
   updatedAt?: string;
+  language?: string; // Content language code e.g. 'en', 'ta', 'hi', 'te', 'ml'
 }
 
 export interface Activity {

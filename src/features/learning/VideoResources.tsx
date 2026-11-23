@@ -1,32 +1,66 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
-import { fetchEducationalVideos, clearVideosCache, YouTubeVideo } from '../../services/api/youtubeService';
+import { 
+  fetchEducationalVideos, 
+  clearVideosCache, 
+  YouTubeVideo, 
+  StructuredLessonContext, 
+  RelevanceTier,
+  getVideoLanguageLabel,
+  getVideoLanguagePreference
+} from '../../services/api/youtubeService';
 import { useData } from '../../contexts/DataContext';
 
 type ErrorCategory = 'quota' | 'config' | 'network' | 'general';
 
 interface VideoResourcesProps {
   topic: string;
-  subject?: string; // Plan subject / programming language
+  subject?: string;
+  learningObjective?: string;
+  lessonDescription?: string;
+  difficulty?: string;
+  tags?: string[];
+  context?: StructuredLessonContext;
 }
 
-const VideoResources: React.FC<VideoResourcesProps> = ({ topic, subject }) => {
+const VideoResources: React.FC<VideoResourcesProps> = ({ 
+  topic, 
+  subject, 
+  learningObjective, 
+  lessonDescription, 
+  difficulty, 
+  tags,
+  context 
+}) => {
   const [videos, setVideos] = useState<YouTubeVideo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [errorCategory, setErrorCategory] = useState<ErrorCategory>('general');
-  const [loaded, setLoaded] = useState(false); // for stagger animation
+  const [loaded, setLoaded] = useState(false);
 
   // Read current video language from global context so we re-fetch when user changes it in Settings
-  const { videoLanguage } = useData();
+  const { videoLanguage, updateVideoLanguage } = useData();
 
   const loadVideos = useCallback(async (isRefresh = false) => {
     if (!topic) return;
     setLoading(true);
     setError(null);
     setLoaded(false);
+
+    // Build or use full structured context
+    const structuredContext: StructuredLessonContext = {
+      lessonTitle: topic,
+      subject: subject || '',
+      learningObjective: learningObjective || '',
+      lessonDescription: lessonDescription || '',
+      difficulty: difficulty || 'Beginner',
+      tags: tags || [],
+      ...context,
+      preferredLanguage: videoLanguage || context?.preferredLanguage || getVideoLanguagePreference(),
+      userId: context?.userId,
+    };
+
     try {
-      const results = await fetchEducationalVideos(topic, subject, isRefresh);
+      const results = await fetchEducationalVideos(structuredContext, isRefresh);
       setVideos(results);
     } catch (err: any) {
       console.error('Failed to load videos', err);
@@ -42,10 +76,9 @@ const VideoResources: React.FC<VideoResourcesProps> = ({ topic, subject }) => {
       }
     } finally {
       setLoading(false);
-      // Trigger stagger after a tiny delay for smoother transition
       requestAnimationFrame(() => setLoaded(true));
     }
-  }, [topic, subject, videoLanguage]);
+  }, [topic, subject, learningObjective, lessonDescription, difficulty, tags, context, videoLanguage]);
 
   useEffect(() => {
     loadVideos();
@@ -115,45 +148,92 @@ const VideoResources: React.FC<VideoResourcesProps> = ({ topic, subject }) => {
 
   // ── Empty State ──────────────────────────────────────────
   if (videos.length === 0) {
+    const currentLangLabel = getVideoLanguageLabel(videoLanguage);
+    const isNonEnglish = videoLanguage && videoLanguage !== 'en';
+
     return (
-      <div className="p-10 text-center bg-stone-50 dark:bg-stone-900 rounded-2xl border border-stone-200 dark:border-stone-800">
-        <span className="material-symbols-outlined text-4xl text-stone-300 dark:text-stone-600 mb-3 block">
-          videocam_off
+      <div className="p-8 text-center bg-stone-50 dark:bg-stone-900 rounded-2xl border border-stone-200 dark:border-stone-800 space-y-3">
+        <span className="material-symbols-outlined text-4xl text-stone-300 dark:text-stone-600 mx-auto block">
+          verified
         </span>
-        <p className="text-stone-500 text-sm font-medium">No video tutorials found matching this lesson topic.</p>
-        <button
-          onClick={() => loadVideos(true)}
-          className="mt-4 text-xs text-primary hover:text-primary/80 flex items-center gap-1.5 mx-auto transition-colors font-bold"
-        >
-          <span className="material-symbols-outlined text-sm">refresh</span>
-          Search again
-        </button>
+        <h3 className="font-bold text-sm text-stone-800 dark:text-stone-200">
+          Strict Educational Relevance Filter
+        </h3>
+        <p className="text-stone-500 text-xs max-w-md mx-auto leading-relaxed">
+          {isNonEnglish
+            ? `No verified ${currentLangLabel} tutorials directly teach "${topic}". We strictly filter out generic or mismatched videos to preserve curriculum focus.`
+            : `All available videos failed our strict educational relevance filter for "${topic}". We reject general filler to protect your study time.`}
+        </p>
+
+        <div className="flex items-center justify-center gap-3 pt-2">
+          {isNonEnglish && (
+            <button
+              onClick={() => updateVideoLanguage('en')}
+              className="text-xs bg-primary text-white hover:bg-primary/90 px-4 py-2 rounded-xl flex items-center gap-1.5 transition-colors font-bold shadow-sm"
+            >
+              <span className="material-symbols-outlined text-sm">translate</span>
+              Search in English
+            </button>
+          )}
+          <button
+            onClick={() => {
+              clearVideosCache(topic, subject, context?.userId);
+              loadVideos(true);
+            }}
+            className="text-xs text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200 border border-stone-200 dark:border-stone-700 px-4 py-2 rounded-xl flex items-center gap-1.5 transition-colors font-semibold"
+          >
+            <span className="material-symbols-outlined text-sm">refresh</span>
+            Retry search
+          </button>
+        </div>
       </div>
     );
   }
 
-  // ── Relevance badge color based on score ─────────────────
-  const getScoreBadge = (score: number) => {
-    if (score >= 70) return { bg: 'bg-emerald-100 dark:bg-emerald-900/30', text: 'text-emerald-700 dark:text-emerald-400', label: 'Highly Relevant' };
-    if (score >= 40) return { bg: 'bg-amber-100 dark:bg-amber-900/30', text: 'text-amber-700 dark:text-amber-400', label: 'Relevant' };
-    return { bg: 'bg-stone-100 dark:bg-stone-800', text: 'text-stone-500 dark:text-stone-400', label: 'Related' };
+  // ── Relevance badge styling based on 4-tier classification ──
+  const getBadgeStyle = (tier: RelevanceTier) => {
+    switch (tier) {
+      case 'DIRECTLY_RELEVANT':
+        return {
+          bg: 'bg-emerald-500/15 border-emerald-500/30 text-emerald-700 dark:text-emerald-300',
+          icon: 'check_circle',
+          label: 'DIRECTLY RELEVANT',
+        };
+      case 'CONCEPTUALLY_RELEVANT':
+        return {
+          bg: 'bg-sky-500/15 border-sky-500/30 text-sky-700 dark:text-sky-300',
+          icon: 'psychology',
+          label: 'PREREQUISITE',
+        };
+      default:
+        return {
+          bg: 'bg-stone-500/15 border-stone-500/30 text-stone-600 dark:text-stone-400',
+          icon: 'school',
+          label: 'RELEVANT',
+        };
+    }
   };
 
   // ── Video Grid ───────────────────────────────────────────
+  const langLabel = getVideoLanguageLabel(videoLanguage);
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-stone-100 dark:bg-stone-800 rounded-full border border-stone-200 dark:border-stone-800 backdrop-blur-sm">
-          <span className="material-symbols-outlined text-sm text-primary filled">language</span>
-          <span className="text-[10px] font-bold text-stone-500 uppercase tracking-tight">
-            Searching in: <span className="text-primary">{videoLanguage === 'en' ? 'English' : videoLanguage === 'hi' ? 'Hindi' : videoLanguage === 'ta' ? 'Tamil' : videoLanguage === 'te' ? 'Telugu' : 'Malayalam'}</span>
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-stone-100 dark:bg-stone-800/80 rounded-full border border-stone-200 dark:border-stone-700/60 backdrop-blur-sm">
+          <span className="material-symbols-outlined text-sm text-primary filled">verified</span>
+          <span className="text-[10px] font-bold text-stone-500 dark:text-stone-400 uppercase tracking-tight">
+            Curriculum Match: <span className="text-primary font-black">{langLabel}</span>
           </span>
         </div>
+        <span className="text-[11px] text-stone-400 dark:text-stone-500 font-medium">
+          {videos.length} precision-filtered {videos.length === 1 ? 'tutorial' : 'tutorials'}
+        </span>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {videos.map((video, index) => {
-          const badge = getScoreBadge(video.relevanceScore);
+          const badge = getBadgeStyle(video.relevanceTier);
           return (
             <div
               key={video.id}
@@ -174,20 +254,22 @@ const VideoResources: React.FC<VideoResourcesProps> = ({ topic, subject }) => {
                 <img
                   src={video.thumbnail}
                   alt={video.title}
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                   loading="lazy"
                 />
                 {/* Gradient overlay on hover */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                
                 {/* Play button */}
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="w-14 h-14 bg-white/90 dark:bg-stone-900/90 rounded-full flex items-center justify-center text-primary opacity-0 group-hover:opacity-100 transform scale-50 group-hover:scale-100 transition-all duration-400 shadow-2xl backdrop-blur-sm">
+                  <div className="w-12 h-12 bg-white/95 dark:bg-stone-900/95 rounded-full flex items-center justify-center text-primary opacity-0 group-hover:opacity-100 transform scale-50 group-hover:scale-100 transition-all duration-300 shadow-2xl backdrop-blur-sm">
                     <span className="material-symbols-outlined text-2xl ml-0.5 filled">play_arrow</span>
                   </div>
                 </div>
-                {/* Relevance badge — top right */}
-                <div className={`absolute top-2.5 right-2.5 ${badge.bg} ${badge.text} text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full backdrop-blur-sm flex items-center gap-1`}>
-                  <span className="material-symbols-outlined text-xs filled">star</span>
+
+                {/* 4-Tier Relevance Badge — top right */}
+                <div className={`absolute top-2.5 right-2.5 ${badge.bg} border text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full backdrop-blur-md flex items-center gap-1 shadow-sm`}>
+                  <span className="material-symbols-outlined text-xs filled">{badge.icon}</span>
                   {badge.label}
                 </div>
               </a>
@@ -198,26 +280,26 @@ const VideoResources: React.FC<VideoResourcesProps> = ({ topic, subject }) => {
                   href={`https://www.youtube.com/watch?v=${video.videoId}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="font-bold text-sm line-clamp-2 group-hover:text-primary transition-colors leading-snug hover:underline"
+                  className="font-bold text-sm line-clamp-2 group-hover:text-primary transition-colors leading-snug hover:underline text-stone-900 dark:text-stone-100"
                   title={video.title}
                 >
                   {video.title}
                 </a>
 
-                {/* Reason tag */}
+                {/* Pedagogical reason tag */}
                 {video.reason && (
                   <div className="flex items-center gap-1.5">
-                    <span className="material-symbols-outlined text-xs text-amber-500 filled">auto_awesome</span>
-                    <p className="text-[11px] font-semibold text-amber-600 dark:text-amber-400 line-clamp-1">
+                    <span className="material-symbols-outlined text-xs text-primary filled">school</span>
+                    <p className="text-[11px] font-semibold text-stone-600 dark:text-stone-300 line-clamp-1">
                       {video.reason}
                     </p>
                   </div>
                 )}
 
                 {/* Channel + views */}
-                <div className="mt-auto flex items-center justify-between text-xs text-stone-500 dark:text-stone-400 pt-1">
+                <div className="mt-auto flex items-center justify-between text-xs text-stone-500 dark:text-stone-400 pt-1 border-t border-stone-100 dark:border-stone-800/60">
                   <span className="font-medium truncate max-w-[60%]">{video.channelTitle}</span>
-                  <span className="shrink-0 tabular-nums">{video.viewCount}</span>
+                  <span className="shrink-0 tabular-nums text-[11px]">{video.viewCount}</span>
                 </div>
               </div>
             </div>
@@ -232,14 +314,14 @@ const VideoResources: React.FC<VideoResourcesProps> = ({ topic, subject }) => {
             clearVideosCache(topic, subject);
             loadVideos(true);
           }}
-          className="text-xs text-stone-400 hover:text-primary flex items-center gap-1.5 transition-colors py-2.5 px-5 rounded-xl hover:bg-primary/5 font-bold"
+          className="text-xs text-stone-400 hover:text-primary flex items-center gap-1.5 transition-colors py-2 px-4 rounded-xl hover:bg-primary/5 font-semibold"
         >
           <span className="material-symbols-outlined text-sm">refresh</span>
           Refresh recommendations
         </button>
       </div>
 
-      {/* Animation styles injected here to avoid external CSS dependency */}
+      {/* Animation styles */}
       <style>{`
         .filled {
           font-variation-settings: 'FILL' 1;
@@ -249,4 +331,4 @@ const VideoResources: React.FC<VideoResourcesProps> = ({ topic, subject }) => {
   );
 };
 
-export default React.memo(VideoResources);
+export default VideoResources;

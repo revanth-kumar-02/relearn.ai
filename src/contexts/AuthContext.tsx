@@ -6,6 +6,13 @@ import { requestNotificationPermission, unsubscribeUserFromPush } from '../servi
 import { setServiceAuthToken } from '../utils/authUtils';
 import { logAuthDiagnostic } from '../utils/authDiagnostics';
 import { adminService } from '../services/api/adminService';
+import {
+  setVideoLanguagePreference,
+  setContentLanguagePreference,
+  clearUserLanguagePreferences,
+  VideoLanguageCode,
+  LanguageCode
+} from '../services/api/youtubeService';
 
 interface AuthContextType {
   user: User | null;
@@ -298,7 +305,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
 
       if (profile) {
-        const updatedProfile = { ...profile, isVerified };
+        const sanitizedPreferences: UserPreferences = {
+          ...defaultPreferences,
+          ...(profile.preferences || {}),
+          videoLanguage: (profile.preferences?.videoLanguage as VideoLanguageCode) || 'en',
+          contentLanguage: (profile.preferences?.contentLanguage as LanguageCode) || 'en',
+        };
+        const updatedProfile = { 
+          ...profile, 
+          preferences: sanitizedPreferences,
+          isVerified 
+        };
+        setVideoLanguagePreference(sanitizedPreferences.videoLanguage as VideoLanguageCode, profile.id);
+        setContentLanguagePreference(sanitizedPreferences.contentLanguage as LanguageCode, profile.id);
         logAuthDiagnostic('Session successfully created', { userId: profile.id, isVerified });
         
         // Update presence and last_login on new session establishment (non-blocking)
@@ -616,6 +635,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       unsubscribeUserFromPush(user.id).catch(err => {
         console.error('[AuthContext] Push unsubscribe on logout failed:', err);
       });
+      clearUserLanguagePreferences(user.id);
     }
     if (supabaseAvailable && navigator.onLine) {
       await supabase.auth.signOut();
@@ -632,10 +652,27 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (!user) return { success: false, message: "No user logged in" };
 
     // Security Hardening: Prevent client-side privilege escalation or identity spoofing
-    const { role, id, email, isVerified, createdAt, ...allowedUpdates } = updates as any;
+    const { role, id, email, isVerified, createdAt, preferences: incomingPrefs, ...allowedUpdates } = updates as any;
+    
+    let mergedPreferences = user.preferences;
+    if (incomingPrefs) {
+      mergedPreferences = {
+        ...defaultPreferences,
+        ...(user.preferences || {}),
+        ...incomingPrefs,
+      };
+      if (incomingPrefs.videoLanguage) {
+        setVideoLanguagePreference(incomingPrefs.videoLanguage as VideoLanguageCode, user.id);
+      }
+      if (incomingPrefs.contentLanguage) {
+        setContentLanguagePreference(incomingPrefs.contentLanguage as LanguageCode, user.id);
+      }
+    }
+
     const updatedUser: User = { 
       ...user, 
       ...allowedUpdates,
+      preferences: mergedPreferences,
       id: user.id,
       email: user.email,
       role: user.role,

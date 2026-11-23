@@ -154,7 +154,8 @@ const CreatePlan: React.FC = () => {
                 status: 'active',
                 isTeamPlan: isTeamPlan,
                 teamMembers: isTeamPlan ? [user?.id || 'me', ...teamInvites.map(u => u.id)] : [],
-                updatedAt: new Date().toISOString()
+                updatedAt: new Date().toISOString(),
+                language: contentLanguage
             };
 
             const newTasks: Task[] = planDays.map((item: any, index: number) => {
@@ -173,13 +174,14 @@ const CreatePlan: React.FC = () => {
                     durationMinutes: dailyGoalMins,
                     dueDate: date.toISOString().split('T')[0],
                     status: 'Not Started',
-                    tags: ['AI Generated'],
+                    tags: ['AI Generated', `lang:${contentLanguage}`],
                     type: 'reading',
                     color: 'text-primary',
                     bgColor: 'bg-primary/10',
                     subtitle: sanitizedTopic,
                     priority: 'Medium',
-                    updatedAt: new Date().toISOString()
+                    updatedAt: new Date().toISOString(),
+                    language: contentLanguage
                 };
             });
 
