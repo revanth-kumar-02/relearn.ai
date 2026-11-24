@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { sendChatMessageStreaming } from '../../services/ai/chatbotService';
 import { useAuth } from '../../contexts/AuthContext';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { normalizeMarkdown, markdownTableComponents } from '../../utils/markdownUtils';
 import { useData } from '../../contexts/DataContext';
 import { getContentLanguageLabel } from '../../services/api/youtubeService';
 import { CHAT_PERSONAS, ChatPersonaId, getPersona, getSelectedPersonaId, setSelectedPersonaId } from '../../services/ai/chatPersonas';
@@ -219,7 +221,12 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
                 {msg.role === 'bot' ? (
                   msg.text ? (
                     <div className="prose-content leading-relaxed markdown-body">
-                      <ReactMarkdown>{msg.text}</ReactMarkdown>
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        components={markdownTableComponents}
+                      >
+                        {normalizeMarkdown(msg.text)}
+                      </ReactMarkdown>
                     </div>
                   ) : (
                     /* Streaming placeholder — show typing dots while text is empty */

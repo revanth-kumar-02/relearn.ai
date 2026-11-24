@@ -33,6 +33,8 @@ import {
 } from 'lucide-react';
 import { getContentLanguageLabel } from '../../services/api/youtubeService';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { normalizeMarkdown, markdownTableComponents } from '../../utils/markdownUtils';
 import StudyTimer from './StudyTimer';
 import VideoResources from './VideoResources';
 import QuizModule from './QuizModule';
@@ -892,7 +894,12 @@ const LearningWorkspace: React.FC = () => {
                       </div>
                     </div>
                     <div className="prose-content max-w-none">
-                      <ReactMarkdown>{task.aiExplanation || ''}</ReactMarkdown>
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        components={markdownTableComponents}
+                      >
+                        {normalizeMarkdown(task.aiExplanation || '')}
+                      </ReactMarkdown>
                     </div>
                   </section>
 
@@ -1133,8 +1140,13 @@ const LearningWorkspace: React.FC = () => {
 
           <section className="space-y-4">
             <h2 className="text-xl font-black uppercase tracking-tighter text-stone-800 border-l-4 border-sky-500 pl-4">Core Explanation</h2>
-            <div className="prose prose-stone max-w-none">
-              <ReactMarkdown>{task.aiExplanation || ''}</ReactMarkdown>
+            <div className="prose prose-stone dark:prose-invert max-w-none">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={markdownTableComponents}
+              >
+                {normalizeMarkdown(task.aiExplanation || '')}
+              </ReactMarkdown>
             </div>
           </section>
 

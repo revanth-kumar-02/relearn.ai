@@ -89,6 +89,7 @@ CRITICAL FORMATTING RULES FOR 'aiExplanation':
 7. LANGUAGE: All explanations, activities, and guidance must be written in **${language}**.
 8. TECHNICAL TERMS: Keep technical terms (e.g., "Variables", "DOM", "State") in English to ensure professional terminology is retained.
 9. VARIETY: Ensure the content is unique and specifically tailored to the topic. Avoid generic introductions.
+10. TABLES: When presenting types, comparisons, methods, or cheat-sheet summaries, ALWAYS format them as standard GitHub Flavored Markdown tables with clear headers (| Header 1 | Header 2 |) and separator (|---|---|), placing each row on its own distinct line with proper newline characters. Never smash table rows onto a single line.
 
 Include:
 1. learningObjective: A clear, concise goal for the session (written in ${language}).

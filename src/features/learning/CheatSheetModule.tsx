@@ -13,6 +13,8 @@ import {
   Copy
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { normalizeMarkdown, markdownTableComponents } from '../../utils/markdownUtils';
 import { useData } from '../../contexts/DataContext';
 import { getContentLanguageLabel } from '../../services/api/youtubeService';
 import { exportCheatSheetAsPDF } from '../../services/api/documentService';
@@ -176,7 +178,9 @@ const CheatSheetModule: React.FC<CheatSheetModuleProps> = ({ topic, content }) =
                         <div className="w-full overflow-x-auto no-scrollbar scroll-smooth">
                             <div className="prose prose-stone dark:prose-invert prose-sm max-w-none prose-headings:text-stone-900 prose-headings:dark:text-white prose-p:text-stone-600 prose-p:dark:text-stone-400">
                                 <ReactMarkdown
+                                  remarkPlugins={[remarkGfm]}
                                   components={{
+                                    ...markdownTableComponents,
                                     pre({ children }) {
                                       let lang = 'Code';
                                       let codeText = '';
@@ -227,7 +231,7 @@ const CheatSheetModule: React.FC<CheatSheetModuleProps> = ({ topic, content }) =
                                     }
                                   }}
                                 >
-                                  {section.content}
+                                  {normalizeMarkdown(section.content)}
                                 </ReactMarkdown>
                             </div>
                         </div>

@@ -759,19 +759,20 @@ const NavItem: React.FC<NavItemProps> = ({ icon, label, active, onClick, id, ari
 const HelpPromptOverlay: React.FC = () => {
   const [isVisible, setIsVisible] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { plans } = useData();
   const isNewUser = plans.length === 0;
 
   useEffect(() => {
     // Show prompt after a small delay to not overwhelm on load
     const isDismissed = localStorage.getItem('relearn_help_prompt_dismissed');
-    if (!isDismissed && isNewUser) {
+    if (!isDismissed && isNewUser && location.pathname !== '/help-center') {
       const timer = setTimeout(() => setIsVisible(true), 2000);
       return () => clearTimeout(timer);
     }
-  }, [isNewUser]);
+  }, [isNewUser, location.pathname]);
 
-  if (!isVisible) return null;
+  if (!isVisible || location.pathname === '/help-center') return null;
 
   return createPortal(
     <div className="fixed bottom-24 right-6 md:bottom-24 md:right-8 z-[60] animate-in fade-in slide-in-from-bottom-4 duration-500">
