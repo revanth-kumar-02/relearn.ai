@@ -17,7 +17,8 @@ export interface QueryGenerationContext {
 const KNOWN_TOOLS = [
   'excel', 'power bi', 'tableau', 'sql', 'mysql', 'postgresql', 'pandas', 'numpy',
   'python', 'javascript', 'typescript', 'c#', 'c++', 'java', 'rust', 'go', 'html',
-  'css', 'react', 'angular', 'vue', 'docker', 'git', 'linux', 'aws', 'azure'
+  'css', 'react', 'angular', 'vue', 'docker', 'git', 'linux', 'aws', 'azure',
+  'gcc', 'clang', 'mingw', 'make', 'codeblocks'
 ];
 
 /**
@@ -46,14 +47,27 @@ export const extractLessonTools = (
   const matched = new Set<string>();
 
   // Check special tech symbols and multi-word names first
-  if (matchWordOrSymbol(combined, 'c#') || matchWordOrSymbol(combined, 'csharp') || matchWordOrSymbol(combined, '.net') || matchWordOrSymbol(combined, 'dotnet')) {
-    matched.add('c#');
-  }
-  if (matchWordOrSymbol(combined, 'c++') || matchWordOrSymbol(combined, 'cpp')) {
-    matched.add('c++');
-  }
+  const hasCSharp = matchWordOrSymbol(combined, 'c#') || matchWordOrSymbol(combined, 'csharp') || matchWordOrSymbol(combined, '.net') || matchWordOrSymbol(combined, 'dotnet');
+  const hasCPlusPlus = matchWordOrSymbol(combined, 'c++') || matchWordOrSymbol(combined, 'cpp');
+
+  if (hasCSharp) matched.add('c#');
+  if (hasCPlusPlus) matched.add('c++');
   if (matchWordOrSymbol(combined, 'power bi') || matchWordOrSymbol(combined, 'powerbi')) {
     matched.add('power bi');
+  }
+
+  // If not C# and not C++, check for C programming
+  if (!hasCSharp && !hasCPlusPlus) {
+    if (
+      matchWordOrSymbol(combined, 'c programming') ||
+      matchWordOrSymbol(combined, 'c language') ||
+      matchWordOrSymbol(combined, 'learn c') ||
+      matchWordOrSymbol(combined, 'c tutorial') ||
+      matchWordOrSymbol(cleanSubject, 'c') ||
+      matchWordOrSymbol(planTitle, 'c')
+    ) {
+      matched.add('c');
+    }
   }
 
   for (const tool of KNOWN_TOOLS) {
@@ -110,7 +124,8 @@ export const generateYouTubeSearchQuery = async (
   const primaryTool = tools[0] || (language || (planSubject && planSubject !== 'AI Generated' ? planSubject.split(/\s+/)[0] : ''));
   let baseConcept = cleanTopic;
   if (primaryTool && !cleanTopic.toLowerCase().includes(primaryTool.toLowerCase())) {
-    baseConcept = `${primaryTool} ${cleanTopic}`;
+    const toolPrefix = primaryTool === 'c' ? 'C programming' : primaryTool;
+    baseConcept = `${toolPrefix} ${cleanTopic}`;
   }
   const fallbackQuery = `${sanitizeInput(baseConcept)} tutorial${langSuffix}`;
 

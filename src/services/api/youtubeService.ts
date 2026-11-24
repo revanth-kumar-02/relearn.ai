@@ -109,9 +109,14 @@ interface YTVideoDetailResponse {
 // ═══════════════════════════════════════════════════════════════
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24h cache validity
-const CACHE_PREFIX = 'relearn_videos_v4_';
+const CACHE_PREFIX = 'relearn_videos_v5_';
 const MAX_RECOMMENDED_VIDEOS = 4;
 const FETCH_POOL_SIZE = 15; // Fetch candidate pool for educational evaluation
+
+// Minimum view count thresholds for educational credibility
+export const MIN_RECOMMENDED_VIEWS = 5000;       // Reject unvetted, low-confidence recordings (< 5,000 views)
+export const ACCEPTABLE_VIEW_THRESHOLD = 10000;  // Standard educational threshold (10,000+ views)
+export const PREFERRED_VIEW_THRESHOLD = 50000;   // High popularity threshold (50,000+ views)
 
 // Video language options
 export const VIDEO_LANGUAGE_OPTIONS = [
@@ -224,7 +229,7 @@ export const LANGUAGE_ALIASES: Record<string, string[]> = {
   'java': ['java', 'jdk', 'jvm'],
   'c++': ['c++', 'cpp', 'c plus plus'],
   'c#': ['c#', 'csharp', 'c sharp', '.net', 'dotnet'],
-  'c': ['c programming', 'c language'],
+  'c': ['c programming', 'c language', 'c compiler', 'learn c', 'c tutorial', 'ansi c'],
   'ruby': ['ruby', 'ruby on rails', 'rails'],
   'php': ['php', 'laravel'],
   'swift': ['swift', 'swiftui', 'ios development'],
@@ -265,6 +270,17 @@ export interface EcosystemDefinition {
 }
 
 export const TECH_ECOSYSTEMS: Record<string, EcosystemDefinition> = {
+  'c': {
+    primary: [
+      'c programming', 'c language', 'c compiler', 'learn c', 'c tutorial',
+      'ansi c', 'c code', 'c program', 'c'
+    ],
+    associated: ['gcc', 'clang', 'mingw', 'codeblocks', 'make', 'pointers', 'memory management', 'c setup', 'c programming tutorial', 'clion'],
+    disallowed: [
+      'c#', 'csharp', '.net', 'dotnet', 'c++', 'cpp', 'python', 'java', 'go',
+      'golang', 'rust', 'javascript', 'typescript', 'mern', 'sharepoint', 'cursor', 'claude', 'kiro'
+    ]
+  },
   'c#': {
     primary: ['c#', 'csharp', 'c sharp', '.net', 'dotnet', 'visual studio'],
     associated: ['asp.net', 'wpf', 'entity framework', 'linq', 'blazor', 'c# 12', 'c# 11', 'c# 10', 'nuget'],
@@ -334,16 +350,17 @@ export const TECH_ECOSYSTEMS: Record<string, EcosystemDefinition> = {
 
 // Domain tool conflicts: When learning Tool A, videos focused on Tool B must be rejected
 const CONFLICTING_TOOLS: Record<string, string[]> = {
+  'c': ['c#', 'c++', 'python', 'java', 'javascript', 'rust', 'go', 'cursor', 'claude code', 'mern', 'sharepoint'],
   'excel': ['cursor', 'vscode', 'power bi', 'python', 'tableau', 'jupyter', 'claude code'],
   'power bi': ['cursor', 'vscode', 'excel', 'python', 'tableau', 'jupyter', 'claude code'],
   'tableau': ['cursor', 'vscode', 'power bi', 'excel'],
   'html': ['react', 'angular', 'vue', 'next.js', 'cursor', 'python', 'claude code'],
   'css': ['python', 'c#', 'sql', 'rust', 'go', 'claude code'],
   'python': ['javascript', 'c#', 'java', 'c++', 'rust', 'go', 'php', 'claude code', 'cursor', 'ollama', 'opencode'],
-  'c#': ['python', 'javascript', 'rust', 'go', 'php', 'java', 'claude code', 'cursor', 'ollama', 'opencode'],
+  'c#': ['c', 'python', 'javascript', 'rust', 'go', 'php', 'java', 'claude code', 'cursor', 'ollama', 'opencode'],
   'rust': ['python', 'javascript', 'c#', 'java', 'go', 'claude code', 'cursor', 'ollama'],
   'java': ['python', 'javascript', 'c#', 'rust', 'go', 'claude code', 'cursor', 'ollama'],
-  'c++': ['python', 'javascript', 'c#', 'rust', 'go', 'claude code', 'cursor', 'ollama'],
+  'c++': ['c#', 'python', 'javascript', 'rust', 'go', 'claude code', 'cursor', 'ollama'],
   'sql': ['excel', 'cursor', 'html', 'css', 'claude code'],
 };
 
@@ -367,42 +384,83 @@ export const verifyLanguageMatch = (
   channelTitle: string,
   targetLangCode: string
 ): LanguageVerificationResult => {
+  const lowerText = `${title} ${description} ${channelTitle}`.toLowerCase();
+  const titleAndDesc = `${title} ${description}`;
+
+  // Unicode Indic & non-Latin script detection:
+  const hasBengaliScript = /[\u0980-\u09FF]/.test(titleAndDesc);
+  const hasDevanagariScript = /[\u0900-\u097F]/.test(titleAndDesc);
+  const hasTamilScript = /[\u0B80-\u0BFF]/.test(titleAndDesc);
+  const hasTeluguScript = /[\u0C00-\u0C7F]/.test(titleAndDesc);
+  const hasMalayalamScript = /[\u0D00-\u0D7F]/.test(titleAndDesc);
+  const hasArabicUrduScript = /[\u0600-\u06FF]/.test(titleAndDesc);
+  const hasCyrillicScript = /[\u0400-\u04FF]/.test(titleAndDesc);
+
+  // Spoken language keywords in title, description, or channel:
+  const hasBengaliKeyword = /\b(bangla|bengali|বাংলা|in bangla|in bengali|bangla tutorial)\b/i.test(lowerText);
+  const hasHindiKeyword = /\b(hindi|हिंदी|in hindi|hindi tutorial)\b/i.test(lowerText);
+  const hasTamilKeyword = /\b(tamil|தமிழ்|in tamil|tamil tutorial|tamilan)\b/i.test(lowerText);
+  const hasTeluguKeyword = /\b(telugu|తెలుగు|in telugu|telugu tutorial)\b/i.test(lowerText);
+  const hasMalayalamKeyword = /\b(malayalam|മലയാളം|in malayalam|malayalam tutorial)\b/i.test(lowerText);
+  const hasUrduKeyword = /\b(urdu|اردو|in urdu)\b/i.test(lowerText);
+
+  // English validation: MUST be free of foreign non-Latin scripts and foreign language keywords
   if (!targetLangCode || targetLangCode === 'en') {
+    const isForeign = hasBengaliScript || hasBengaliKeyword ||
+                      hasDevanagariScript || hasHindiKeyword ||
+                      hasTamilScript || hasTamilKeyword ||
+                      hasTeluguScript || hasTeluguKeyword ||
+                      hasMalayalamScript || hasMalayalamKeyword ||
+                      hasArabicUrduScript || hasUrduKeyword ||
+                      hasCyrillicScript;
+
+    if (isForeign) {
+      let detected = 'foreign';
+      if (hasBengaliScript || hasBengaliKeyword) detected = 'bengali';
+      else if (hasDevanagariScript || hasHindiKeyword) detected = 'hindi';
+      else if (hasTamilScript || hasTamilKeyword) detected = 'tamil';
+      else if (hasTeluguScript || hasTeluguKeyword) detected = 'telugu';
+      else if (hasMalayalamScript || hasMalayalamKeyword) detected = 'malayalam';
+      else if (hasArabicUrduScript || hasUrduKeyword) detected = 'urdu';
+
+      return {
+        isMatch: false,
+        detectedScript: detected,
+        hasLanguageIndicator: true
+      };
+    }
+
     return { isMatch: true, detectedScript: 'latin', hasLanguageIndicator: true };
   }
 
-  const lowerText = `${title} ${description} ${channelTitle}`.toLowerCase();
-
-  // Tamil script block: U+0B80 to U+0BFF
+  // Tamil (ta)
   if (targetLangCode === 'ta') {
-    const hasScript = /[\u0B80-\u0BFF]/.test(title) || /[\u0B80-\u0BFF]/.test(description);
-    const hasKeyword = /\b(tamil|தமிழ்|in tamil|tamil tutorial|tamilan)\b/i.test(lowerText);
-    const isMatch = hasScript || hasKeyword;
-    return { isMatch, detectedScript: hasScript ? 'tamil' : 'latin', hasLanguageIndicator: hasKeyword };
+    const isMatch = hasTamilScript || hasTamilKeyword;
+    return { isMatch, detectedScript: hasTamilScript ? 'tamil' : 'latin', hasLanguageIndicator: hasTamilKeyword };
   }
 
-  // Devanagari script block (Hindi): U+0900 to U+097F
+  // Hindi (hi)
   if (targetLangCode === 'hi') {
-    const hasScript = /[\u0900-\u097F]/.test(title) || /[\u0900-\u097F]/.test(description);
-    const hasKeyword = /\b(hindi|हिंदी|in hindi|hindi tutorial)\b/i.test(lowerText);
-    const isMatch = hasScript || hasKeyword;
-    return { isMatch, detectedScript: hasScript ? 'devanagari' : 'latin', hasLanguageIndicator: hasKeyword };
+    const isMatch = hasDevanagariScript || hasHindiKeyword;
+    return { isMatch, detectedScript: hasDevanagariScript ? 'devanagari' : 'latin', hasLanguageIndicator: hasHindiKeyword };
   }
 
-  // Telugu script block: U+0C00 to U+0C7F
+  // Telugu (te)
   if (targetLangCode === 'te') {
-    const hasScript = /[\u0C00-\u0C7F]/.test(title) || /[\u0C00-\u0C7F]/.test(description);
-    const hasKeyword = /\b(telugu|తెలుగు|in telugu|telugu tutorial)\b/i.test(lowerText);
-    const isMatch = hasScript || hasKeyword;
-    return { isMatch, detectedScript: hasScript ? 'telugu' : 'latin', hasLanguageIndicator: hasKeyword };
+    const isMatch = hasTeluguScript || hasTeluguKeyword;
+    return { isMatch, detectedScript: hasTeluguScript ? 'telugu' : 'latin', hasLanguageIndicator: hasTeluguKeyword };
   }
 
-  // Malayalam script block: U+0D00 to U+0D7F
+  // Malayalam (ml)
   if (targetLangCode === 'ml') {
-    const hasScript = /[\u0D00-\u0D7F]/.test(title) || /[\u0D00-\u0D7F]/.test(description);
-    const hasKeyword = /\b(malayalam|മലയാളം|in malayalam|malayalam tutorial)\b/i.test(lowerText);
-    const isMatch = hasScript || hasKeyword;
-    return { isMatch, detectedScript: hasScript ? 'malayalam' : 'latin', hasLanguageIndicator: hasKeyword };
+    const isMatch = hasMalayalamScript || hasMalayalamKeyword;
+    return { isMatch, detectedScript: hasMalayalamScript ? 'malayalam' : 'latin', hasLanguageIndicator: hasMalayalamKeyword };
+  }
+
+  // Bengali (bn)
+  if (targetLangCode === 'bn') {
+    const isMatch = hasBengaliScript || hasBengaliKeyword;
+    return { isMatch, detectedScript: hasBengaliScript ? 'bengali' : 'latin', hasLanguageIndicator: hasBengaliKeyword };
   }
 
   return { isMatch: true, detectedScript: 'latin', hasLanguageIndicator: true };
@@ -410,11 +468,19 @@ export const verifyLanguageMatch = (
 
 export const detectLanguage = (subject: string): string => {
   const lower = subject.toLowerCase().trim();
+  // Check multi-character / compound symbols first (c#, c++, etc.) before single-letter 'c'
   for (const [canonical, aliases] of Object.entries(LANGUAGE_ALIASES)) {
+    if (canonical === 'c') continue;
     for (const alias of aliases) {
       if (matchWordOrSymbol(lower, alias)) return canonical;
     }
   }
+  // Check 'c' specific multi-word aliases
+  for (const alias of LANGUAGE_ALIASES['c'] || []) {
+    if (matchWordOrSymbol(lower, alias)) return 'c';
+  }
+  // Standalone 'c'
+  if (matchWordOrSymbol(lower, 'c')) return 'c';
   return subject;
 };
 
@@ -445,7 +511,7 @@ export const generateDynamicReason = (
     .replace(/^(Day|Module|Week|Section|Lesson)\s*\d+[:\-]?\s*/i, '')
     .trim();
 
-  const toolDisplay = primaryTool ? primaryTool.toUpperCase() : '';
+  const toolDisplay = primaryTool ? (primaryTool === 'c' ? 'C Programming' : primaryTool.toUpperCase()) : '';
   const highlight = matchedConcepts.length > 0 ? matchedConcepts[0] : '';
 
   if (tier === 'DIRECTLY_RELEVANT') {
@@ -512,12 +578,13 @@ export const classifyEducationalRelevance = (
   const targetLang = context.preferredLanguage || getVideoLanguagePreference();
   const langCheck = verifyLanguageMatch(title, description, channelTitle, targetLang);
 
-  // If user requested non-English, but video has ZERO language match, reject immediately
-  if (targetLang !== 'en' && !langCheck.isMatch) {
+  // Strict Language Verification Gate: Rejects any video that violates language constraints
+  if (!langCheck.isMatch) {
+    const detectedName = langCheck.detectedScript !== 'latin' ? ` (${langCheck.detectedScript})` : '';
     return {
       score: 0,
       tier: 'UNRELATED',
-      reason: `Language mismatch (Requires ${getVideoLanguageLabel(targetLang)})`,
+      reason: `Language mismatch (Requires ${getVideoLanguageLabel(targetLang)}${detectedName})`,
       isEligible: false,
       isLanguageMatch: false,
     };
@@ -648,7 +715,19 @@ export const classifyEducationalRelevance = (
     }
   }
 
-  // 6. Scoring Heuristics
+  // 6. Popularity Gate (Reject unvetted / low-confidence recordings < 5,000 views)
+  const viewCountRaw = parseInt(item.statistics?.viewCount || '0', 10);
+  if (viewCountRaw < MIN_RECOMMENDED_VIEWS) {
+    return {
+      score: 10,
+      tier: 'RELATED_NOT_RELEVANT',
+      reason: `Insufficient view count (${formatViewCount(String(viewCountRaw))}) for verified quality`,
+      isEligible: false,
+      isLanguageMatch: langCheck.isMatch,
+    };
+  }
+
+  // 7. Scoring Heuristics
   let score = 0;
   const concepts = extractConceptKeywords(context.lessonTitle, context.learningObjective);
   const matchedConcepts: string[] = [];
@@ -704,15 +783,22 @@ export const classifyEducationalRelevance = (
   }
 
   // Educational Signal Bonuses (Title & Description)
-  if (/\b(tutorial|guide|walkthrough|crash course|how to|explained|explanation)\b/i.test(lowerTitle)) {
+  if (/\b(tutorial|guide|walkthrough|crash course|how to|explained|explanation|install|installation|setup|configuring|configure)\b/i.test(lowerTitle)) {
     score += 15;
-  } else if (/\b(tutorial|guide|walkthrough|crash course|how to|explained|explanation)\b/i.test(lowerDesc)) {
+  } else if (/\b(tutorial|guide|walkthrough|crash course|how to|explained|explanation|install|installation|setup|configuring|configure)\b/i.test(lowerDesc)) {
     score += 10;
   }
 
-  if (/\b(beginner|beginners|basics|step by step|101|introduction|intro|in \d+\s*(minutes|mins))\b/i.test(lowerTitle)) {
+  if (/\b(beginner|beginners|basics|step by step|101|introduction|intro|course|full course|in \d+\s*(minutes|mins))\b/i.test(lowerTitle)) {
     score += 15;
-  } else if (/\b(beginner|beginners|basics|step by step|101|introduction|intro)\b/i.test(lowerDesc)) {
+  } else if (/\b(beginner|beginners|basics|step by step|101|introduction|intro|course)\b/i.test(lowerDesc)) {
+    score += 10;
+  }
+
+  // Established Popularity Bonus
+  if (viewCountRaw >= PREFERRED_VIEW_THRESHOLD) {
+    score += 15;
+  } else if (viewCountRaw >= ACCEPTABLE_VIEW_THRESHOLD) {
     score += 10;
   }
 
@@ -985,12 +1071,23 @@ export const filterAndRankCandidates = (
 
   // Sort order:
   // 1. Directly Relevant over Conceptually Relevant
-  // 2. Higher Relevance Score
-  // 3. View count purely as tie-breaker
+  // 2. High relevance score
+  // 3. Popularity tier preference (>= 50k > >= 10k > fallback)
+  // 4. View count as tie-breaker
   return ranked
     .sort((a, b) => {
       if (a.relevanceTier === 'DIRECTLY_RELEVANT' && b.relevanceTier !== 'DIRECTLY_RELEVANT') return -1;
       if (b.relevanceTier === 'DIRECTLY_RELEVANT' && a.relevanceTier !== 'DIRECTLY_RELEVANT') return 1;
+
+      // Group into popularity tiers: 3 = Strong (50k+), 2 = Standard (10k+), 1 = Fallback (5k+)
+      const aPopTier = a._viewCountRaw >= PREFERRED_VIEW_THRESHOLD ? 3 : (a._viewCountRaw >= ACCEPTABLE_VIEW_THRESHOLD ? 2 : 1);
+      const bPopTier = b._viewCountRaw >= PREFERRED_VIEW_THRESHOLD ? 3 : (b._viewCountRaw >= ACCEPTABLE_VIEW_THRESHOLD ? 2 : 1);
+
+      // If relevance scores are close (within 15 points), prioritize higher credibility / popularity
+      if (aPopTier !== bPopTier && Math.abs(a.relevanceScore - b.relevanceScore) < 15) {
+        return bPopTier - aPopTier;
+      }
+
       if (b.relevanceScore !== a.relevanceScore) return b.relevanceScore - a.relevanceScore;
       return b._viewCountRaw - a._viewCountRaw;
     })

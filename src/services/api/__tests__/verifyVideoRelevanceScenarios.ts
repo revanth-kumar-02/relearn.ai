@@ -314,6 +314,177 @@ console.log('\n--- SCENARIO 6: C# — Day 1: Development Environment Setup ---')
   assert(goEval.tier === 'UNRELATED' && !goEval.isEligible, 'Go language is strictly classified as UNRELATED');
 }
 
+// ─────────────────────────────────────────────────────────────
+// Scenario 7: C Programming — Day 1: Development Environment Setup (Test A)
+// ─────────────────────────────────────────────────────────────
+console.log('\n--- SCENARIO 7: C Programming — Day 1: Development Environment Setup ---');
+{
+  const context: StructuredLessonContext = {
+    planTitle: 'C Programming for Beginners',
+    subject: 'C Programming',
+    difficulty: 'Beginner',
+    lessonTitle: 'Day 1: Development Environment Setup',
+    learningObjective: 'Install GCC compiler with MinGW, configure VS Code for C programming, and run first C program',
+    lessonDescription: 'Set up C compiler and develop your first Hello World in C',
+    preferredLanguage: 'en',
+  };
+
+  const pool: MockVideo[] = [
+    // Authentic C Environment Setup Tutorials (High and acceptable popularity)
+    createMockVideo('c-1', 'Install a C Compiler for Beginners (GCC & MinGW Setup)', 'Complete guide to installing GCC and MinGW on Windows for C programming.', 'Bro Code', '250000'),
+    createMockVideo('c-2', 'C Programming in Visual Studio Code - Complete Setup Guide', 'How to set up and configure C compiler in VS Code editor.', 'FreeCodeCamp', '480000'),
+    createMockVideo('c-3', 'How to Write and Run Your First C Program', 'Step by step tutorial to write, compile and execute your first C program with GCC.', 'Caleb Curry', '850000'),
+    // Production bugs observed in latest report (MUST BE HARD REJECTED)
+    createMockVideo('bad-cursor-c', 'Cursor Tutorial for Beginners (AI Code Editor)', 'Learn the Cursor AI code editor for development', 'Tech With Tim', '1200000'),
+    createMockVideo('bad-lowview-c', 'How to Set Up Your C Programming Environment', 'Quick unvetted desktop screen record setup', 'Unknown Dev', '158'),
+    createMockVideo('bad-bangla-c', 'The C Programming Language in বাংলা', 'সম্পূর্ণ বাংলায় সি প্রোগ্রামিং শিখুন - Complete C Tutorial in Bangla', 'Bangla Tech', '95000'),
+    createMockVideo('bad-csharp-c', 'How to Setup C# and .NET in Visual Studio 2026', 'Complete guide to C# .NET SDK environment setup', 'Tim Corey', '450000'),
+    createMockVideo('bad-go-c', 'Introduction to Go, part 2: Setting Up a Development Environment', 'Setting up Go language in VS Code', 'Failing Forward', '18000'),
+  ];
+
+  const results = filterAndRankCandidates(pool as any, context);
+
+  // Assertions for accepted authentic C tutorials
+  assert(results.some(v => v.id === 'c-1'), 'C Compiler GCC & MinGW setup video ACCEPTED');
+  assert(results.some(v => v.id === 'c-2'), 'C Programming in VS Code video ACCEPTED');
+  assert(results.some(v => v.id === 'c-3'), 'First C Program with GCC video ACCEPTED');
+
+  // Assertions for hard rejection of production failures
+  assert(!results.some(v => v.id === 'bad-cursor-c'), 'Cursor AI (1.2M views) HARD REJECTED for C lesson (Tech mismatch)');
+  assert(!results.some(v => v.id === 'bad-lowview-c'), '158-view recording HARD REJECTED by popularity policy (< 5,000 views)');
+  assert(!results.some(v => v.id === 'bad-bangla-c'), 'Bengali C tutorial in বাংলা HARD REJECTED when English is selected');
+  assert(!results.some(v => v.id === 'bad-csharp-c'), 'C# .NET SDK setup HARD REJECTED for pure C lesson');
+  assert(!results.some(v => v.id === 'bad-go-c'), 'Go language setup HARD REJECTED for C lesson');
+
+  // Verify dynamic subtext explicitly mentions C
+  const c1Video = results.find(v => v.id === 'c-1');
+  assert(
+    !!c1Video && c1Video.reason.toLowerCase().includes('c programming'),
+    'Relevance reason explicitly highlights C Programming technology'
+  );
+
+  // Verify specific classification decisions
+  const cursorEval = classifyEducationalRelevance(pool[3] as any, context);
+  assert(cursorEval.tier === 'UNRELATED' && !cursorEval.isEligible, 'Cursor AI is strictly classified as UNRELATED');
+
+  const lowViewEval = classifyEducationalRelevance(pool[4] as any, context);
+  assert(!lowViewEval.isEligible && lowViewEval.reason.includes('Insufficient view count'), '158-view video rejected with Insufficient view count reason');
+
+  const banglaEval = classifyEducationalRelevance(pool[5] as any, context);
+  assert(!banglaEval.isEligible && banglaEval.reason.includes('Language mismatch'), 'Bengali video rejected with Language mismatch reason');
+}
+
+// ─────────────────────────────────────────────────────────────
+// Scenario 8: Strict Language Gating for English Mode (Test D)
+// ─────────────────────────────────────────────────────────────
+console.log('\n--- SCENARIO 8: Strict Language Gating for English Mode ---');
+{
+  // Bengali in English mode
+  const bnCheck = verifyLanguageMatch(
+    'The C Programming Language in বাংলা',
+    'সম্পূর্ণ বাংলায় সি প্রোগ্রামিং শিখুন',
+    'Bangla Coding',
+    'en'
+  );
+  assert(!bnCheck.isMatch && bnCheck.detectedScript === 'bengali', 'Bengali script (বাংলা) strictly rejected in English mode');
+
+  // Hindi in English mode
+  const hiCheck = verifyLanguageMatch(
+    'C Programming Full Course in Hindi | हिंदी டுடோரியல்',
+    'Complete C tutorial in Hindi',
+    'Code With Harry',
+    'en'
+  );
+  assert(!hiCheck.isMatch && hiCheck.detectedScript === 'hindi', 'Hindi script and keywords strictly rejected in English mode');
+
+  // Tamil in English mode
+  const taCheck = verifyLanguageMatch(
+    'C Programming Tutorial in Tamil | தமிழ்',
+    'Learn C in Tamil step by step',
+    'Tamil Tech',
+    'en'
+  );
+  assert(!taCheck.isMatch && taCheck.detectedScript === 'tamil', 'Tamil script and keywords strictly rejected in English mode');
+
+  // Authentic English video
+  const enCheck = verifyLanguageMatch(
+    'C Programming Tutorial for Beginners - Full Course',
+    'Learn C programming step by step with GCC and VS Code',
+    'freeCodeCamp.org',
+    'en'
+  );
+  assert(enCheck.isMatch && enCheck.detectedScript === 'latin', 'Authentic English video accepted in English mode');
+}
+
+// ─────────────────────────────────────────────────────────────
+// Scenario 9: Popularity & Quality Tier Comparison (Test E)
+// ─────────────────────────────────────────────────────────────
+console.log('\n--- SCENARIO 9: Popularity & Quality Tier Comparison ---');
+{
+  const context: StructuredLessonContext = {
+    planTitle: 'C Programming for Beginners',
+    subject: 'C Programming',
+    difficulty: 'Beginner',
+    lessonTitle: 'C Variables and Data Types',
+    learningObjective: 'Learn int, float, char, and double in C programming',
+    preferredLanguage: 'en',
+  };
+
+  const pool: MockVideo[] = [
+    createMockVideo('p-150k', 'C Variables and Data Types Explained', 'Complete guide to int, float, double and char in C', 'Neso Academy', '150000'),
+    createMockVideo('p-25k', 'Variables in C Programming - Quick Tutorial', 'Variables in C step by step', 'Jenny Lectures', '25000'),
+    createMockVideo('p-150', 'Variables in C Tutorial', 'Quick recording', 'Random Dev', '150'),
+    createMockVideo('p-2m-bad', 'Cursor AI Coding Complete Workflow', 'How to use Cursor AI', 'Fireship', '2000000'),
+  ];
+
+  const results = filterAndRankCandidates(pool as any, context);
+
+  assert(!results.some(v => v.id === 'p-2m-bad'), '2M view Cursor AI video REJECTED (Relevance strictly trumps popularity)');
+  assert(!results.some(v => v.id === 'p-150'), '150-view video REJECTED by popularity policy (< 5,000 views)');
+  assert(results.some(v => v.id === 'p-150k'), '150,000-view video ACCEPTED in high popularity tier');
+  assert(results.some(v => v.id === 'p-25k'), '25,000-view video ACCEPTED in standard popularity tier');
+
+  // Verify rank ordering: 150k view video ranked above 25k view video
+  const idx150k = results.findIndex(v => v.id === 'p-150k');
+  const idx25k = results.findIndex(v => v.id === 'p-25k');
+  assert(idx150k < idx25k, '150k view video ranked ahead of 25k view video');
+}
+
+// ─────────────────────────────────────────────────────────────
+// Scenario 10: Cross-Plan Isolation Between C and C# (Test F)
+// ─────────────────────────────────────────────────────────────
+console.log('\n--- SCENARIO 10: Cross-Plan Isolation Between C and C# ---');
+{
+  const cContext: StructuredLessonContext = {
+    planTitle: '30-Day C Programming Masterclass',
+    subject: 'C Programming',
+    difficulty: 'Beginner',
+    lessonTitle: 'Day 1: Development Environment Setup',
+    learningObjective: 'Setup GCC compiler and VS Code for C',
+    preferredLanguage: 'en',
+  };
+
+  const csharpContext: StructuredLessonContext = {
+    planTitle: '30-Day C# Programming Masterclass',
+    subject: 'C# Programming',
+    difficulty: 'Beginner',
+    lessonTitle: 'Day 1: Development Environment Setup',
+    learningObjective: 'Setup Visual Studio and .NET SDK for C#',
+    preferredLanguage: 'en',
+  };
+
+  const mixedPool: MockVideo[] = [
+    createMockVideo('c-gcc', 'Install GCC Compiler for C Programming', 'GCC and MinGW for C', 'Bro Code', '300000'),
+    createMockVideo('cs-dotnet', 'Install .NET 8 SDK and Visual Studio for C#', '.NET SDK setup for C#', 'Tim Corey', '300000'),
+  ];
+
+  const cResults = filterAndRankCandidates(mixedPool as any, cContext);
+  const csResults = filterAndRankCandidates(mixedPool as any, csharpContext);
+
+  assert(cResults.some(v => v.id === 'c-gcc') && !cResults.some(v => v.id === 'cs-dotnet'), 'C Plan returns C tutorials and strictly excludes C#');
+  assert(csResults.some(v => v.id === 'cs-dotnet') && !csResults.some(v => v.id === 'c-gcc'), 'C# Plan returns C# tutorials and strictly excludes C');
+}
+
 console.log('\n======================================================');
 console.log(`📊 TEST SUITE SUMMARY: ${passedTests} / ${totalTests} ASSERTIONS PASSED (${Math.round((passedTests / totalTests) * 100)}%)`);
 console.log('======================================================\n');
