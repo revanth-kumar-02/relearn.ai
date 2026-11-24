@@ -245,6 +245,75 @@ console.log('\n--- SCENARIO 5: Strict Language Preference — Tamil (ta) ---');
   assert(!engMatch.isMatch, 'verifyLanguageMatch identifies English video as NOT matching Tamil');
 }
 
+// ─────────────────────────────────────────────────────────────
+// Scenario 6: C# — Day 1: Development Environment Setup
+// ─────────────────────────────────────────────────────────────
+console.log('\n--- SCENARIO 6: C# — Day 1: Development Environment Setup ---');
+{
+  const context: StructuredLessonContext = {
+    planTitle: '30-Day Beginner C# Learning Plan',
+    subject: 'AI Generated', // Testing resilience even when subject is set to legacy "AI Generated"
+    difficulty: 'Beginner',
+    lessonTitle: 'Day 1: Development Environment Setup',
+    learningObjective: 'Install Visual Studio Community and .NET SDK, verify with dotnet --version.',
+    lessonDescription: 'Install Visual Studio Community and .NET SDK, verify with dotnet --version.',
+    preferredLanguage: 'en',
+  };
+
+  const pool: MockVideo[] = [
+    // Authentic C# environment setup tutorials
+    createMockVideo('cs-1', 'How to Setup C# and .NET in Visual Studio 2026', 'Complete guide to setting up your C# development environment and creating your first console app.', 'Tim Corey', '450000'),
+    createMockVideo('cs-2', 'C# VS Code Setup - Run .NET 8 CSharp in 5 Minutes', 'Step by step C# environment setup in Visual Studio Code with .NET SDK.', 'Nick Chapsas', '320000'),
+    // Production bugs from user screenshots (MUST BE HARD REJECTED)
+    createMockVideo('bad-kiro', 'Kiro IDE for Beginners | Download, Install & Setup | Day 1/30 Challenge', 'Setup Kiro IDE for development', 'Aniso all study88', '834'),
+    createMockVideo('bad-mern', 'MERN STACK - Environment Setup | Complete Tutorial', 'MongoDB, Express, React, Node.js development environment setup tutorial', 'WsCube Tech', '109000'),
+    createMockVideo('bad-sharepoint', '(old video) SharePoint Framework Tutorial - Setting up your development environment', 'SPFx development environment setup guide', 'Microsoft Community Learning', '18000'),
+    createMockVideo('bad-go', 'Introduction to Go, part 2: Setting Up a Development Environment', 'Setting up Go programming language environment in VS Code', 'Failing Forward', '18000'),
+    createMockVideo('bad-claude-1', 'FULL Claude Code Tutorial for Beginners in 2026! (Step-By-Step)', 'How to use Claude Code agent in terminal', 'Tech With Tim', '423000'),
+    createMockVideo('bad-claude-2', 'Ultimate Claude Code Tutorial: How to Use Claude Code for Beginners in 2026', 'Complete Claude Code workflow', 'AI Master', '232000'),
+    createMockVideo('bad-opencode', 'OpenCode + Ollama (Full Tutorial) - Local AI Coding Setup in 2026', 'Local AI coding setup with Ollama and OpenCode', 'AI Geek', '180000'),
+    createMockVideo('bad-cursor', 'Claude Code + Cursor + GitHub: The New AI environment setup', 'Setup AI development tools', 'Dev Queen', '210000'),
+    createMockVideo('bad-py-env', 'Python Environment Setup in VS Code for Beginners', 'Setup Python 3 and virtual environments', 'Corey Schafer', '800000'),
+  ];
+
+  const results = filterAndRankCandidates(pool as any, context);
+
+  assert(results.some(v => v.id === 'cs-1'), 'C# Visual Studio setup video ACCEPTED');
+  assert(results.some(v => v.id === 'cs-2'), 'C# VS Code .NET 8 video ACCEPTED');
+  assert(!results.some(v => v.id === 'bad-kiro'), 'Kiro IDE video HARD REJECTED for C# lesson');
+  assert(!results.some(v => v.id === 'bad-mern'), 'MERN Stack Environment Setup HARD REJECTED for C# lesson');
+  assert(!results.some(v => v.id === 'bad-sharepoint'), 'SharePoint Framework video HARD REJECTED for C# lesson');
+  assert(!results.some(v => v.id === 'bad-go'), 'Introduction to Go video HARD REJECTED for C# lesson');
+  assert(!results.some(v => v.id === 'bad-claude-1'), 'Tech With Tim Claude Code video HARD REJECTED for C# lesson');
+  assert(!results.some(v => v.id === 'bad-claude-2'), 'AI Master Claude Code video HARD REJECTED for C# lesson');
+  assert(!results.some(v => v.id === 'bad-opencode'), 'OpenCode + Ollama video HARD REJECTED for C# lesson');
+  assert(!results.some(v => v.id === 'bad-cursor'), 'Claude Code + Cursor video HARD REJECTED for C# lesson');
+  assert(!results.some(v => v.id === 'bad-py-env'), 'Python Environment Setup HARD REJECTED for C# lesson');
+
+  // Verify dynamic reason generation
+  const cs1Video = results.find(v => v.id === 'cs-1');
+  assert(
+    !!cs1Video && cs1Video.reason !== 'Foundational concept for Day 1: Development Environment Setup',
+    'Dynamic relevance subtext generated (Not static generic placeholder)'
+  );
+  assert(
+    !!cs1Video && cs1Video.reason.toLowerCase().includes('c#'),
+    'Relevance reason explicitly highlights C# technology'
+  );
+
+  const kiroEval = classifyEducationalRelevance(pool[2] as any, context);
+  assert(kiroEval.tier === 'UNRELATED' && !kiroEval.isEligible, 'Kiro IDE is strictly classified as UNRELATED');
+
+  const mernEval = classifyEducationalRelevance(pool[3] as any, context);
+  assert(mernEval.tier === 'UNRELATED' && !mernEval.isEligible, 'MERN Stack is strictly classified as UNRELATED');
+
+  const spEval = classifyEducationalRelevance(pool[4] as any, context);
+  assert(spEval.tier === 'UNRELATED' && !spEval.isEligible, 'SharePoint is strictly classified as UNRELATED');
+
+  const goEval = classifyEducationalRelevance(pool[5] as any, context);
+  assert(goEval.tier === 'UNRELATED' && !goEval.isEligible, 'Go language is strictly classified as UNRELATED');
+}
+
 console.log('\n======================================================');
 console.log(`📊 TEST SUITE SUMMARY: ${passedTests} / ${totalTests} ASSERTIONS PASSED (${Math.round((passedTests / totalTests) * 100)}%)`);
 console.log('======================================================\n');

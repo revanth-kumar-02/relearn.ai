@@ -21,27 +21,46 @@ const KNOWN_TOOLS = [
 ];
 
 /**
- * Extracts explicit tool names from lesson title, objective, or subject
+ * Accurately matches a word or symbol token in text respecting punctuation boundaries.
+ * Correctly matches tokens containing symbols like 'c#', '.net', 'c++', while preventing
+ * substring collisions like 'inputs' matching 'ts' or 'google' matching 'go'.
+ */
+export const matchWordOrSymbol = (text: string, token: string): boolean => {
+  if (!text || !token) return false;
+  const escaped = token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const regex = new RegExp(`(?:^|[^a-zA-Z0-9_#+.])${escaped}(?:[^a-zA-Z0-9_#+.]|$)`, 'i');
+  return regex.test(text);
+};
+
+/**
+ * Extracts explicit tool names from lesson title, objective, subject, or plan title
  */
 export const extractLessonTools = (
   title: string = '',
   objective: string = '',
-  subject: string = ''
+  subject: string = '',
+  planTitle: string = ''
 ): string[] => {
-  const combined = `${title} ${objective} ${subject}`.toLowerCase();
+  const cleanSubject = (subject && subject !== 'AI Generated') ? subject : '';
+  const combined = `${title} ${objective} ${cleanSubject} ${planTitle}`.toLowerCase();
   const matched = new Set<string>();
 
+  // Check special tech symbols and multi-word names first
+  if (matchWordOrSymbol(combined, 'c#') || matchWordOrSymbol(combined, 'csharp') || matchWordOrSymbol(combined, '.net') || matchWordOrSymbol(combined, 'dotnet')) {
+    matched.add('c#');
+  }
+  if (matchWordOrSymbol(combined, 'c++') || matchWordOrSymbol(combined, 'cpp')) {
+    matched.add('c++');
+  }
+  if (matchWordOrSymbol(combined, 'power bi') || matchWordOrSymbol(combined, 'powerbi')) {
+    matched.add('power bi');
+  }
+
   for (const tool of KNOWN_TOOLS) {
-    const regex = new RegExp(`\\b${tool.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
-    if (regex.test(combined)) {
+    if (matchWordOrSymbol(combined, tool)) {
       matched.add(tool);
     }
   }
-
-  // Handle special case for C# and C++
-  if (/\bc#\b|\bcsharp\b|\b\.net\b/i.test(combined)) matched.add('c#');
-  if (/\bc\+\+\b|\bcpp\b/i.test(combined)) matched.add('c++');
-  if (/\bpower\s*bi\b/i.test(combined)) matched.add('power bi');
 
   return Array.from(matched);
 };
@@ -68,13 +87,17 @@ export const generateYouTubeSearchQuery = async (
 
   if (typeof topicOrContext === 'object' && topicOrContext !== null) {
     lessonTitle = topicOrContext.lessonTitle || '';
-    planSubject = topicOrContext.subject || topicOrContext.planTitle || subject;
+    const rawSub = topicOrContext.subject && topicOrContext.subject !== 'AI Generated' ? topicOrContext.subject : '';
+    planSubject = rawSub || topicOrContext.planTitle || subject;
     learningObjective = topicOrContext.learningObjective || topicOrContext.lessonDescription || '';
     difficulty = topicOrContext.difficulty || 'Beginner';
     targetLang = topicOrContext.preferredLanguage || videoLanguage;
-    tools = topicOrContext.requiredTools || extractLessonTools(lessonTitle, learningObjective, planSubject);
+    tools = topicOrContext.requiredTools?.length
+      ? topicOrContext.requiredTools
+      : extractLessonTools(lessonTitle, learningObjective, planSubject, topicOrContext.planTitle);
   } else {
     lessonTitle = String(topicOrContext || '');
+    planSubject = subject && subject !== 'AI Generated' ? subject : '';
     tools = extractLessonTools(lessonTitle, '', planSubject);
   }
 
@@ -84,7 +107,7 @@ export const generateYouTubeSearchQuery = async (
     : '';
 
   // Deterministic fallback query anchored around tool + specific lesson concept
-  const primaryTool = tools[0] || (language || (planSubject ? planSubject.split(/\s+/)[0] : ''));
+  const primaryTool = tools[0] || (language || (planSubject && planSubject !== 'AI Generated' ? planSubject.split(/\s+/)[0] : ''));
   let baseConcept = cleanTopic;
   if (primaryTool && !cleanTopic.toLowerCase().includes(primaryTool.toLowerCase())) {
     baseConcept = `${primaryTool} ${cleanTopic}`;
@@ -101,7 +124,7 @@ Given a specific lesson title, its learning objectives, tools, and the broader s
 CRITICAL RULES:
 1. ANCHOR TO THE LESSON: Focus strictly on the exact skill, concept, and tool taught in THIS lesson.
 2. REJECT GENERALITIES: If the lesson is "Data Cleaning Using Excel", the query MUST include "Excel data cleaning", NEVER general "Data Analyst" or "Big Data".
-3. TOOL-SPECIFIC: If a specific software/tool is named (${tools.join(', ') || 'none specified'}), the query MUST include that tool.
+3. TOOL & LANGUAGE-SPECIFIC: If a specific software/tool or programming language is named (${tools.join(', ') || planSubject || 'none specified'}), the query MUST include that tool/language (e.g. "${primaryTool || 'C#'} ${cleanTopic}").
 4. TARGET AUDIENCE: Include "tutorial", "beginners", or "step by step" if difficulty is Beginner.
 5. NO FLUFF: Return ONLY the query string (no quotes, no markdown, no explanations).${langInstruction}`;
 

@@ -936,14 +936,16 @@ const LearningWorkspace: React.FC = () => {
                     </p>
                     <VideoResources
                       topic={task.title}
-                      subject={plan?.subject || plan?.title}
+                      subject={(plan?.subject && plan.subject !== 'AI Generated') ? plan.subject : (plan?.title || '')}
                       learningObjective={task.learningObjective}
                       lessonDescription={task.description}
                       difficulty={plan?.difficulty}
                       tags={task.tags}
                       context={{
+                        planId: plan?.id,
+                        taskId: task?.id,
                         planTitle: plan?.title,
-                        subject: plan?.subject || plan?.title,
+                        subject: (plan?.subject && plan.subject !== 'AI Generated') ? plan.subject : (plan?.title || ''),
                         difficulty: plan?.difficulty,
                         lessonTitle: task.title,
                         learningObjective: task.learningObjective,

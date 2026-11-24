@@ -140,11 +140,13 @@ const CreatePlan: React.FC = () => {
 
             const immediateCover = `https://pollinations.ai/p/${encodeURIComponent(planTitle + ' abstract digital art')}?width=1280&height=720&nologo=true`;
 
+            const resolvedSubject = parsedData.subject || prompt.trim() || "General Study";
+
             const newPlan: Plan = {
                 id: planId,
                 title: planTitle,
                 description: parsedData.description,
-                subject: "AI Generated",
+                subject: resolvedSubject,
                 totalDays: planDays.length,
                 completedDays: 0,
                 progress: 0,
@@ -174,7 +176,7 @@ const CreatePlan: React.FC = () => {
                     durationMinutes: dailyGoalMins,
                     dueDate: date.toISOString().split('T')[0],
                     status: 'Not Started',
-                    tags: ['AI Generated', `lang:${contentLanguage}`],
+                    tags: [resolvedSubject, 'AI Generated', `lang:${contentLanguage}`],
                     type: 'reading',
                     color: 'text-primary',
                     bgColor: 'bg-primary/10',

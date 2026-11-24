@@ -1,4 +1,4 @@
-import { generateYouTubeSearchQuery, extractLessonTools } from '../ai/youtubeQueryService';
+import { generateYouTubeSearchQuery, extractLessonTools, matchWordOrSymbol } from '../ai/youtubeQueryService';
 import { getAuthHeaders } from '../../utils/authUtils';
 
 /**
@@ -17,6 +17,8 @@ export type RelevanceTier =
   | 'UNRELATED';
 
 export interface StructuredLessonContext {
+  planId?: string;
+  taskId?: string;
   planTitle?: string;
   subject?: string;
   difficulty?: 'Beginner' | 'Intermediate' | 'Advanced' | string;
@@ -107,7 +109,7 @@ interface YTVideoDetailResponse {
 // ═══════════════════════════════════════════════════════════════
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24h cache validity
-const CACHE_PREFIX = 'relearn_videos_v3_';
+const CACHE_PREFIX = 'relearn_videos_v4_';
 const MAX_RECOMMENDED_VIDEOS = 4;
 const FETCH_POOL_SIZE = 15; // Fetch candidate pool for educational evaluation
 
@@ -210,7 +212,8 @@ const PREFERRED_CHANNELS = [
   'luke barousse', 'edureka', 'simplilearn', 'great learning',
   'mycodeschool', 'abdul bari', 'jenny\'s lectures', 'gate smashers',
   'neso academy', 'mit opencourseware', 'khan academy',
-  '3blue1brown', 'the organic chemistry tutor'
+  '3blue1brown', 'the organic chemistry tutor', 'tim corey', 'nick chapsas',
+  'iamtimcorey', 'raw coding', 'dometrain', 'claudio bernasconi'
 ];
 
 // Common programming languages and aliases
@@ -226,7 +229,7 @@ export const LANGUAGE_ALIASES: Record<string, string[]> = {
   'php': ['php', 'laravel'],
   'swift': ['swift', 'swiftui', 'ios development'],
   'kotlin': ['kotlin', 'android kotlin'],
-  'go': ['golang', 'go programming', 'go language'],
+  'go': ['golang', 'go programming', 'go language', 'go'],
   'rust': ['rust', 'rust programming', 'rust lang'],
   'dart': ['dart', 'flutter'],
   'r': ['r programming', 'r language', 'rstudio'],
@@ -242,17 +245,106 @@ export const LANGUAGE_ALIASES: Record<string, string[]> = {
   'tableau': ['tableau'],
 };
 
+// AI coding assistant tools that frequently hijack search results for general programming lessons
+export const GENERIC_AI_CODING_TOOLS = [
+  'claude code', 'claude', 'opencode', 'ollama', 'cursor', 'cursor ai',
+  'copilot', 'github copilot', 'chatgpt', 'kiro ide', 'kiro', 'windsurf',
+  'v0.dev', 'bolt.new', 'devin'
+];
+
+// Unrelated specialized technology stacks that must not hijack general language lessons
+export const UNRELATED_SPECIALIZED_STACKS = [
+  'mern', 'mean stack', 'sharepoint', 'wordpress', 'salesforce', 'shopify',
+  'sap', 'magento', 'drupal', 'laravel', 'django', 'rails'
+];
+
+export interface EcosystemDefinition {
+  primary: string[];
+  associated: string[];
+  disallowed: string[];
+}
+
+export const TECH_ECOSYSTEMS: Record<string, EcosystemDefinition> = {
+  'c#': {
+    primary: ['c#', 'csharp', 'c sharp', '.net', 'dotnet', 'visual studio'],
+    associated: ['asp.net', 'wpf', 'entity framework', 'linq', 'blazor', 'c# 12', 'c# 11', 'c# 10', 'nuget'],
+    disallowed: ['mern', 'mean stack', 'sharepoint', 'python', 'java', 'go', 'golang', 'rust', 'php', 'ruby', 'kiro', 'claude', 'flutter']
+  },
+  'python': {
+    primary: ['python', 'python3', 'py'],
+    associated: ['pip', 'jupyter', 'anaconda', 'pycharm', 'pandas', 'numpy', 'matplotlib'],
+    disallowed: ['javascript', 'typescript', 'c#', 'java', 'go', 'rust', 'c++', 'php', 'mern', 'sharepoint', 'kiro', 'claude']
+  },
+  'javascript': {
+    primary: ['javascript', 'js', 'ecmascript'],
+    associated: ['node', 'nodejs', 'npm', 'es6', 'vanilla js'],
+    disallowed: ['python', 'c#', 'java', 'c++', 'rust', 'go', 'php', 'kiro', 'claude']
+  },
+  'typescript': {
+    primary: ['typescript', 'ts'],
+    associated: ['tsc', 'ts-node', 'node', 'npm'],
+    disallowed: ['python', 'c#', 'java', 'c++', 'rust', 'go', 'php', 'kiro', 'claude']
+  },
+  'go': {
+    primary: ['golang', 'go language', 'go programming', 'go'],
+    associated: ['goroutines', 'go modules'],
+    disallowed: ['python', 'c#', 'java', 'rust', 'javascript', 'mern', 'sharepoint', 'kiro', 'claude']
+  },
+  'rust': {
+    primary: ['rust', 'rustlang', 'rust programming'],
+    associated: ['cargo', 'crates.io', 'borrow checker'],
+    disallowed: ['python', 'c#', 'java', 'go', 'javascript', 'mern', 'kiro', 'claude']
+  },
+  'java': {
+    primary: ['java', 'jdk', 'jvm'],
+    associated: ['spring', 'spring boot', 'maven', 'gradle', 'intellij'],
+    disallowed: ['python', 'c#', 'rust', 'go', 'javascript', 'php', 'kiro', 'claude']
+  },
+  'c++': {
+    primary: ['c++', 'cpp', 'c plus plus'],
+    associated: ['gcc', 'clang', 'cmake', 'visual studio'],
+    disallowed: ['python', 'c#', 'java', 'rust', 'go', 'javascript', 'mern', 'kiro', 'claude']
+  },
+  'html': {
+    primary: ['html', 'html5', 'semantic html'],
+    associated: ['forms', 'tags', 'elements', 'web development'],
+    disallowed: ['react', 'angular', 'vue', 'python', 'c#', 'rust', 'go', 'kiro', 'claude']
+  },
+  'css': {
+    primary: ['css', 'css3', 'styling'],
+    associated: ['flexbox', 'grid', 'tailwind', 'sass', 'responsive design'],
+    disallowed: ['python', 'c#', 'sql', 'rust', 'go', 'kiro', 'claude']
+  },
+  'sql': {
+    primary: ['sql', 'mysql', 'postgresql', 'postgres', 'sqlite', 'database'],
+    associated: ['queries', 'table', 'relational', 'join', 'select'],
+    disallowed: ['excel', 'html', 'css', 'react', 'python', 'c#', 'kiro', 'claude']
+  },
+  'excel': {
+    primary: ['excel', 'microsoft excel', 'ms excel', 'spreadsheet'],
+    associated: ['formulas', 'vlookup', 'xlookup', 'pivot table', 'data cleaning'],
+    disallowed: ['cursor', 'power bi', 'python', 'tableau', 'jupyter', 'kiro', 'claude']
+  },
+  'power bi': {
+    primary: ['power bi', 'powerbi', 'dax'],
+    associated: ['power query', 'dashboard', 'pbi desktop'],
+    disallowed: ['excel', 'python', 'tableau', 'cursor', 'kiro', 'claude']
+  }
+};
+
 // Domain tool conflicts: When learning Tool A, videos focused on Tool B must be rejected
 const CONFLICTING_TOOLS: Record<string, string[]> = {
-  'excel': ['cursor', 'vscode', 'power bi', 'python', 'tableau', 'jupyter'],
-  'power bi': ['cursor', 'vscode', 'excel', 'python', 'tableau', 'jupyter'],
+  'excel': ['cursor', 'vscode', 'power bi', 'python', 'tableau', 'jupyter', 'claude code'],
+  'power bi': ['cursor', 'vscode', 'excel', 'python', 'tableau', 'jupyter', 'claude code'],
   'tableau': ['cursor', 'vscode', 'power bi', 'excel'],
-  'html': ['react', 'angular', 'vue', 'next.js', 'cursor', 'python'],
-  'css': ['python', 'c#', 'sql', 'rust', 'go'],
-  'python': ['javascript', 'c#', 'java', 'c++', 'rust', 'go', 'php'],
-  'c#': ['python', 'javascript', 'rust', 'go', 'php', 'java'],
-  'rust': ['python', 'javascript', 'c#', 'java', 'go'],
-  'sql': ['excel', 'cursor', 'html', 'css'],
+  'html': ['react', 'angular', 'vue', 'next.js', 'cursor', 'python', 'claude code'],
+  'css': ['python', 'c#', 'sql', 'rust', 'go', 'claude code'],
+  'python': ['javascript', 'c#', 'java', 'c++', 'rust', 'go', 'php', 'claude code', 'cursor', 'ollama', 'opencode'],
+  'c#': ['python', 'javascript', 'rust', 'go', 'php', 'java', 'claude code', 'cursor', 'ollama', 'opencode'],
+  'rust': ['python', 'javascript', 'c#', 'java', 'go', 'claude code', 'cursor', 'ollama'],
+  'java': ['python', 'javascript', 'c#', 'rust', 'go', 'claude code', 'cursor', 'ollama'],
+  'c++': ['python', 'javascript', 'c#', 'rust', 'go', 'claude code', 'cursor', 'ollama'],
+  'sql': ['excel', 'cursor', 'html', 'css', 'claude code'],
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -320,7 +412,7 @@ export const detectLanguage = (subject: string): string => {
   const lower = subject.toLowerCase().trim();
   for (const [canonical, aliases] of Object.entries(LANGUAGE_ALIASES)) {
     for (const alias of aliases) {
-      if (lower.includes(alias)) return canonical;
+      if (matchWordOrSymbol(lower, alias)) return canonical;
     }
   }
   return subject;
@@ -337,6 +429,41 @@ export interface EvaluationResult {
   isEligible: boolean;
   isLanguageMatch: boolean;
 }
+
+/**
+ * Generates dynamic, evidence-backed relevance subtext explaining exactly
+ * why this video supports the current lesson objectives.
+ */
+export const generateDynamicReason = (
+  title: string,
+  context: StructuredLessonContext,
+  tier: RelevanceTier,
+  primaryTool?: string,
+  matchedConcepts: string[] = []
+): string => {
+  const cleanTitle = context.lessonTitle
+    .replace(/^(Day|Module|Week|Section|Lesson)\s*\d+[:\-]?\s*/i, '')
+    .trim();
+
+  const toolDisplay = primaryTool ? primaryTool.toUpperCase() : '';
+  const highlight = matchedConcepts.length > 0 ? matchedConcepts[0] : '';
+
+  if (tier === 'DIRECTLY_RELEVANT') {
+    if (toolDisplay && highlight) {
+      return `${toolDisplay} · Direct Walkthrough of ${highlight}`;
+    }
+    if (toolDisplay) {
+      return `${toolDisplay} · Step-by-Step Hands-on Tutorial`;
+    }
+    return `Direct Tutorial for "${cleanTitle || context.lessonTitle}"`;
+  }
+
+  // CONCEPTUALLY_RELEVANT
+  if (toolDisplay) {
+    return `${toolDisplay} · Core Foundation & Prerequisite Setup`;
+  }
+  return `Foundational Prerequisite for ${cleanTitle || context.lessonTitle}`;
+};
 
 /**
  * Extracts key pedagogical concepts from lesson title & objective
@@ -396,21 +523,102 @@ export const classifyEducationalRelevance = (
     };
   }
 
-  // Extract tools required by the lesson
+  // Combine all curriculum signals to accurately identify subject and tools
+  const cleanSubjectText = [
+    context.subject && context.subject !== 'AI Generated' ? context.subject : '',
+    context.planTitle || '',
+    context.lessonTitle || '',
+    context.learningObjective || '',
+    context.lessonDescription || '',
+    ...(context.tags || []).filter(t => t !== 'AI Generated' && !t.startsWith('lang:'))
+  ].join(' ');
+
+  // 1. AI Tool Hijack Guard (Hard Rejection)
+  // If candidate is an AI coding tool (Claude Code, Ollama, Cursor, Kiro, etc.),
+  // but the lesson does NOT explicitly require AI tools
+  const lessonMentionsAI = /\b(claude|ollama|cursor|copilot|ai editor|llm|opencode|kiro|windsurf)\b/i.test(cleanSubjectText);
+  if (!lessonMentionsAI) {
+    for (const aiTool of GENERIC_AI_CODING_TOOLS) {
+      if (matchWordOrSymbol(lowerTitle, aiTool)) {
+        return {
+          score: 0,
+          tier: 'UNRELATED',
+          reason: `Focuses on ${aiTool} instead of curriculum topic`,
+          isEligible: false,
+          isLanguageMatch: langCheck.isMatch,
+        };
+      }
+    }
+  }
+
+  // 2. Unrelated Specialized Tech Stacks Guard (Hard Rejection)
+  // If candidate is focused on MERN, SharePoint, WordPress, etc., but lesson does not require it
+  for (const stack of UNRELATED_SPECIALIZED_STACKS) {
+    if (matchWordOrSymbol(lowerTitle, stack)) {
+      const lessonMentionsStack = matchWordOrSymbol(cleanSubjectText.toLowerCase(), stack);
+      if (!lessonMentionsStack) {
+        return {
+          score: 0,
+          tier: 'UNRELATED',
+          reason: `Covers ${stack.toUpperCase()} instead of curriculum topic`,
+          isEligible: false,
+          isLanguageMatch: langCheck.isMatch,
+        };
+      }
+    }
+  }
+
+  // 3. Canonical Subject & Ecosystem Lock
+  const canonicalSubject = detectLanguage(cleanSubjectText);
   const requiredTools = context.requiredTools?.length
     ? context.requiredTools
-    : extractLessonTools(context.lessonTitle, context.learningObjective || '', context.subject || '');
+    : extractLessonTools(context.lessonTitle, context.learningObjective || '', context.subject || '', context.planTitle);
 
-  const primaryTool = requiredTools[0]?.toLowerCase();
+  const primaryTool = requiredTools[0]?.toLowerCase() || (Object.keys(LANGUAGE_ALIASES).includes(canonicalSubject) ? canonicalSubject : undefined);
 
-  // 1. Tool Conflict Check (Hard Rejection)
+  // Strict Ecosystem Lock for Target Technology
+  const ecosystem = TECH_ECOSYSTEMS[canonicalSubject];
+  if (ecosystem) {
+    // 3a. Disallowed technologies for this ecosystem
+    for (const disallowed of ecosystem.disallowed) {
+      if (matchWordOrSymbol(lowerTitle, disallowed) && !matchWordOrSymbol(cleanSubjectText.toLowerCase(), disallowed)) {
+        return {
+          score: 0,
+          tier: 'UNRELATED',
+          reason: `Focuses on ${disallowed} instead of ${canonicalSubject.toUpperCase()}`,
+          isEligible: false,
+          isLanguageMatch: langCheck.isMatch,
+        };
+      }
+    }
+
+    // 3b. Must match primary ecosystem terms in title (or in description if title directly matches lesson topic)
+    const matchesPrimaryTitle = ecosystem.primary.some(term => matchWordOrSymbol(lowerTitle, term));
+    const matchesAssociatedTitle = ecosystem.associated.some(term => matchWordOrSymbol(lowerTitle, term));
+
+    if (!matchesPrimaryTitle && !matchesAssociatedTitle) {
+      const cleanTitle = context.lessonTitle.replace(/^(Day|Module|Week|Section|Lesson)\s*\d+[:\-]?\s*/i, '').trim().toLowerCase();
+      const hasSpecificLessonConceptInTitle = cleanTitle.length > 3 && lowerTitle.includes(cleanTitle);
+      const matchesPrimaryDesc = ecosystem.primary.some(term => matchWordOrSymbol(lowerDesc, term));
+
+      if (!(hasSpecificLessonConceptInTitle && matchesPrimaryDesc)) {
+        return {
+          score: 10,
+          tier: 'UNRELATED',
+          reason: `Does not teach ${canonicalSubject.toUpperCase()} or its tools`,
+          isEligible: false,
+          isLanguageMatch: langCheck.isMatch,
+        };
+      }
+    }
+  }
+
+  // 4. Tool Conflict Check (Hard Rejection)
   // If the lesson requires Tool A (e.g. Excel), but video features a conflicting Tool B (e.g. Cursor or Power BI)
   if (primaryTool && CONFLICTING_TOOLS[primaryTool]) {
     const conflicting = CONFLICTING_TOOLS[primaryTool];
     for (const badTool of conflicting) {
-      const badRegex = new RegExp(`\\b${badTool.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
-      // If the conflicting tool is in the title, and the primary tool is NOT in the title
-      if (badRegex.test(lowerTitle) && !lowerTitle.includes(primaryTool)) {
+      if (matchWordOrSymbol(lowerTitle, badTool) && !matchWordOrSymbol(lowerTitle, primaryTool)) {
         return {
           score: 10,
           tier: 'UNRELATED',
@@ -422,13 +630,12 @@ export const classifyEducationalRelevance = (
     }
   }
 
-  // 2. Competing Programming Language Check
-  const canonicalSubject = detectLanguage(context.subject || context.lessonTitle);
+  // 5. Competing Programming Language Check
   if (Object.keys(LANGUAGE_ALIASES).includes(canonicalSubject)) {
     for (const [lang, aliases] of Object.entries(LANGUAGE_ALIASES)) {
       if (lang === canonicalSubject) continue;
       for (const alias of aliases) {
-        if (lowerTitle.includes(alias) && !lowerTitle.includes(canonicalSubject)) {
+        if (matchWordOrSymbol(lowerTitle, alias) && !matchWordOrSymbol(lowerTitle, canonicalSubject)) {
           return {
             score: 5,
             tier: 'UNRELATED',
@@ -441,14 +648,16 @@ export const classifyEducationalRelevance = (
     }
   }
 
-  // 3. Scoring Heuristics
+  // 6. Scoring Heuristics
   let score = 0;
   const concepts = extractConceptKeywords(context.lessonTitle, context.learningObjective);
+  const matchedConcepts: string[] = [];
 
   // Exact full lesson concept match in title (+45)
   const cleanTitle = context.lessonTitle.replace(/^(Day|Module|Week|Section|Lesson)\s*\d+[:\-]?\s*/i, '').trim().toLowerCase();
   if (cleanTitle && lowerTitle.includes(cleanTitle)) {
     score += 45;
+    matchedConcepts.push(cleanTitle);
   } else {
     // Sub-phrase matching (e.g., "for loops", "while loops" from "For Loops and While Loops in Python")
     const subPhrases = cleanTitle.split(/\s+(?:and|or|&|,)\s+/).map(p => p.trim()).filter(p => p.length > 3);
@@ -457,17 +666,17 @@ export const classifyEducationalRelevance = (
       if (lowerTitle.includes(phrase)) {
         score += 35;
         matchedSubphrase = true;
+        matchedConcepts.push(phrase);
         break;
       }
     }
 
     if (!matchedSubphrase) {
       // Partial keyword matches
-      let conceptHits = 0;
       for (const kw of concepts) {
         if (lowerTitle.includes(kw)) {
-          conceptHits++;
           score += 15;
+          matchedConcepts.push(kw);
         } else if (lowerDesc.includes(kw)) {
           score += 5;
         }
@@ -479,11 +688,14 @@ export const classifyEducationalRelevance = (
   // Tool Match (+25 in title, +10 in desc)
   let hasToolMatch = false;
   if (primaryTool) {
-    if (lowerTitle.includes(primaryTool)) {
+    if (matchWordOrSymbol(lowerTitle, primaryTool)) {
       score += 25;
       hasToolMatch = true;
-    } else if (lowerDesc.includes(primaryTool)) {
+    } else if (matchWordOrSymbol(lowerDesc, primaryTool)) {
       score += 10;
+      hasToolMatch = true;
+    } else if (ecosystem && ecosystem.primary.some(term => matchWordOrSymbol(lowerTitle, term))) {
+      score += 25;
       hasToolMatch = true;
     }
   } else {
@@ -522,7 +734,7 @@ export const classifyEducationalRelevance = (
 
   score = Math.max(0, Math.min(100, score));
 
-  // 4. Tier Assignment & Hard Rejection Gating
+  // 7. Tier Assignment & Dynamic Reason Generation
   let tier: RelevanceTier;
   let isEligible = false;
   let reason = '';
@@ -530,15 +742,11 @@ export const classifyEducationalRelevance = (
   if (score >= 80 && (hasToolMatch || !primaryTool)) {
     tier = 'DIRECTLY_RELEVANT';
     isEligible = true;
-    reason = primaryTool 
-      ? `${primaryTool.toUpperCase()} · ${cleanTitle || 'Lesson Topic'} · Step-by-step`
-      : `Covers "${cleanTitle || context.lessonTitle}" directly`;
+    reason = generateDynamicReason(title, context, tier, primaryTool, matchedConcepts);
   } else if (score >= 60 && (hasToolMatch || !primaryTool)) {
     tier = 'CONCEPTUALLY_RELEVANT';
     isEligible = true;
-    reason = primaryTool
-      ? `${primaryTool.toUpperCase()} · Prerequisite / Core Concept`
-      : `Foundational concept for ${context.lessonTitle}`;
+    reason = generateDynamicReason(title, context, tier, primaryTool, matchedConcepts);
   } else if (score >= 30) {
     tier = 'RELATED_NOT_RELEVANT';
     isEligible = false; // REJECT
@@ -559,16 +767,18 @@ export const classifyEducationalRelevance = (
 };
 
 // ═══════════════════════════════════════════════════════════════
-//  3️⃣ Cache Layer (v3 Scoped with Lesson & Language Hash)
+//  3️⃣ Cache Layer (v4 Scoped with Plan, Lesson & Language Hash)
 // ═══════════════════════════════════════════════════════════════
 
 const buildCacheKey = (context: StructuredLessonContext): string => {
   const userScope = context.userId ? `${context.userId}_` : '';
+  const planScope = context.planId ? `p_${context.planId}_` : (context.planTitle ? `pt_${context.planTitle.slice(0, 20)}_` : '');
+  const taskScope = context.taskId ? `t_${context.taskId}_` : '';
   const vidLang = context.preferredLanguage || getVideoLanguagePreference(context.userId);
-  const cleanLang = (context.subject || 'general').toLowerCase().trim().replace(/[^a-z0-9]/g, '_');
+  const cleanLang = (context.subject && context.subject !== 'AI Generated' ? context.subject : detectLanguage(context.planTitle || '')).toLowerCase().trim().replace(/[^a-z0-9]/g, '_');
   const cleanTopic = context.lessonTitle.toLowerCase().trim().replace(/[^a-z0-9]/g, '_');
   const tools = (context.requiredTools || []).join('_');
-  return `${CACHE_PREFIX}${userScope}${vidLang}_${cleanLang}_${cleanTopic}_${tools}`;
+  return `${CACHE_PREFIX}${userScope}${planScope}${taskScope}${vidLang}_${cleanLang}_${cleanTopic}_${tools}`;
 };
 
 const memoryVideoCache = new Map<string, { videos: YouTubeVideo[]; timestamp: number }>();
@@ -577,15 +787,44 @@ const getCachedVideos = (context: StructuredLessonContext): YouTubeVideo[] | nul
   const key = buildCacheKey(context);
   const mem = memoryVideoCache.get(key);
   if (mem && (Date.now() - mem.timestamp) < CACHE_TTL_MS && mem.videos?.length > 0) {
-    return mem.videos;
+    // Re-verify cached videos to ensure no stale/polluted recommendations slip through
+    const valid = mem.videos.filter(v => {
+      const evalRes = classifyEducationalRelevance({
+        id: v.id,
+        snippet: {
+          title: v.title,
+          description: v.description,
+          channelTitle: v.channelTitle,
+          publishedAt: v.publishedAt,
+          thumbnails: { medium: { url: v.thumbnail } }
+        }
+      } as any, context);
+      return evalRes.isEligible;
+    });
+    if (valid.length > 0) return valid;
   }
   try {
     const raw = localStorage.getItem(key);
     if (raw) {
       const parsed: CachedResult = JSON.parse(raw);
       if ((Date.now() - parsed.timestamp) < CACHE_TTL_MS && parsed.videos?.length > 0) {
-        memoryVideoCache.set(key, parsed);
-        return parsed.videos;
+        const valid = parsed.videos.filter(v => {
+          const evalRes = classifyEducationalRelevance({
+            id: v.id,
+            snippet: {
+              title: v.title,
+              description: v.description,
+              channelTitle: v.channelTitle,
+              publishedAt: v.publishedAt,
+              thumbnails: { medium: { url: v.thumbnail } }
+            }
+          } as any, context);
+          return evalRes.isEligible;
+        });
+        if (valid.length > 0) {
+          memoryVideoCache.set(key, { videos: valid, timestamp: parsed.timestamp });
+          return valid;
+        }
       }
     }
   } catch { /* noop */ }
@@ -602,14 +841,23 @@ const setCachedVideos = (context: StructuredLessonContext, videos: YouTubeVideo[
   } catch { /* quota limit */ }
 };
 
-export const clearVideosCache = (topic: string, subject: string = '', userId?: string): void => {
-  const context: StructuredLessonContext = { lessonTitle: topic, subject, userId };
+export const clearVideosCache = (topicOrContext: string | StructuredLessonContext, subject: string = '', userId?: string): void => {
+  const context: StructuredLessonContext = typeof topicOrContext === 'object' && topicOrContext !== null
+    ? topicOrContext
+    : { lessonTitle: typeof topicOrContext === 'string' ? topicOrContext : '', subject, userId };
   const key = buildCacheKey(context);
   memoryVideoCache.delete(key);
   try {
     localStorage.removeItem(key);
+    // Also clear any legacy v3/v2/v1 keys if present
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const k = localStorage.key(i);
+      if (k && (k.startsWith('relearn_videos_v3_') || k.startsWith('relearn_videos_v2_') || k.startsWith('relearn_videos_v1_'))) {
+        localStorage.removeItem(k);
+      }
+    }
   } catch { /* noop */ }
-  console.log(`[YouTube] Cleared cache for "${topic}"`);
+  console.log(`[YouTube] Cleared cache for "${context.lessonTitle}"`);
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -785,7 +1033,8 @@ export const fetchEducationalVideos = async (
     context.requiredTools = extractLessonTools(
       context.lessonTitle,
       context.learningObjective || '',
-      context.subject || ''
+      context.subject || '',
+      context.planTitle
     );
   }
   const targetLang = context.preferredLanguage || getVideoLanguagePreference();

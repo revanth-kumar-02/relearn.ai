@@ -48,6 +48,9 @@ const VideoResources: React.FC<VideoResourcesProps> = ({
 
     // Build or use full structured context
     const structuredContext: StructuredLessonContext = {
+      planId: context?.planId,
+      taskId: context?.taskId,
+      planTitle: context?.planTitle,
       lessonTitle: topic,
       subject: subject || '',
       learningObjective: learningObjective || '',
