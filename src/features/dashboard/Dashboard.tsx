@@ -146,34 +146,36 @@ const Dashboard: React.FC = () => {
                 >
                     <div className="space-y-1 flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1.5">
-                            <span className="relative flex h-3 w-3 flex-shrink-0">
+                            <span className="relative flex h-2.5 w-2.5 flex-shrink-0">
                                 <span className="status-dot-outer" />
-                                <span className="status-dot-inner w-3 h-3" />
+                                <span className="status-dot-inner w-2.5 h-2.5" />
                             </span>
-                            <span className="text-[9px] font-bold uppercase tracking-[0.3em] text-stone-500 dark:text-stone-400">Live Consciousness</span>
+                            <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-stone-500 dark:text-zinc-400">Student Dashboard</span>
                         </div>
                         <h1 className="text-2xl sm:text-3xl md:text-[2.25rem] font-bold tracking-tight text-stone-900 dark:text-white leading-tight">
                             {greeting}, <span className="text-primary">{firstName}</span>.
                         </h1>
-                        <p className="text-xs sm:text-sm font-medium text-stone-500 dark:text-stone-400 leading-relaxed mt-1">
-                            Your Knowledge Matrix is ready. Explore {activePlans.length} active learning paths today.
+                        <p className="text-xs sm:text-sm font-medium text-stone-500 dark:text-zinc-400 leading-relaxed mt-1">
+                            {activePlans.length === 1 
+                                ? '1 active learning plan in progress.' 
+                                : `${activePlans.length} active learning plans in progress.`}
                         </p>
                     </div>
                     
                     <div className="flex items-center gap-2.5 shrink-0 pt-5 md:pt-0">
                         <ThemeToggle 
                             variant="icon"
-                            className="w-10 h-10 md:w-12 md:h-12 rounded-2xl glass-card flex items-center justify-center text-stone-600 dark:text-stone-300 relative shadow-xl"
+                            className="w-10 h-10 md:w-11 md:h-11 rounded-xl glass-card flex items-center justify-center text-stone-600 dark:text-stone-300 relative border border-border-light dark:border-border-dark"
                         />
                         <motion.button 
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             onClick={() => navigate('/notifications')}
-                            className="w-10 h-10 md:w-12 md:h-12 rounded-2xl glass-card flex items-center justify-center text-stone-600 dark:text-stone-300 relative shadow-xl"
+                            className="w-10 h-10 md:w-11 md:h-11 rounded-xl glass-card flex items-center justify-center text-stone-600 dark:text-stone-300 relative border border-border-light dark:border-border-dark"
                         >
                             <Icon name="notifications" className="text-lg md:text-xl" />
                             {unreadCount > 0 && (
-                                <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 bg-red-500 rounded-full border border-white dark:border-stone-950 flex items-center justify-center text-[9px] font-black text-white shadow-lg shadow-red-500/20">
+                                <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 bg-red-500 rounded-full border border-white dark:border-stone-950 flex items-center justify-center text-[9px] font-black text-white">
                                     {unreadCount}
                                 </span>
                             )}
@@ -183,10 +185,9 @@ const Dashboard: React.FC = () => {
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             onClick={() => navigate('/profile')}
-                            className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-primary text-white flex items-center justify-center shadow-xl shadow-primary/20 overflow-hidden relative"
+                            className="w-10 h-10 md:w-11 md:h-11 rounded-xl bg-primary text-white flex items-center justify-center shadow-md shadow-primary/20 overflow-hidden relative"
                         >
-                            <div className="absolute inset-0 bg-white/10" />
-                            <span className="text-base md:text-lg font-bold relative z-10">{firstInitial}</span>
+                            <span className="text-base font-bold relative z-10">{firstInitial}</span>
                         </motion.button>
                     </div>
                 </motion.header>
@@ -239,16 +240,16 @@ const Dashboard: React.FC = () => {
                                 <div className="absolute -right-8 -top-8 w-32 h-32 bg-red-500/5 rounded-full blur-3xl" />
                                 <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-red-500 mb-4 flex items-center gap-2">
                                     <Icon name="history_edu" className="text-sm" />
-                                    Cognitive Recalibration
+                                    Review Mistakes
                                 </h3>
                                 <p className="text-sm font-medium text-stone-600 dark:text-stone-300 mb-6 leading-relaxed">
-                                    Your AI Engine detected <span className="text-red-500 font-bold">{warmUpQuestions.length} anomalies</span> in past sessions. Resolve them now?
+                                    Review <span className="text-red-500 font-bold">{warmUpQuestions.length} past mistakes</span> to strengthen your understanding.
                                 </p>
                                 <button 
                                     onClick={() => navigate('/learning-workspace', { state: { warmUpMode: true } })}
-                                    className="w-full py-4 bg-red-500 text-white rounded-2xl font-bold text-[10px] uppercase tracking-widest shadow-xl shadow-red-500/20 hover:scale-[1.02] active:scale-95 transition-all"
+                                    className="w-full py-3.5 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold text-[10px] uppercase tracking-widest shadow-md shadow-red-500/20 active:scale-95 transition-all"
                                 >
-                                    Initiate Warmup
+                                    Start Review
                                 </button>
                             </motion.section>
                         )}
@@ -318,18 +319,16 @@ const PlanCard = React.memo(({ plan, index, navigate }: any) => (
 
         <div className="space-y-3">
             <div className="flex justify-between items-end">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-stone-500">Resonance Level</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-stone-500 dark:text-zinc-400">Progress</span>
                 <span className="text-base sm:text-lg font-bold tracking-tight tabular-nums">{Math.round(plan.progress)}%</span>
             </div>
-            <div className="h-3 w-full bg-stone-100 dark:bg-stone-800/50 rounded-full p-0.5 border border-stone-200/50 dark:border-stone-700/50 overflow-hidden">
+            <div className="h-2.5 w-full bg-stone-100 dark:bg-zinc-800 rounded-full p-0.5 border border-stone-200/50 dark:border-zinc-700/50 overflow-hidden">
                 <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${plan.progress}%` }}
-                    className="h-full bg-primary rounded-full relative shadow-glow-primary"
-                    transition={{ duration: 1.5, ease: "circOut" }}
-                >
-                    <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent animate-shimmer" />
-                </motion.div>
+                    className="h-full bg-primary rounded-full relative"
+                    transition={{ duration: 1.2, ease: "easeOut" }}
+                />
             </div>
         </div>
     </motion.button>
@@ -342,9 +341,9 @@ const ScheduleSection = React.memo(({
     navigate
 }: any) => {
     return (
-        <section className="glass-card rounded-2xl p-6 shadow-xl">
+        <section className="glass-card rounded-2xl p-6 shadow-xl border border-border-light dark:border-border-dark">
             <div className="flex items-center justify-between mb-5">
-                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-stone-500">Timeline</h3>
+                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-stone-500 dark:text-zinc-400">Schedule</h3>
                 <div className="flex gap-2">
                     <button onClick={handlePrevMonth} className="w-8 h-8 rounded-full hover:bg-stone-100 dark:hover:bg-stone-800 flex items-center justify-center transition-colors">
                         <Icon name="chevron_left" className="text-sm" />
@@ -387,7 +386,7 @@ const ScheduleSection = React.memo(({
                                 {day}
                             </div>
                             {hasEvent && !isSelected && (
-                                <div className="absolute bottom-1 w-1 h-1 bg-primary rounded-full glow-primary" />
+                                <div className="absolute bottom-1 w-1 h-1 bg-primary rounded-full" />
                             )}
                         </button>
                     )
@@ -409,7 +408,7 @@ const ScheduleSection = React.memo(({
                                     onClick={() => navigate('/edit-task', { state: { taskId: event.id } })} 
                                     className="w-full text-left py-3 px-4 bg-stone-50 dark:bg-stone-800/50 rounded-2xl flex items-center gap-3.5 group hover:bg-white dark:hover:bg-stone-800 transition-all border border-transparent hover:border-stone-200 dark:hover:border-stone-700"
                                 >
-                                    <div className={`w-1.5 h-6 rounded-full ${event.priority === 'High' ? 'bg-red-500 shadow-glow-red' : 'bg-primary shadow-glow-primary'}`} />
+                                    <div className={`w-1.5 h-6 rounded-full ${event.priority === 'High' ? 'bg-red-500' : 'bg-primary'}`} />
                                     <div className="flex-1 min-w-0">
                                         <h5 className="text-[13px] font-semibold tracking-tight text-stone-800 dark:text-stone-200 truncate">{event.title}</h5>
                                         <p className="text-[8px] font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest mt-0.5">{event.status}</p>
@@ -425,7 +424,7 @@ const ScheduleSection = React.memo(({
                             animate={{ opacity: 1 }}
                             className="text-center py-6"
                         >
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400">Clear Horizon</p>
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400">No tasks scheduled</p>
                         </motion.div>
                     )}
                 </AnimatePresence>
@@ -435,11 +434,11 @@ const ScheduleSection = React.memo(({
 });
 
 const ActivitySection = React.memo(({ recentActivity, clearAllActivity }: any) => (
-    <section className="glass-card rounded-2xl p-6 shadow-xl">
+    <section className="glass-card rounded-2xl p-6 shadow-xl border border-border-light dark:border-border-dark">
         <div className="flex items-center justify-between mb-5">
-            <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-stone-500">Neural Log</h3>
+            <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-stone-500 dark:text-zinc-400">Recent Activity</h3>
             {(recentActivity || []).length > 0 && (
-                <button onClick={clearAllActivity} className="text-[9px] font-bold uppercase tracking-widest text-primary opacity-60 hover:opacity-100 transition-opacity">Purge Log</button>
+                <button onClick={clearAllActivity} className="text-[9px] font-bold uppercase tracking-widest text-primary opacity-70 hover:opacity-100 transition-opacity">Clear History</button>
             )}
         </div>
         
@@ -447,18 +446,18 @@ const ActivitySection = React.memo(({ recentActivity, clearAllActivity }: any) =
             {(recentActivity || []).length > 0 ? (
                 recentActivity.slice(0, 5).map((item: any, idx: number) => (
                     <div key={idx} className="flex gap-4 items-start">
-                        <div className={`w-10 h-10 rounded-2xl ${item.bg} flex items-center justify-center ${item.color} shadow-lg shrink-0`}>
+                        <div className={`w-10 h-10 rounded-xl ${item.bg} flex items-center justify-center ${item.color} shadow-sm shrink-0`}>
                             <Icon name={item.icon} className="text-lg" />
                         </div>
                         <div className="flex-1 min-w-0">
-                            <h5 className="text-xs font-bold tracking-tight text-stone-800 dark:text-stone-200">{item.title}</h5>
+                            <h5 className="text-xs font-semibold tracking-tight text-stone-800 dark:text-stone-200">{item.title}</h5>
                             <p className="text-[9px] font-bold text-stone-400 uppercase tracking-widest mt-0.5">{item.time}</p>
                         </div>
                     </div>
                 ))
             ) : (
                 <div className="text-center py-8">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400 opacity-40">Stasis State</p>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400 opacity-60">No recent activity</p>
                 </div>
             )}
         </div>

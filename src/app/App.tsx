@@ -399,13 +399,13 @@ const AppContent: React.FC = () => {
         <motion.aside 
           initial={false}
           animate={{ width: isSidebarExpanded ? 288 : 80 }}
-          className="hidden md:flex flex-col h-screen glass-card dark:!bg-[#0c161b] dark:border-r dark:border-white/5 fixed left-0 top-0 z-50 overflow-hidden"
+          className="hidden md:flex flex-col h-screen bg-white dark:!bg-[#09090b] border-r border-border-light dark:border-border-dark fixed left-0 top-0 z-50 overflow-hidden"
         >
-          <div className={`p-6 flex items-center border-b border-white/10 dark:border-white/5 ${isSidebarExpanded ? 'gap-4' : 'justify-center'}`}>
+          <div className={`p-6 flex items-center border-b border-border-light dark:border-border-dark ${isSidebarExpanded ? 'gap-4' : 'justify-center'}`}>
             <motion.div 
-              whileHover={{ scale: 1.1, rotate: 5 }}
+              whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="w-10 h-10 min-w-[40px] rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white shadow-xl shadow-primary/20 cursor-pointer" 
+              className="w-10 h-10 min-w-[40px] rounded-xl bg-primary flex items-center justify-center text-white shadow-sm shadow-primary/20 cursor-pointer" 
               onClick={toggleSidebar}
             >
               <Icon name="school" className="text-2xl" />
@@ -416,7 +416,7 @@ const AppContent: React.FC = () => {
                    initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -10 }}
-                  className="text-xl font-black text-text-primary-light dark:text-text-primary-dark tracking-tighter truncate gradient-text font-display"
+                  className="text-xl font-bold text-text-primary-light dark:text-text-primary-dark tracking-tight truncate font-display"
                 >
                   Relearn.ai
                 </motion.h1>
@@ -502,7 +502,7 @@ const AppContent: React.FC = () => {
           </nav>
 
             {isAdmin && (
-              <div className="p-4 border-t border-white/10">
+              <div className="p-4 border-t border-border-light dark:border-border-dark">
                 <SidebarItem
                   icon="admin_panel_settings"
                   label="Admin Panel"
@@ -513,18 +513,18 @@ const AppContent: React.FC = () => {
                 />
               </div>
             )}
-            <div className="p-4 border-t border-white/10">
+            <div className="p-4 border-t border-border-light dark:border-border-dark">
               <motion.button
-                whileHover={{ scale: 1.02 }}
+                whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.98 }}
                 id="tutorial-new-plan"
                 onClick={() => { triggerHaptic('medium'); navigate('/create-plan'); }}
-                className={`flex items-center justify-center bg-gradient-to-r from-primary to-secondary text-white rounded-xl font-bold shadow-lg shadow-primary/30 transition-shadow hover:shadow-primary/50 ${
+                className={`flex items-center justify-center bg-primary hover:bg-primary-dark text-white rounded-xl font-semibold shadow-sm transition-all ${
                   isSidebarExpanded ? 'w-full gap-2 py-3 px-4' : 'w-12 h-12 mx-auto'
                 }`}
                 aria-label="Create New AI Learning Plan"
               >
-                  <Icon name="auto_awesome" className="animate-pulse" />
+                  <Icon name="add" className="text-xl" />
                 {isSidebarExpanded && <span>New Plan</span>}
               </motion.button>
             </div>
@@ -716,7 +716,7 @@ interface SidebarItemProps {
 
 const SidebarItem: React.FC<SidebarItemProps> = ({ icon, label, active, onClick, id, ariaLabel, showLabel = true }) => (
   <motion.button
-    whileHover={{ x: 4, backgroundColor: 'rgba(19, 164, 236, 0.1)' }}
+    whileHover={{ x: 2 }}
     whileTap={{ scale: 0.98 }}
     id={id}
     onClick={() => { triggerHaptic('light'); onClick(); }}
@@ -724,8 +724,8 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ icon, label, active, onClick,
     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
         showLabel ? '' : 'justify-center'
     } ${active
-        ? 'bg-primary/20 text-primary font-bold shadow-inner shadow-primary/5'
-        : 'text-text-secondary-light dark:text-text-secondary-dark hover:text-text-primary-light dark:hover:text-text-primary-dark'
+        ? 'bg-primary/10 text-primary font-bold dark:bg-primary/15'
+        : 'text-text-secondary-light dark:text-text-secondary-dark hover:text-text-primary-light dark:hover:text-text-primary-dark hover:bg-stone-100/70 dark:hover:bg-white/[0.05]'
       }`}
   >
     <Icon name={icon} className={`text-xl min-w-[20px] ${active ? 'filled' : ''}`} />

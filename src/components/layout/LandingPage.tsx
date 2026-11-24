@@ -335,15 +335,18 @@ const LandingPage: React.FC = () => {
       <header className="rl-header">
         <div className="rl-header-inner">
           <BrandLogo onClick={() => scrollToSection('top')} />
-          <button
-            type="button"
-            className="rl-menu-toggle"
-            aria-label={menuOpen ? 'Close navigation menu' : 'Open navigation menu'}
-            aria-expanded={menuOpen}
-            onClick={() => setMenuOpen((prev) => !prev)}
-          >
-            <Icon name={menuOpen ? 'close' : 'menu'} size={22} />
-          </button>
+          <div className="flex items-center gap-2 sm:hidden">
+            <ThemeToggle variant="icon" />
+            <button
+              type="button"
+              className="rl-menu-toggle"
+              aria-label={menuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+              aria-expanded={menuOpen}
+              onClick={() => setMenuOpen((prev) => !prev)}
+            >
+              <Icon name={menuOpen ? 'close' : 'menu'} size={22} />
+            </button>
+          </div>
           <nav className={`rl-nav ${menuOpen ? 'is-open' : ''}`} aria-label="Main navigation">
             <a
               href="#features"
