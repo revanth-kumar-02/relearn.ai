@@ -40,6 +40,7 @@ import {
 import { ProjectLab } from '../../services/ai/projectLabService';
 import { triggerHaptic } from '../../utils/haptics';
 import { Plan } from '../../types';
+import ComingSoonOverlay from '../../components/common/ComingSoonOverlay';
 
 export const ProjectsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -320,7 +321,8 @@ export const ProjectsPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-8">
+    <>
+      <div aria-hidden="true" className="pointer-events-none select-none min-h-screen py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-8">
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-stone-200 dark:border-stone-800 pb-6">
         <div>
@@ -1002,6 +1004,8 @@ export const ProjectsPage: React.FC = () => {
         )}
       </AnimatePresence>
     </div>
+      <ComingSoonOverlay feature="projects" />
+    </>
   );
 };
 export default ProjectsPage;

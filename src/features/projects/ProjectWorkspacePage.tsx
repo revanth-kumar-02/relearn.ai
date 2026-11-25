@@ -33,6 +33,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useData } from '../../contexts/DataContext';
+import ComingSoonOverlay from '../../components/common/ComingSoonOverlay';
 import { 
   getProjectById, 
   saveProject, 
@@ -496,29 +497,35 @@ export const ProjectWorkspacePage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen py-12 px-4 max-w-7xl mx-auto flex flex-col items-center justify-center space-y-4">
-        <RefreshCw size={28} className="animate-spin text-primary" />
-        <p className="text-sm text-stone-500 font-medium">Launching Web IDE Studio...</p>
-      </div>
+      <>
+        <div aria-hidden="true" className="pointer-events-none select-none min-h-screen py-12 px-4 max-w-7xl mx-auto flex flex-col items-center justify-center space-y-4">
+          <RefreshCw size={28} className="animate-spin text-primary" />
+          <p className="text-sm text-stone-500 font-medium">Launching Web IDE Studio...</p>
+        </div>
+        <ComingSoonOverlay feature="projects" />
+      </>
     );
   }
 
   if (!project) {
     return (
-      <div className="min-h-screen py-12 px-4 max-w-2xl mx-auto text-center space-y-4">
-        <AlertCircle size={40} className="text-rose-500 mx-auto" />
-        <h2 className="text-xl font-black text-stone-900 dark:text-stone-100">Project Not Found</h2>
-        <p className="text-sm text-stone-500">
-          The requested project lab could not be found or has been removed.
-        </p>
-        <button
-          onClick={() => navigate('/projects')}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-white font-bold text-xs"
-        >
-          <ArrowLeft size={14} />
-          <span>Back to Projects</span>
-        </button>
-      </div>
+      <>
+        <div aria-hidden="true" className="pointer-events-none select-none min-h-screen py-12 px-4 max-w-2xl mx-auto text-center space-y-4">
+          <AlertCircle size={40} className="text-rose-500 mx-auto" />
+          <h2 className="text-xl font-black text-stone-900 dark:text-stone-100">Project Not Found</h2>
+          <p className="text-sm text-stone-500">
+            The requested project lab could not be found or has been removed.
+          </p>
+          <button
+            onClick={() => navigate('/projects')}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-white font-bold text-xs"
+          >
+            <ArrowLeft size={14} />
+            <span>Back to Projects</span>
+          </button>
+        </div>
+        <ComingSoonOverlay feature="projects" />
+      </>
     );
   }
 
@@ -656,7 +663,8 @@ export const ProjectWorkspacePage: React.FC = () => {
   };
 
   return (
-    <div className={`min-h-screen py-4 px-3 sm:px-6 max-w-7xl mx-auto space-y-4 ${isFullScreen ? 'fixed inset-0 z-50 bg-stone-950 p-4 max-w-none overflow-y-auto' : ''}`}>
+    <>
+      <div aria-hidden="true" className={`pointer-events-none select-none min-h-screen py-4 px-3 sm:px-6 max-w-7xl mx-auto space-y-4 ${isFullScreen ? 'fixed inset-0 z-50 bg-stone-950 p-4 max-w-none overflow-y-auto' : ''}`}>
       
       {/* ─────────────────────────────────────────────────────────────
           TOP WORKSPACE HEADER & LOCAL VS CODE ACTIONS
@@ -1351,6 +1359,8 @@ export const ProjectWorkspacePage: React.FC = () => {
         )}
       </AnimatePresence>
     </div>
+      <ComingSoonOverlay feature="projects" />
+    </>
   );
 };
 export default ProjectWorkspacePage;

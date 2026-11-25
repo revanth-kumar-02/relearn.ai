@@ -763,16 +763,21 @@ const HelpPromptOverlay: React.FC = () => {
   const { plans } = useData();
   const isNewUser = plans.length === 0;
 
+  const isSuppressedRoute =
+    location.pathname === '/help-center' ||
+    location.pathname.startsWith('/projects') ||
+    location.pathname === '/playground';
+
   useEffect(() => {
     // Show prompt after a small delay to not overwhelm on load
     const isDismissed = localStorage.getItem('relearn_help_prompt_dismissed');
-    if (!isDismissed && isNewUser && location.pathname !== '/help-center') {
+    if (!isDismissed && isNewUser && !isSuppressedRoute) {
       const timer = setTimeout(() => setIsVisible(true), 2000);
       return () => clearTimeout(timer);
     }
-  }, [isNewUser, location.pathname]);
+  }, [isNewUser, isSuppressedRoute]);
 
-  if (!isVisible || location.pathname === '/help-center') return null;
+  if (!isVisible || isSuppressedRoute) return null;
 
   return createPortal(
     <div className="fixed bottom-24 right-6 md:bottom-24 md:right-8 z-[60] animate-in fade-in slide-in-from-bottom-4 duration-500">

@@ -3,12 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Terminal, Keyboard } from 'lucide-react';
 import CodePlaygroundModule from './CodePlaygroundModule';
 import { triggerHaptic } from '../../utils/haptics';
+import ComingSoonOverlay from '../../components/common/ComingSoonOverlay';
 
 export const PlaygroundPage: React.FC = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen py-4 px-3 sm:px-6 max-w-7xl mx-auto flex flex-col space-y-4">
+    <>
+      <div aria-hidden="true" className="pointer-events-none select-none min-h-screen py-4 px-3 sm:px-6 max-w-7xl mx-auto flex flex-col space-y-4">
       {/* Sleek, Minimal Top Header */}
       <header className="flex items-center justify-between py-2 border-b border-stone-200 dark:border-stone-800/80">
         <div className="flex items-center gap-3">
@@ -58,6 +60,8 @@ export const PlaygroundPage: React.FC = () => {
         />
       </main>
     </div>
+      <ComingSoonOverlay feature="playground" />
+    </>
   );
 };
 
